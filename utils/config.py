@@ -11,6 +11,7 @@ from .dirs import create_dirs
 from . import logging_utils
 from . import config_utils
 from . import torch_utils
+from . import shutil_utils
 
 
 def get_config_from_file(config_file, saved_path):
@@ -53,6 +54,12 @@ def process_config(outdir, config_file, resume_root=None, args=None, myargs=None
     args.outdir = resume_root
   else:
     shutil.rmtree(args.outdir, ignore_errors=True)
+    os.makedirs(args.outdir, exist_ok=True)
+    shutil.copytree('.', os.path.join(args.outdir, 'code'),
+                    ignore=shutil_utils.ignoreAbsPath(['results', ]))
+    shutil.copytree('../submodule/template_lib',
+                    os.path.join(args.outdir, 'submodule/template_lib'),
+                    ignore=shutil_utils.ignoreNamePath(['results', 'submodule']))
 
   # Setup dirs in args
   setup_dirs_and_files(args=args)

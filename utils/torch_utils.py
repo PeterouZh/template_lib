@@ -174,21 +174,6 @@ def get_tbwriter_logger_checkpoint(args, od, myargs, outdir, tbdir, logfile, ckp
     pass
 
 
-def ignorePath(path):
-  """
-  For shutil.copytree func
-  :param path:
-  :return:
-  """
-  path = [os.path.abspath(elem) for elem in path]
-
-  def ignoref(directory, contents):
-    ig = [f for f in contents if os.path.abspath(os.path.join(directory, f)) in path]
-    return ig
-
-  return ignoref
-
-
 def set_random_seed(manualSeed=1234):
   import torch
   import numpy as np
