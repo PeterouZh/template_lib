@@ -1,7 +1,7 @@
 import logging
 import datetime
 
-FORMAT = "%(message)s [%(name)s %(levelname)s][%(filename)s:%(funcName)s():%(lineno)s][%(asctime)s.%(msecs)03d]"
+FORMAT = "[%(levelname)s]: %(message)s [%(name)s][%(filename)s:%(funcName)s():%(lineno)s][%(asctime)s.%(msecs)03d]"
 DATEFMT = '%Y/%m/%d %H:%M:%S'
 
 
@@ -48,21 +48,30 @@ def logging_init(filename=None, level=logging.INFO, correct_time=False):
   # logging.error('There are something wrong', exc_info=True)
 
 
-def get_logger(filename, propagate=True, level=logging.INFO, stream=False):
+def get_root_logger(filename, stream=True, level=logging.INFO):
+  logger = logging.getLogger()
+  logger.setLevel(level)
+  set_hander(logger=logger, filename=filename, stream=stream, level=level)
+  return logger
+
+
+def get_logger(filename, stream=True, level=logging.INFO):
   """
 
   :param filename:
   :param propagate: whether log to stdout
   :return:
   """
-  import logging
-  logger = logging.getLogger(name=filename)
+  logger = logging.getLogger(filename)
   logger.setLevel(level)
-  logger.propagate = propagate
+  set_hander(logger=logger, filename=filename, stream=stream, level=level)
+  return logger
 
+
+def set_hander(logger, filename, stream=True, level=logging.INFO):
   formatter = logging.Formatter(FORMAT, datefmt=DATEFMT)
 
-  file_hander = logging.FileHandler(filename=filename, mode='w')
+  file_hander = logging.FileHandler(filename=filename, mode='a')
   file_hander.setLevel(level=level)
   file_hander.setFormatter(formatter)
   logger.addHandler(file_hander)
@@ -72,7 +81,7 @@ def get_logger(filename, propagate=True, level=logging.INFO, stream=False):
     org_formatters = []
     for handler in logger.handlers:
       org_formatters.append(handler.formatter)
-      handler.setFormatter(logging.Formatter("%(message)s"))
+      handler.setFormatter(logging.Formatter("  %(message)s"))
 
     logger.info(*argv)
 

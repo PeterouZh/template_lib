@@ -4,60 +4,10 @@ import os
 from collections import OrderedDict
 
 from .logging_utils import get_logger
-from .utils import save_args_pickle_and_txt
-from .parse_config import YamlConfigParser
+from .config_utils import YamlConfigParser
 
 
-def get_add_argument(parser, args):
-  """
-  Usage:
-      import peng_lib.torch_utils
-      import argparse
-      my_parser = argparse.ArgumentParser(description='MyParser', parents=[parser], add_help=False)
-      parser = argparse.ArgumentParser(description='Dataset')
-      args = parser.parse_args()
-      ADD_argument = peng_lib.torch_utils.get_add_argument(parser, args)
-      od = ADD_argument.od
-  Get file and func name:
-      ADD_argument('python_file', __file__, '')
-      ADD_argument('time_str', time.strftime("%Y%m%d-%H%M%S"))
-      ADD_argument('func_call', sys._getframe().f_code.co_name, '')
-      ADD_argument('outdir', 'results/%s' % args.func_call)
-  :return:
-  """
-  od = OrderedDict()
-
-  def ADD_argument(key, value, help=None):
-    od[key] = value
-    if key in args:
-      parser.set_defaults(**{key: value})
-      setattr(args, key, value)
-      return
-
-    if isinstance(value, str):
-      parser.add_argument('--%s' % key, type=str, default=value, help=help)
-    elif isinstance(value, bool):
-      parser.add_argument('--%s' % key, type=bool, default=value, help=help)
-    elif isinstance(value, int):
-      parser.add_argument('--%s' % key, type=int, default=value, help=help)
-    elif isinstance(value, float):
-      parser.add_argument('--%s' % key, type=float, default=value, help=help)
-    elif isinstance(value, list) and isinstance(value[0], int):
-      parser.add_argument('--%s' % key, type=list, default=value, help=help)
-    elif isinstance(value, list) and isinstance(value[0], float):
-      parser.add_argument('--%s' % key, type=list, default=value, help=help)
-    elif isinstance(value, list) and isinstance(value[0], str):
-      parser.add_argument('--%s' % key, type=list, default=value, help=help)
-    else:
-      assert 0
-    setattr(args, key, value)
-    return
-
-  ADD_argument.od = od
-  return ADD_argument
-
-
-class TensorBoardTool:
+class TensorBoardTool(object):
   """ Run tensorboard in python
       Usage:
           from peng_lib.torch_utils import TensorBoardTool
@@ -66,9 +16,8 @@ class TensorBoardTool:
           tbtool.add_text_args_and_od(args, od)
   """
 
-  def __init__(self, dir_path, tb_logdir):
-    self.dir_path = dir_path
-    self.tb_logdir = tb_logdir
+  def __init__(self, tbdir):
+    self.tbdir = tbdir
 
   def run(self):
     """ Launch tensorboard and create summary_writer
@@ -87,7 +36,7 @@ class TensorBoardTool:
     # tb = program.TensorBoard(default.get_plugins(), default.get_assets_zip_provider())
     port = os.getenv('PORT', '6006')
 
-    tb.configure(argv=[None, '--logdir', self.tb_logdir, '--port', port])
+    tb.configure(argv=[None, '--logdir', self.tbdir, '--port', port])
     url = tb.launch()
     sys.stdout.write('TensorBoard at %s \n' % url)
 
@@ -98,8 +47,17 @@ class TensorBoardTool:
 
   def SummmaryWriter(self):
     from tensorboardX import SummaryWriter
-    writer = SummaryWriter(log_dir=self.dir_path)
+    writer = SummaryWriter(logdir=self.tbdir)
     return writer
+
+  def add_text_str_args(self, args, name):
+    args_str = pprint.pformat(args)
+    args_str = args_str.strip().replace('\n', '  \n>')
+    self.writer.add_text(name, args_str, 0)
+
+  def add_text_md_args(self, args, name):
+    args_md = self.args_as_markdown_no_sorted_(args)
+    self.writer.add_text(name, args_md, 0)
 
   def add_text_args_and_od(self, args, od):
     od_md = self.args_as_markdown_no_sorted_(od)
@@ -109,15 +67,6 @@ class TensorBoardTool:
     default_args = {key: vars(args)[key] for key in default_args}
     default_args_md = self.args_as_markdown_sorted_(default_args)
     self.writer.add_text('args', default_args_md, 0)
-
-  @staticmethod
-  def args_as_markdown(args):
-    """ Return configs as markdown format """
-    text = "|name|value|  \n|-|-|  \n"
-    for attr, value in sorted(args.items()):
-      text += "|{}|{}|  \n".format(attr, value)
-
-    return text
 
   @staticmethod
   def args_as_markdown_no_sorted_(args):

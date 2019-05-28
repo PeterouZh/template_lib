@@ -1,0 +1,99 @@
+data_loader:
+  type: ball
+  args:
+    class_name: ball
+    data_root: ./points_gan/datasets/ball.txt
+arch:
+  type: BallAutoEncoderGeodesic
+trainer:
+  type: BallAutoEncoderGeodesic
+  show_sample: false
+  model:
+    autoencoder:
+      encoder:
+        in_channels: 3
+        n_filters:
+        - 32
+        - 32
+        - 32
+        - 2
+        b_norm: true
+        act: true
+      decoder:
+        layer_sizes:
+        - 32
+        - 32
+        - 32
+        - 3
+        b_norm: true
+        act: true
+      interp_net:
+        in_features: 4
+        layer_sizes:
+        - 16
+        - 16
+        - 16
+        - 1
+        b_norm: true
+        act: true
+      optimizer:
+        type: Adam
+        lr: 0.0001
+        betas:
+        - 0.0
+        - 0.999
+        weight_decay: 0
+    mlp_discriminator:
+      in_channels: 3
+      n_filters:
+      - 16
+      - 16
+      layer_sizes:
+      - 16
+      - 1
+      b_norm: true
+      act: true
+      optimizer:
+        lr: 0.0001
+        betas:
+        - 0.0
+        - 0.999
+  train_func:
+    num_t: 8
+    delta_speed_t: 0.0001
+    delta_geodesic_t: 0.001
+    delta_z: 0.0001
+    test_every: 200
+    evaluate_every: 1000
+    loss:
+      gan_loss: true
+      speed_loss: true
+      geodesic_loss: true
+      recon_w: 1.0
+      speed_w: 0.001
+      geodesic_w: 0.01
+  evaluate_func:
+    _comment:
+      start_point:
+      - 0
+      - 0
+      end_point:
+      - 0
+      - -0.8
+    interp_points: 10
+#    start_point:
+#      - 0
+#      - 0
+#    end_point:
+#      - 0
+#      - -0.8
+    start_point:
+      - 1.
+      - 0
+    end_point:
+      - 0
+      - -1.
+    interp_method: nolinear
+main:
+  seed: 1234
+  epochs: 10000000

@@ -1,0 +1,15 @@
+easydict
+graphviz
+gym
+imageio
+matplotlib
+numpy
+Pillow
+scikit-image
+scikit-learn
+scipy
+tensorboardX
+torch
+torchvision
+tqdm
+pyyaml
