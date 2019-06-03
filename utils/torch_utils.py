@@ -174,19 +174,4 @@ def get_tbwriter_logger_checkpoint(args, od, myargs, outdir, tbdir, logfile, ckp
     pass
 
 
-def set_random_seed(manualSeed=1234):
-  import torch
-  import numpy as np
-  import random
-  random.seed(manualSeed)
-  np.random.seed(manualSeed)
 
-  torch.manual_seed(manualSeed)
-  # if you are suing GPU
-  torch.cuda.manual_seed(manualSeed)
-  torch.cuda.manual_seed_all(manualSeed)
-
-  torch.backends.cudnn.enabled = False
-  torch.backends.cudnn.benchmark = False
-  torch.backends.cudnn.deterministic = True
-  return

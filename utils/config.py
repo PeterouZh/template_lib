@@ -52,6 +52,8 @@ def process_config(outdir, config_file, resume_root=None, args=None, myargs=None
   args.outdir = outdir if not TIME_STR else (outdir + '_' + time_str)
   if resume_root:
     args.outdir = resume_root
+    config_file = os.path.join(args.outdir, "config.yaml")
+    args.config = config_file
   else:
     shutil.rmtree(args.outdir, ignore_errors=True)
     os.makedirs(args.outdir, exist_ok=True)

@@ -22,7 +22,7 @@ class TestingUnit(unittest.TestCase):
     if 'CUDA_VISIBLE_DEVICES' not in os.environ:
       os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     if 'PORT' not in os.environ:
-      os.environ['PORT'] = '6007'
+      os.environ['PORT'] = '6006'
     if 'TIME_STR' not in os.environ:
       os.environ['TIME_STR'] = '0'
 
@@ -50,5 +50,6 @@ class TestingUnit(unittest.TestCase):
                                        resume_root=args.resume_root, args=args,
                                        myargs=myargs)
 
+    input('End %s' % outdir)
     return
 

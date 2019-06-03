@@ -97,4 +97,5 @@ def set_hander(logger, filename, stream=True, level=logging.INFO):
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
 
+  logger.propagate = False
   return logger
