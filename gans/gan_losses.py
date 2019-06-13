@@ -70,6 +70,24 @@ def compute_grad2(d_out, x_in):
   return reg, reg_mean
 
 
+def agp_real(d_out, x_in):
+  batch_size = x_in.size(0)
+  grad_dout = autograd.grad(
+    outputs=d_out.sum(), inputs=x_in,
+    create_graph=True, retain_graph=True, only_inputs=True
+  )[0]
+  grad_dout = grad_dout.view(batch_size, -1)
+  with torch.no_grad():
+    g_norm_mean = grad_dout.norm(p=2, dim=1).mean().item()
+  gp = ((grad_dout.norm(p=2, dim=1) - g_norm_mean) ** 2).mean()
+
+  # grad_dout2 = grad_dout.pow(2)
+  # assert (grad_dout2.size() == x_in.size())
+  # reg = grad_dout2.view(batch_size, -1).sum(1)
+  # reg_mean = reg.mean()
+  return gp, g_norm_mean
+
+
 def wgan_gp_gradient_penalty_cond(x, G_z, gy, f):
   """
   gradient penalty for conditional discriminator
@@ -90,6 +108,30 @@ def wgan_gp_gradient_penalty_cond(x, G_z, gy, f):
   g = torch.autograd.grad(o, z, grad_outputs=torch.ones(o.size()).cuda(), create_graph=True)[0].view(z.size(0), -1)
   gp = ((g.norm(p=2, dim=1) - 1) ** 2).mean()
   return gp
+
+
+def wgan_agp_gradient_penalty_cond(x, G_z, gy, f):
+  """
+  gradient penalty for conditional discriminator
+  :param x:
+  :param G_z:
+  :param gy: label for x * alpha + (1 - alpha) * G_z
+  :param f:
+  :return:
+  """
+  # interpolation
+  shape = [x.size(0)] + [1] * (x.dim() - 1)
+  alpha = torch.rand(shape).cuda()
+  z = x + alpha * (G_z - x)
+
+  # gradient penalty
+  z.requires_grad_()
+  o = torch.nn.parallel.data_parallel(f, (z, gy))
+  g = torch.autograd.grad(o, z, grad_outputs=torch.ones(o.size()).cuda(), create_graph=True)[0].view(z.size(0), -1)
+  with torch.no_grad():
+    g_norm_mean = g.norm(p=2, dim=1).mean().item()
+  gp = ((g.norm(p=2, dim=1) - g_norm_mean) ** 2).mean()
+  return gp, g_norm_mean
 
 
 def wgan_discriminator_loss(r_logit, f_logit):

@@ -357,7 +357,7 @@ class InceptionMetricsCond(object):
   # and iterates until it accumulates config['num_inception_images'] images.
   # The iterator can return samples with a different batch size than used in
   # training, using the setting confg['inception_batchsize']
-  def __init__(self, saved_inception_moments, parallel, no_fid=False):
+  def __init__(self, saved_inception_moments, parallel=True, no_fid=False):
     """
     # Load metrics; this is intentionally not in a try-except loop so that
     # the script will crash here if it cannot find the Inception moments.

@@ -50,7 +50,7 @@ def process_config(outdir, config_file, resume_root=None, args=None, myargs=None
   time_str = time.strftime("%Y%m%d-%H_%M_%S")
 
   args.outdir = outdir if not TIME_STR else (outdir + '_' + time_str)
-  if resume_root:
+  if resume_root and args.resume:
     args.outdir = resume_root
     config_file = os.path.join(args.outdir, "config.yaml")
     args.config = config_file
