@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 import os
 import glob
@@ -22,19 +24,26 @@ class SummaryReader(object):
     tags = sorted(tags)
     return tags
 
-  def get_scalar(self, tag, use_dump=True):
-    data_name = tag.replace('/', '_')
-    data_path = os.path.join(self.tbdir, data_name + '.pkl')
+  def get_scalar(self, tag, use_dump=True, dump_name=None):
+    if dump_name:
+      data_path = os.path.join(self.tbdir, dump_name + '.pkl')
+    else:
+      data_name = tag.replace('/', '_')
+      data_path = os.path.join(self.tbdir, data_name + '.pkl')
+
     if os.path.exists(data_path) and use_dump:
       data = np.load(data_path)
     else:
       data = []
       for event_path in self.event_paths:
-        for e in tf.train.summary_iterator(event_path):
-          for v in e.summary.value:
-            if v.tag == tag:
-              step = e.step
-              data.append([step, v.simple_value])
+        try:
+          for e in tf.train.summary_iterator(event_path):
+            for v in e.summary.value:
+              if v.tag == tag:
+                step = e.step
+                data.append([step, v.simple_value])
+        except:
+          print("Exception occured!", sys.exc_info()[0])
       data = np.array(data).T
       data.dump(data_path)
     return data
