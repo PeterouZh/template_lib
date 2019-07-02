@@ -41,6 +41,7 @@ class TestingUnit(unittest.TestCase):
         args = parser.parse_args(args=argv_str.split())
       else:
         args = parser.parse_args()
+      args.CUDA_VISIBLE_DEVICES = os.environ['CUDA_VISIBLE_DEVICES']
       args = utils.config_utils.DotDict(vars(args))
       return args, argv_str
     args, argv_str = build_args()
