@@ -21,4 +21,5 @@ def build_parser():
   parser.add_argument('--resume_root', type=none_or_str, default='')
   parser.add_argument('--evaluate', type=true_or_false, default=False)
   parser.add_argument('--evaluate_path', type=none_or_str, default='')
+  parser.add_argument('--finetune', type=true_or_false, default=False)
   return parser

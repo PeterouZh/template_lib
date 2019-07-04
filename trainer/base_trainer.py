@@ -51,6 +51,9 @@ class Trainer(object):
       if key in loaded_state_dict['train_dict']:
         self.train_dict[key] = loaded_state_dict['train_dict'][key]
 
+  def finetune(self):
+    raise NotImplemented
+
   def train(self, ):
     config = self.config.train
     for epoch in range(self.train_dict['epoch_done'], config.epochs):

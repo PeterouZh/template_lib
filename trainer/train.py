@@ -12,6 +12,8 @@ def main(trainer, args, myargs):
 
   if args.resume:
     trainer.resume()
+  elif args.finetune:
+    trainer.finetune()
 
   # Load dataset
   trainer.dataset_load()
