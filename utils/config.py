@@ -41,7 +41,24 @@ def setup_dirs_and_files(args):
   args.logfile = os.path.join(args.outdir, "log.txt")
   args.configfile = os.path.join(args.outdir, "config.yaml")
 
+def modelarts_setup(args, myargs):
+  try:
+    import moxing as mox
+    myargs.logger.info("Using modelarts!")
+    assert os.environ['DLS_TRAIN_URL']
+    args.tb_obs = os.environ['DLS_TRAIN_URL']
+    myargs.logger.info_msg('tb_obs: %s', args.tb_obs)
 
+    def copy_obs(s, d, copytree=False):
+      if copytree:
+        mox.file.copy_parallel(s, d)
+      else:
+        mox.file.copy(s, d)
+      return
+    myargs.copy_obs = copy_obs
+  except:
+    myargs.logger.info("Don't use modelarts!")
+  return
 
 def process_config(outdir, config_file, resume_root=None, args=None, myargs=None):
   """
@@ -78,6 +95,9 @@ def process_config(outdir, config_file, resume_root=None, args=None, myargs=None
   myargs.config = EasyDict(config)
   logger.info(" THE config of experiment:")
   logger.info_msg(pprint.pformat(config))
+
+  # For huawei modelarts tb
+  modelarts_setup(args, myargs)
 
   # tensorboard
   tbtool = torch_utils.TensorBoardTool(tbdir=args.tbdir)
