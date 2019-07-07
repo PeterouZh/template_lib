@@ -369,6 +369,7 @@ class InceptionMetricsCond(object):
     """
 
     self.no_fid = no_fid
+    saved_inception_moments = os.path.expanduser(saved_inception_moments)
     self.data_mu = np.load(saved_inception_moments)['mu']
     self.data_sigma = np.load(saved_inception_moments)['sigma']
     # Load network
