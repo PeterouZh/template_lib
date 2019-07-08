@@ -376,17 +376,21 @@ class InceptionMetricsCond(object):
     self.net = load_inception_net(parallel)
 
   def __call__(self, G, z, y, num_inception_images, num_splits=10,
-               prints=True, show_process=False, use_torch=False, parallel=False):
+               prints=True, show_process=False, use_torch=False,
+               parallel=False):
     if prints:
       print('Gathering activations...')
 
-    sample_func = functools.partial(self.sample, G=G, z=z, y=y, parallel=parallel)
-    pool, logits, labels = self.accumulate_inception_activations(sample_func, net=self.net,
-                                                                 num_inception_images=num_inception_images,
-                                                                 show_process=show_process)
+    sample_func = functools.partial(self.sample, G=G, z=z, y=y,
+                                    parallel=parallel)
+    pool, logits, labels = self.accumulate_inception_activations(
+      sample_func, net=self.net,
+      num_inception_images=num_inception_images,
+      show_process=show_process)
     if prints:
       print('Calculating Inception Score...')
-    IS_mean, IS_std = calculate_inception_score(logits.cpu().numpy(), num_splits)
+    IS_mean, IS_std = calculate_inception_score(
+      logits.cpu().numpy(), num_splits)
     if self.no_fid:
       FID = 9999.0
     else:
@@ -395,16 +399,19 @@ class InceptionMetricsCond(object):
       if use_torch:
         mu, sigma = torch.mean(pool, 0), torch_cov(pool, rowvar=False)
       else:
-        mu, sigma = np.mean(pool.cpu().numpy(), axis=0), np.cov(pool.cpu().numpy(), rowvar=False)
+        mu, sigma = np.mean(pool.cpu().numpy(), axis=0), \
+                    np.cov(pool.cpu().numpy(), rowvar=False)
       if prints:
         print('Covariances calculated, getting FID...')
       if use_torch:
-        FID = torch_calculate_frechet_distance(mu, sigma,
-                                               torch.tensor(self.data_mu).float().cuda(),
-                                               torch.tensor(self.data_sigma).float().cuda())
+        FID = torch_calculate_frechet_distance(
+          mu, sigma,
+          torch.tensor(self.data_mu).float().cuda(),
+          torch.tensor(self.data_sigma).float().cuda())
         FID = float(FID.cpu().numpy())
       else:
-        FID = numpy_calculate_frechet_distance(mu, sigma, self.data_mu, self.data_sigma)
+        FID = numpy_calculate_frechet_distance(
+          mu, sigma, self.data_mu, self.data_sigma)
     # Delete mu, sigma, pool, logits, and labels, just in case
     del mu, sigma, pool, logits, labels
     return IS_mean, IS_std, FID

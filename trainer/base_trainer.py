@@ -76,3 +76,6 @@ class Trainer(object):
 
   def summary_scalars_together(self, summary, prefix, step):
     self.myargs.writer.add_scalars(prefix, summary, step)
+
+  def evaluate(self):
+    raise NotImplemented

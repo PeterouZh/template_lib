@@ -48,12 +48,20 @@ def modelarts_setup(args, myargs):
     assert os.environ['DLS_TRAIN_URL']
     args.tb_obs = os.environ['DLS_TRAIN_URL']
     myargs.logger.info_msg('tb_obs: %s', args.tb_obs)
+    assert os.environ['RESULTS_OBS']
+    args.results_obs = os.environ['RESULTS_OBS']
+    myargs.logger.info_msg('results_obs: %s', args.results_obs)
 
     def copy_obs(s, d, copytree=False):
+      myargs.logger.info_msg('Copying %s to %s.', s, d)
+      start_time = time.time()
       if copytree:
         mox.file.copy_parallel(s, d)
       else:
         mox.file.copy(s, d)
+      elapsed_time = time.time() - start_time
+      time_str = time.strftime('%H:%M:%S', time.gmtime(elapsed_time))
+      myargs.logger.info_msg('Elapsed time: %s', time_str)
       return
     myargs.copy_obs = copy_obs
   except:
