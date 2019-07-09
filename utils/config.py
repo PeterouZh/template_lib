@@ -47,6 +47,8 @@ def modelarts_setup(args, myargs):
     myargs.logger.info("Using modelarts!")
     assert os.environ['DLS_TRAIN_URL']
     args.tb_obs = os.environ['DLS_TRAIN_URL']
+    mox.file.remove(args.tb_obs, recursive=True)
+    mox.file.make_dirs(args.tb_obs)
     myargs.logger.info_msg('tb_obs: %s', args.tb_obs)
     assert os.environ['RESULTS_OBS']
     args.results_obs = os.environ['RESULTS_OBS']
@@ -68,6 +70,22 @@ def modelarts_setup(args, myargs):
     myargs.logger.info("Don't use modelarts!")
   return
 
+def modelarts_resume(args):
+  try:
+    import moxing as mox
+    assert os.environ['RESULTS_OBS']
+    args.results_obs = os.environ['RESULTS_OBS']
+
+    exp_name = os.path.relpath(
+      os.path.normpath(args.resume_root), './results')
+    resume_root_obs = os.path.join(args.results_obs, exp_name)
+    assert mox.file.exists(resume_root_obs)
+    print('Copying %s \n to %s'%(resume_root_obs, args.resume_root))
+    mox.file.copy_parallel(resume_root_obs, args.resume_root)
+  except:
+    print("Resume, don't use modelarts!")
+  return
+
 def process_config(outdir, config_file, resume_root=None, args=None, myargs=None):
   """
   """
@@ -79,6 +97,7 @@ def process_config(outdir, config_file, resume_root=None, args=None, myargs=None
     args.outdir = resume_root
     config_file = os.path.join(args.outdir, "config.yaml")
     args.config = config_file
+    modelarts_resume(args)
   else:
     shutil.rmtree(args.outdir, ignore_errors=True)
     os.makedirs(args.outdir, exist_ok=True)
