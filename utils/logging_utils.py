@@ -119,6 +119,12 @@ class StreamToLogger(object):
   def flush(self):
     pass
 
+  def getvalue(self):
+    pass
+
+  def close(self):
+    pass
+
 
 def redirect_print_to_logger(logger, ):
   sl = StreamToLogger(logger)
