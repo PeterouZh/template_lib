@@ -1,5 +1,6 @@
 import logging
 import datetime
+import sys
 
 FORMAT = "[%(levelname)s]: %(message)s [%(name)s][%(filename)s:%(funcName)s():%(lineno)s][%(asctime)s.%(msecs)03d]"
 DATEFMT = '%Y/%m/%d %H:%M:%S'
@@ -99,3 +100,30 @@ def set_hander(logger, filename, stream=True, level=logging.INFO):
 
   logger.propagate = False
   return logger
+
+
+class StreamToLogger(object):
+  """
+  Fake file-like stream object that redirects writes to a logger instance.
+  """
+
+  def __init__(self, logger):
+    self.logger = logger
+    self.linebuf = ''
+
+  def write(self, buf):
+    buf = '> ' + buf
+    for line in buf.rstrip().splitlines():
+      self.logger.info_msg(line.rstrip())
+
+  def flush(self):
+    pass
+
+
+def redirect_print_to_logger(logger, ):
+  sl = StreamToLogger(logger)
+  sys.stdout = sl
+  sys.stderr = sl
+  pass
+
+
