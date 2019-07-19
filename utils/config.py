@@ -1,4 +1,4 @@
-import os
+import os, sys
 import shutil
 import time
 import logging
@@ -73,6 +73,8 @@ def process_config(outdir, config_file, resume_root=None, args=None, myargs=None
   logger.info("The outdir is {}".format(args.outdir))
   logger.info("The args: ")
   logger.info_msg(pprint.pformat(args))
+  myargs.stdout = sys.stdout
+  myargs.stderr = sys.stderr
   logging_utils.redirect_print_to_logger(logger=logger)
 
   # Parse config file
