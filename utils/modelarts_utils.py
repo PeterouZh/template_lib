@@ -33,7 +33,8 @@ def modelarts_setup(args, myargs):
     assert os.environ['DLS_TRAIN_URL']
     # temporary obs dir for tensorboard files during training
     args.tb_obs = os.environ['DLS_TRAIN_URL']
-    mox.file.remove(args.tb_obs, recursive=True)
+    if mox.file.exists(args.tb_obs):
+      mox.file.remove(args.tb_obs, recursive=True)
     mox.file.make_dirs(args.tb_obs)
     myargs.logger.info_msg('tb_obs: %s', args.tb_obs)
     assert os.environ['RESULTS_OBS']
@@ -46,7 +47,7 @@ def modelarts_setup(args, myargs):
       worker.start()
       return worker
     myargs.copy_obs = copy_obs
-  except:
+  except ModuleNotFoundError as e:
     myargs.logger.info("Don't use modelarts!")
   return
 
