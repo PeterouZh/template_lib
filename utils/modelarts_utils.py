@@ -64,6 +64,20 @@ def modelarts_resume(args):
     assert mox.file.exists(resume_root_obs)
     print('Copying %s \n to %s'%(resume_root_obs, args.resume_root))
     mox.file.copy_parallel(resume_root_obs, args.resume_root)
-  except:
+  except ModuleNotFoundError as e:
     print("Resume, don't use modelarts!")
+  return
+
+
+def modelarts_sync_results(args, myargs, join=False):
+  if hasattr(args, 'tb_obs'):
+    print('Copying tb to tb_obs ...')
+    myargs.copy_obs(args.tbdir, args.tb_obs, copytree=True)
+
+    print('Copying results to results_obs ...')
+    worker = myargs.copy_obs('results', args.results_obs,
+                             copytree=True)
+    if join:
+      print('Join copy obs processing.')
+      worker.join()
   return
