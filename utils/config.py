@@ -91,6 +91,9 @@ def process_config(outdir, config_file, resume_root=None, args=None, myargs=None
   writer = tbtool.run()
   tbtool.add_text_md_args(args=args, name='args')
   tbtool.add_text_str_args(args=config, name='config')
+  if hasattr(args, 'command'):
+    tbtool.add_text_str_args(args=getattr(config, args.command),
+                             name='command')
   myargs.writer = writer
 
   # checkpoint
