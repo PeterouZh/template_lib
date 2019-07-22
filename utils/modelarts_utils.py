@@ -71,13 +71,13 @@ def modelarts_resume(args):
 
 def modelarts_sync_results(args, myargs, join=False):
   if hasattr(args, 'tb_obs'):
-    print('Copying tb to tb_obs ...')
+    print('Copying tb to tb_obs ...', file=myargs.stdout)
     myargs.copy_obs(args.tbdir, args.tb_obs, copytree=True)
 
-    print('Copying results to results_obs ...')
+    print('Copying results to results_obs ...', file=myargs.stdout)
     worker = myargs.copy_obs('results', args.results_obs,
                              copytree=True)
     if join:
-      print('Join copy obs processing.')
+      print('Join copy obs processing.', file=myargs.stdout)
       worker.join()
   return
