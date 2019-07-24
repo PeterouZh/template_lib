@@ -42,7 +42,10 @@ class WrapInception(nn.Module):
     x = (x - self.mean) / self.std
     # Upsample if necessary
     if x.shape[2] != 299 or x.shape[3] != 299:
-      x = F.interpolate(x, size=(299, 299), mode='bilinear', align_corners=True)
+      if torch.__version__ in ['0.4.0']:
+        x = F.upsample_bilinear(x, size=(299, 299))
+      else:
+        x = F.interpolate(x, size=(299, 299), mode='bilinear', align_corners=True)
     # 299 x 299 x 3
     x = self.net.Conv2d_1a_3x3(x)
     # 149 x 149 x 32
@@ -291,44 +294,55 @@ class InceptionMetrics(object):
     """
 
     """
+    saved_inception_moments = os.path.expanduser(saved_inception_moments)
     self.data_mu = np.load(saved_inception_moments)['mu']
     self.data_sigma = np.load(saved_inception_moments)['sigma']
     # Load network
     self.net = load_inception_net(parallel)
 
   def __call__(self, G, z, num_inception_images, num_splits=10,
-               prints=True, show_process=False, use_torch=False, no_fid=False, parallel=False):
+               prints=True, show_process=False, use_torch=False,
+               no_fid=False, parallel=False):
+    start_time = time.time()
     if prints:
       print('Gathering activations...')
 
-    self.sample_func = functools.partial(self.sample, G=G, z=z, parallel=parallel)
+    self.sample_func = functools.partial(
+      self.sample, G=G, z=z, parallel=parallel)
 
-    pool, logits = accumulate_inception_activations(self.sample_func, net=self.net,
-                                                    num_inception_images=num_inception_images,
-                                                    show_process=show_process)
-    if prints:
-      print('Calculating Inception Score...')
-    IS_mean, IS_std = calculate_inception_score(logits.cpu().numpy(), num_splits)
+    pool, logits = accumulate_inception_activations(
+      self.sample_func, net=self.net,
+      num_inception_images=num_inception_images, show_process=show_process)
+    # if prints:
+    #   print('Calculating Inception Score...')
+    IS_mean, IS_std = calculate_inception_score(
+      logits.cpu().numpy(), num_splits)
     if no_fid:
       FID = 9999.0
     else:
-      if prints:
-        print('Calculating means and covariances...')
+      # if prints:
+      #   print('Calculating means and covariances...')
       if use_torch:
         mu, sigma = torch.mean(pool, 0), torch_cov(pool, rowvar=False)
       else:
-        mu, sigma = np.mean(pool.cpu().numpy(), axis=0), np.cov(pool.cpu().numpy(), rowvar=False)
-      if prints:
-        print('Covariances calculated, getting FID...')
+        mu, sigma = np.mean(pool.cpu().numpy(), axis=0), \
+                    np.cov(pool.cpu().numpy(), rowvar=False)
+      # if prints:
+      #   print('Covariances calculated, getting FID...')
       if use_torch:
-        FID = torch_calculate_frechet_distance(mu, sigma,
-                                               torch.tensor(self.data_mu).float().cuda(),
-                                               torch.tensor(self.data_sigma).float().cuda())
+        FID = torch_calculate_frechet_distance(
+          mu, sigma,
+          torch.tensor(self.data_mu).float().cuda(),
+          torch.tensor(self.data_sigma).float().cuda())
         FID = float(FID.cpu().numpy())
       else:
-        FID = numpy_calculate_frechet_distance(mu, sigma, self.data_mu, self.data_sigma)
+        FID = numpy_calculate_frechet_distance(
+          mu, sigma, self.data_mu, self.data_sigma)
     # Delete mu, sigma, pool, logits, and labels, just in case
     del mu, sigma, pool, logits
+    elapsed_time = time.time() - start_time
+    time_str = time.strftime('%H:%M:%S', time.gmtime(elapsed_time))
+    print('Elapsed time: %s' % (time_str))
     return IS_mean, IS_std, FID
 
   @staticmethod

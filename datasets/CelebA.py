@@ -5,7 +5,7 @@ import torchvision.datasets as dsets
 import torchvision.transforms as transforms
 
 
-def CelebA64(datadir, batch_size, num_workers, seed):
+def CelebA64(datadir, batch_size, shuffle, num_workers, seed):
   crop_size = 108
   re_size = 64
   offset_height = (218 - crop_size) // 2
@@ -28,7 +28,7 @@ def CelebA64(datadir, batch_size, num_workers, seed):
 
   data_loader = torch.utils.data.DataLoader(imagenet_data,
                                             batch_size=batch_size,
-                                            shuffle=True,
+                                            shuffle=shuffle,
                                             num_workers=num_workers,
                                             worker_init_fn=_init_fn)
   return data_loader

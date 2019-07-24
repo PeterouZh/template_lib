@@ -12,6 +12,7 @@ class Trainer(object):
     # self.dataset_load()
     self.model_create()
     self.optimizer_create()
+    self.schedule_create()
     pass
 
   def init_train_dict(self, ):
@@ -40,6 +41,12 @@ class Trainer(object):
   def optimizer_create(self):
     raise NotImplemented
 
+  def scheduler_create(self):
+    pass
+
+  def scheduler_step(self, epoch):
+    pass
+
   def resume(self):
     args = self.args
     myargs = self.myargs
@@ -55,10 +62,10 @@ class Trainer(object):
     raise NotImplemented
 
   def train(self, ):
-    config = self.config.train
+    config = self.config
     for epoch in range(self.train_dict['epoch_done'], config.epochs):
       self.logger.info('epoch: [%d/%d]' % (epoch, config.epochs))
-
+      self.scheduler_step(epoch=epoch)
       self.train_one_epoch()
 
       self.train_dict['epoch_done'] += 1

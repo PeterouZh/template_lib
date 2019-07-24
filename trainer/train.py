@@ -1,7 +1,7 @@
 
 
 def main(trainer, args, myargs):
-  config = myargs.config.main
+  config = myargs.config
 
   from template_lib.utils import seed_utils
   seed_utils.set_random_seed(config.seed)
