@@ -21,7 +21,7 @@ def wgan_agp_gradient_penalty(x, y, f):
   return gp, g_norm_mean
 
 
-def wgan_gp_gradient_penalty(x, y, f):
+def wgan_gp_gradient_penalty(x, y, f, gp_lambda):
   # interpolation
   shape = [x.size(0)] + [1] * (x.dim() - 1)
   alpha = torch.rand(shape, device='cuda')
@@ -33,6 +33,8 @@ def wgan_gp_gradient_penalty(x, y, f):
   g = grad(o, z, grad_outputs=torch.ones(o.size(), device='cuda'), create_graph=True)[0].view(z.size(0), -1)
   gp = ((g.norm(p=2, dim=1) - 1)**2).mean()
 
+  gp_loss = gp * gp_lambda
+  gp_loss.backward()
   return gp
 
 
