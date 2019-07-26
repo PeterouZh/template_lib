@@ -290,7 +290,7 @@ class InceptionMetrics(object):
   # and iterates until it accumulates config['num_inception_images'] images.
   # The iterator can return samples with a different batch size than used in
   # training, using the setting confg['inception_batchsize']
-  def __init__(self, saved_inception_moments, parallel=True):
+  def __init__(self, saved_inception_moments, parallel=True, device=0):
     """
 
     """
@@ -298,7 +298,8 @@ class InceptionMetrics(object):
     self.data_mu = np.load(saved_inception_moments)['mu']
     self.data_sigma = np.load(saved_inception_moments)['sigma']
     # Load network
-    self.net = load_inception_net(parallel)
+    net = load_inception_net(parallel)
+    self.net = net.cuda(device)
 
   def __call__(self, G, z, num_inception_images, num_splits=10,
                prints=True, show_process=False, use_torch=False,

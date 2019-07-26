@@ -17,6 +17,7 @@ def build_parser():
   parser = argparse.ArgumentParser()
   parser.add_argument('--config', type=none_or_str, default='')
   parser.add_argument('--command', type=none_or_str, default='')
+  parser.add_argument('--world_size', type=int, default=1)
   parser.add_argument('--resume', type=true_or_false, default=False)
   parser.add_argument('--resume_path', type=none_or_str, default='')
   parser.add_argument('--resume_root', type=none_or_str, default='')

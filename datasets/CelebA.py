@@ -5,7 +5,8 @@ import torchvision.datasets as dsets
 import torchvision.transforms as transforms
 
 
-def CelebA64(datadir, batch_size, shuffle, num_workers, seed):
+def CelebA64(datadir, batch_size, shuffle, num_workers, seed,
+             get_dataset=False):
   crop_size = 108
   re_size = 64
   offset_height = (218 - crop_size) // 2
@@ -22,6 +23,9 @@ def CelebA64(datadir, batch_size, shuffle, num_workers, seed):
      transforms.Normalize(mean=[0.5] * 3, std=[0.5] * 3)])
 
   imagenet_data = dsets.ImageFolder(datadir, transform=transform)
+
+  if get_dataset:
+    return imagenet_data
 
   def _init_fn(worker_id):
     np.random.seed(seed + worker_id)
