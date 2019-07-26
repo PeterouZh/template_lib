@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import PIL.Image as Image
 import torch
@@ -20,6 +21,29 @@ def CelebA64(datadir, batch_size, shuffle, num_workers, seed,
      transforms.ToPILImage(),
      transforms.Scale(size=(re_size, re_size), interpolation=Image.BICUBIC),
      transforms.ToTensor(),
+     transforms.Normalize(mean=[0.5] * 3, std=[0.5] * 3)])
+
+  imagenet_data = dsets.ImageFolder(datadir, transform=transform)
+
+  if get_dataset:
+    return imagenet_data
+
+  def _init_fn(worker_id):
+    np.random.seed(seed + worker_id)
+
+  data_loader = torch.utils.data.DataLoader(imagenet_data,
+                                            batch_size=batch_size,
+                                            shuffle=shuffle,
+                                            num_workers=num_workers,
+                                            worker_init_fn=_init_fn)
+  return data_loader
+
+
+def CelebaHQ(datadir, batch_size, shuffle, num_workers, seed,
+             get_dataset=False):
+  datadir = os.path.expanduser(datadir)
+  transform = transforms.Compose(
+    [transforms.ToTensor(),
      transforms.Normalize(mean=[0.5] * 3, std=[0.5] * 3)])
 
   imagenet_data = dsets.ImageFolder(datadir, transform=transform)
