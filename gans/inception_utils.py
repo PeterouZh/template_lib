@@ -303,13 +303,16 @@ class InceptionMetrics(object):
 
   def __call__(self, G, z, num_inception_images, num_splits=10,
                prints=True, show_process=False, use_torch=False,
-               no_fid=False, parallel=False):
+               no_fid=False, parallel=False, sample_func=None):
     start_time = time.time()
     if prints:
       print('Gathering activations...')
 
-    self.sample_func = functools.partial(
-      self.sample, G=G, z=z, parallel=parallel)
+    if sample_func:
+      self.sample_func = sample_func
+    else:
+      self.sample_func = functools.partial(
+        self.sample, G=G, z=z, parallel=parallel)
 
     pool, logits = accumulate_inception_activations(
       self.sample_func, net=self.net,
