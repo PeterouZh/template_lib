@@ -21,7 +21,7 @@ def wgan_agp_gradient_penalty(x, y, f):
   return gp, g_norm_mean
 
 
-def wgan_gp_gradient_penalty(x, y, f, gp_lambda):
+def wgan_gp_gradient_penalty(x, y, f, gp_lambda, retain_graph=False):
   # interpolation
   device = x.device
   shape = [x.size(0)] + [1] * (x.dim() - 1)
@@ -36,7 +36,7 @@ def wgan_gp_gradient_penalty(x, y, f, gp_lambda):
   gp = ((g.norm(p=2, dim=1) - 1)**2).mean()
 
   gp_loss = gp * gp_lambda
-  gp_loss.backward()
+  gp_loss.backward(retain_graph=retain_graph)
   return gp
 
 
