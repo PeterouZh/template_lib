@@ -40,6 +40,8 @@ def modelarts_setup(args, myargs):
     assert os.environ['RESULTS_OBS']
     args.results_obs = os.environ['RESULTS_OBS']
     myargs.logger.info_msg('results_obs: %s', args.results_obs)
+    if args.outdir.startswith('results/'):
+      args.outdir_obs = os.path.join(args.results_obs, args.outdir[8:])
 
     def copy_obs(s, d, copytree=False):
       mox.file.copy(args.logfile, os.path.join(args.tb_obs, 'log.txt'))
@@ -74,8 +76,8 @@ def modelarts_sync_results(args, myargs, join=False):
     print('Copying tb to tb_obs ...', file=myargs.stdout)
     myargs.copy_obs(args.tbdir, args.tb_obs, copytree=True)
 
-    print('Copying results to results_obs ...', file=myargs.stdout)
-    worker = myargs.copy_obs('results', args.results_obs,
+    print('Copying results to outdir_obs ...', file=myargs.stdout)
+    worker = myargs.copy_obs(args.outdir, args.outdir_obs,
                              copytree=True)
     if join:
       print('Join copy obs processing.', file=myargs.stdout)

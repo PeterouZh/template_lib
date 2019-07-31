@@ -58,11 +58,15 @@ def process_config(outdir, config_file, resume_root=None, args=None, myargs=None
   else:
     shutil.rmtree(args.outdir, ignore_errors=True)
     os.makedirs(args.outdir, exist_ok=True)
-    shutil.copytree('.', os.path.join(args.outdir, 'code'),
-                    ignore=shutil_utils.ignoreAbsPath(['results', ]))
-    shutil.copytree('../submodule/template_lib',
-                    os.path.join(args.outdir, 'submodule/template_lib'),
-                    ignore=shutil_utils.ignoreNamePath(['results', 'submodule']))
+    try:
+      shutil.copytree('.', os.path.join(args.outdir, 'code'),
+                      ignore=shutil_utils.ignoreAbsPath(['results', ]))
+      shutil.copytree(
+        '../submodule/template_lib',
+        os.path.join(args.outdir, 'submodule/template_lib'),
+        ignore=shutil_utils.ignoreNamePath(['results', 'submodule']))
+    except:
+      print("Error! Copying code to results.")
 
   # Setup dirs in args
   setup_dirs_and_files(args=args)
@@ -92,7 +96,7 @@ def process_config(outdir, config_file, resume_root=None, args=None, myargs=None
   tbtool.add_text_md_args(args=args, name='args')
   tbtool.add_text_str_args(args=config, name='config')
   if hasattr(args, 'command'):
-    tbtool.add_text_str_args(args=getattr(config, args.command),
+    tbtool.add_text_str_args(args=getattr(config, args.command, 'None'),
                              name='command')
   myargs.writer = writer
 
