@@ -1,3 +1,4 @@
+import shutil
 from easydict import EasyDict
 import multiprocessing
 import time
@@ -88,13 +89,20 @@ class TestingUnit(unittest.TestCase):
     old_command = ''
     myargs.logger.info('Begin loop.')
     modelarts_record_bash_command(args, myargs)
+    bash_file = os.path.join(args.outdir, 'bash_command.sh')
+    with open(bash_file, 'w') as f:
+      f.close()
+    cwd = os.getcwd()
+    # copy outdir to outdir_obs
     modelarts_utils.modelarts_sync_results(args, myargs, join=True)
     while True:
       try:
         import moxing as mox
+        # copy oudir_obs to outdir
         mox.file.copy_parallel(args.outdir_obs, args.outdir)
       except:
         pass
+      shutil.copy(bash_file, cwd)
       try:
         with open(args.configfile, 'rt') as handle:
           config = yaml.load(handle)
