@@ -30,6 +30,7 @@ def modelarts_setup(args, myargs):
   try:
     import moxing as mox
     myargs.logger.info("Using modelarts!")
+    modelarts_record_jobs(args, myargs)
 
     assert os.environ['RESULTS_OBS']
     args.results_obs = os.environ['RESULTS_OBS']
@@ -64,8 +65,10 @@ def modelarts_resume(args):
   return
 
 
-def modelarts_sync_results(args, myargs, join=False):
+def modelarts_sync_results(args, myargs, join=False, end=False):
   if hasattr(args, 'outdir_obs'):
+    if end:
+      modelarts_record_jobs(args, myargs, end=end)
     print('Copying args.outdir to outdir_obs ...', file=myargs.stdout)
     worker = myargs.copy_obs(args.outdir, args.outdir_obs,
                              copytree=True)
@@ -73,3 +76,21 @@ def modelarts_sync_results(args, myargs, join=False):
       print('Join copy obs processing.', file=myargs.stdout)
       worker.join()
   return
+
+
+def modelarts_record_jobs(args, myargs, end=False):
+  try:
+    import moxing as mox
+    assert os.environ['DLS_TRAIN_URL']
+    log_obs = os.environ['DLS_TRAIN_URL']
+    command_file = os.path.join(args.outdir, 'jobs.txt')
+    with open(command_file, 'a') as f:
+      if not end:
+        f.write(args.outdir)
+      else:
+        f.write(args.outdir + ' end.')
+      f.write('\n')
+    mox.file.copy(command_file, os.path.join(log_obs, 'jobs.txt'))
+
+  except ModuleNotFoundError as e:
+    myargs.logger.info("Don't use modelarts!")

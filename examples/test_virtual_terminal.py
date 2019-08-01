@@ -111,6 +111,7 @@ class TestingUnit(unittest.TestCase):
       except:
         print('Parse config.yaml error!')
         command = None
+        old_command = ''
       if command != old_command and command:
         old_command = command
         if type(command) is str and command.startswith('bash'):
