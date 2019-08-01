@@ -1,2 +1,3 @@
-python -u -c "while True:import time;time.sleep(100)"
+
+echo In test_bash.sh
 

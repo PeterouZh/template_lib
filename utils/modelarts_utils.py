@@ -30,21 +30,14 @@ def modelarts_setup(args, myargs):
   try:
     import moxing as mox
     myargs.logger.info("Using modelarts!")
-    assert os.environ['DLS_TRAIN_URL']
-    # temporary obs dir for tensorboard files during training
-    args.tb_obs = os.environ['DLS_TRAIN_URL']
-    if mox.file.exists(args.tb_obs):
-      mox.file.remove(args.tb_obs, recursive=True)
-    mox.file.make_dirs(args.tb_obs)
-    myargs.logger.info_msg('tb_obs: %s', args.tb_obs)
+
     assert os.environ['RESULTS_OBS']
     args.results_obs = os.environ['RESULTS_OBS']
     myargs.logger.info_msg('results_obs: %s', args.results_obs)
-    if args.outdir.startswith('results/'):
-      args.outdir_obs = os.path.join(args.results_obs, args.outdir[8:])
+    assert args.outdir.startswith('results/')
+    args.outdir_obs = os.path.join(args.results_obs, args.outdir[8:])
 
     def copy_obs(s, d, copytree=False):
-      mox.file.copy(args.logfile, os.path.join(args.tb_obs, 'log.txt'))
       worker = CopyObsProcessing(args=(s, d, copytree))
       worker.start()
       return worker
@@ -72,11 +65,8 @@ def modelarts_resume(args):
 
 
 def modelarts_sync_results(args, myargs, join=False):
-  if hasattr(args, 'tb_obs'):
-    print('Copying tb to tb_obs ...', file=myargs.stdout)
-    myargs.copy_obs(args.tbdir, args.tb_obs, copytree=True)
-
-    print('Copying results to outdir_obs ...', file=myargs.stdout)
+  if hasattr(args, 'outdir_obs'):
+    print('Copying args.outdir to outdir_obs ...', file=myargs.stdout)
     worker = myargs.copy_obs(args.outdir, args.outdir_obs,
                              copytree=True)
     if join:

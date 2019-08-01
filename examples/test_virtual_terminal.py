@@ -19,6 +19,27 @@ class Worker(multiprocessing.Process):
     return
 
 
+def modelarts_record_bash_command(args, myargs, command=None):
+  try:
+    import moxing as mox
+    assert os.environ['DLS_TRAIN_URL']
+    log_obs = os.environ['DLS_TRAIN_URL']
+    if mox.file.exists(log_obs):
+      mox.file.remove(log_obs, recursive=True)
+    mox.file.make_dirs(log_obs)
+    command_file = os.path.join(args.outdir, 'commands.txt')
+    with open(command_file, 'a') as f:
+      if not command:
+        f.write(args.outdir)
+      else:
+        f.write(command)
+      f.write('\n')
+    mox.file.copy(command_file, os.path.join(log_obs, 'commands.txt'))
+
+  except ModuleNotFoundError as e:
+    myargs.logger.info("Don't use modelarts!")
+
+
 class TestingUnit(unittest.TestCase):
 
   def test_virtual_terminal(self):
@@ -66,6 +87,8 @@ class TestingUnit(unittest.TestCase):
 
     old_command = ''
     myargs.logger.info('Begin loop.')
+    modelarts_record_bash_command(args, myargs)
+    modelarts_utils.modelarts_sync_results(args, myargs, join=True)
     while True:
       try:
         import moxing as mox
@@ -80,24 +103,27 @@ class TestingUnit(unittest.TestCase):
       if command != old_command and command:
         old_command = command
         if type(command) is str and command.startswith('bash'):
+          modelarts_record_bash_command(args, myargs, command)
           p = Worker(name='Command worker', args=(command, ))
           p.start()
         elif type(command) is list:
-          # err_f = open(os.path.join(args.outdir, 'err.txt'), 'w')
-          # try:
-          #   cwd = os.getcwd()
-          #   return_str = subprocess.check_output(
-          #     command, encoding='utf-8', cwd=cwd)
-          #   print(return_str, file=err_f, flush=True)
-          # except:
-          #   print("Oops!\n", sys.exc_info(), "\noccured.",
-          #         file=err_f, flush=True)
-          # err_f.close()
-          command = map(str, command)
-          command = ' '.join(command)
-          print('Execute: %s'%command)
-          os.system(command)
-        modelarts_utils.modelarts_sync_results(args, myargs, join=True)
+          command = list(map(str, command))
+          # command = ' '.join(command)
+          print('Execute: %s' % command)
+          err_f = open(os.path.join(args.outdir, 'err.txt'), 'w')
+          try:
+            cwd = os.getcwd()
+            return_str = subprocess.check_output(
+              command, encoding='utf-8', cwd=cwd, shell=True)
+            print(return_str, file=err_f, flush=True)
+          except subprocess.CalledProcessError as e:
+            print("Oops!\n", e.output, "\noccured.",
+                  file=err_f, flush=True)
+            print(e.returncode, file=err_f, flush=True)
+          err_f.close()
 
-    return
+          # os.system(command)
+        modelarts_utils.modelarts_sync_results(args, myargs, join=True)
+      time.sleep(1)
+
 
