@@ -95,11 +95,14 @@ class TestingUnit(unittest.TestCase):
         mox.file.copy_parallel(args.outdir_obs, args.outdir)
       except:
         pass
-
-      with open(args.configfile, 'rt') as handle:
-        config = yaml.load(handle)
-        config = EasyDict(config)
-      command = config.command
+      try:
+        with open(args.configfile, 'rt') as handle:
+          config = yaml.load(handle)
+          config = EasyDict(config)
+        command = config.command
+      except:
+        print('Parse config.yaml error!')
+        command = None
       if command != old_command and command:
         old_command = command
         if type(command) is str and command.startswith('bash'):
