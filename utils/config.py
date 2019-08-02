@@ -98,6 +98,7 @@ def process_config(outdir, config_file, resume_root=None, args=None, myargs=None
   if hasattr(args, 'command'):
     tbtool.add_text_str_args(args=getattr(config, args.command, 'None'),
                              name='command')
+    logger.info_msg(pprint.pformat(getattr(config, args.command, 'None')))
   myargs.writer = writer
 
   # checkpoint
