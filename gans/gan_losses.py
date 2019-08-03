@@ -40,28 +40,40 @@ def wgan_gp_gradient_penalty(x, y, f, gp_lambda, retain_graph=False):
   return gp
 
 
-def wgan_div_gradient_penalty(real_imgs, fake_imgs, real_validity, fake_validity):
+def wgan_div_gradient_penalty(real_imgs, fake_imgs,
+                              real_validity, fake_validity,
+                              backward=False, retain_graph=True):
   # Compute W-div gradient penalty
   k = 2
   p = 6
 
-  real_grad_out = Variable(torch.cuda.FloatTensor(real_validity.size()).fill_(1.0), requires_grad=False)
+  real_grad_out = Variable(
+    torch.cuda.FloatTensor(real_validity.size()).fill_(1.0),
+    requires_grad=False)
   real_grad = autograd.grad(
-    real_validity, real_imgs, real_grad_out, create_graph=True, retain_graph=True, only_inputs=True
+    real_validity, real_imgs, real_grad_out,
+    create_graph=True, retain_graph=True, only_inputs=True
   )[0]
-  real_grad_norm = real_grad.view(real_grad.size(0), -1).pow(2).sum(1) ** (p / 2)
+  real_grad_norm = real_grad.view(
+    real_grad.size(0), -1).pow(2).sum(1) ** (p / 2)
 
-  fake_grad_out = Variable(torch.cuda.FloatTensor(fake_validity.size()).fill_(1.0), requires_grad=False)
+  fake_grad_out = Variable(
+    torch.cuda.FloatTensor(fake_validity.size()).fill_(1.0),
+    requires_grad=False)
   fake_grad = autograd.grad(
-    fake_validity, fake_imgs, fake_grad_out, create_graph=True, retain_graph=True, only_inputs=True,
+    fake_validity, fake_imgs, fake_grad_out,
+    create_graph=True, retain_graph=True, only_inputs=True,
   )[0]
-  fake_grad_norm = fake_grad.view(fake_grad.size(0), -1).pow(2).sum(1) ** (p / 2)
+  fake_grad_norm = fake_grad.view(
+    fake_grad.size(0), -1).pow(2).sum(1) ** (p / 2)
 
   div_gp = torch.mean(real_grad_norm + fake_grad_norm) * k / 2
+  if backward:
+    div_gp.backward(retain_graph=retain_graph)
   return div_gp
 
 
-def compute_grad2(d_out, x_in):
+def compute_grad2(d_out, x_in, backward=False, retain_graph=True):
   batch_size = x_in.size(0)
   grad_dout = autograd.grad(
     outputs=d_out.sum(), inputs=x_in,
@@ -71,7 +83,9 @@ def compute_grad2(d_out, x_in):
   assert (grad_dout2.size() == x_in.size())
   reg = grad_dout2.view(batch_size, -1).sum(1)
   reg_mean = reg.mean()
-  return reg, reg_mean
+  if backward:
+    reg_mean.backward(retain_graph=retain_graph)
+  return reg_mean
 
 
 def agp_real(d_out, x_in):
