@@ -25,6 +25,6 @@ class MatPlot(object):
     """
     with open(logfile) as f:
       logstr = f.read()
-      cls = [float(x) for x in re_str.findall(logstr)]
-      idx = range(len(cls))
-    return (idx, cls)
+      val = [float(x) for x in re_str.findall(logstr)]
+      idx = range(len(val))
+    return (idx, val)
