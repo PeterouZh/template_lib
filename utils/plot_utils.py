@@ -18,3 +18,13 @@ class MatPlot(object):
   def save_to_pdf(self, fig, filepath):
     fig.savefig(filepath, bbox_inches='tight', pad_inches=0)
 
+  def parse_logfile_using_re(self, logfile, re_str):
+    """
+    import re
+
+    """
+    with open(logfile) as f:
+      logstr = f.read()
+      cls = [float(x) for x in re_str.findall(logstr)]
+      idx = range(len(cls))
+    return (idx, cls)
