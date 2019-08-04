@@ -38,7 +38,8 @@ def setup_dirs_and_files(args):
   # create some important directories to be used for that experiment.
   args.ckptdir = os.path.join(args.outdir, "models/")
   args.tbdir = os.path.join(args.outdir, "tb/")
-  create_dirs([args.ckptdir, args.tbdir])
+  args.textlogdir = os.path.join(args.outdir, 'textlog/')
+  create_dirs([args.ckptdir, args.tbdir, args.textlogdir])
 
   args.logfile = os.path.join(args.outdir, "log.txt")
   args.configfile = os.path.join(args.outdir, "config.yaml")
@@ -116,6 +117,9 @@ def setup_args_and_myargs(args, myargs):
   setup_outdir(args=args, resume_root=args.resume_root, resume=args.resume)
   setup_dirs_and_files(args=args)
   setup_logger_and_redirect_stdout(args.logfile, myargs)
+  myargs.textlogger = logging_utils.TextLogger(
+    log_root=args.textlogdir, reinitialize=(not args.resume),
+    logstyle='%10.3f')
 
   print("The outdir is {}".format(args.outdir))
   print("The args: ")

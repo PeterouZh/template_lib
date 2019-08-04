@@ -1,4 +1,4 @@
-import logging
+import logging, os
 import datetime
 import sys
 
@@ -131,5 +131,42 @@ def redirect_print_to_logger(logger, ):
   sys.stdout = sl
   sys.stderr = sl
   pass
+
+
+class TextLogger(object):
+  """
+  # Logstyle is either:
+  # '%#.#f' for floating point representation in text
+  # '%#.#e' for exponent representation in text
+  """
+  def __init__(self, log_root, reinitialize=False, logstyle='%3.3f'):
+    self.root = log_root
+    if not os.path.exists(self.root):
+      os.mkdir(self.root)
+    self.reinitialize = reinitialize
+    self.metrics = []
+    # One of '%3.3f' or like '%3.3e'
+    self.logstyle = logstyle
+
+  def reinit(self, item):
+    """
+      Delete log if re-starting and log already exists
+    """
+    if os.path.exists('%s/%s.log' % (self.root, item)):
+      os.remove('%s/%s.log' % (self.root, item))
+
+
+  def log(self, itr, **kwargs):
+    """
+    Log in plaintext;
+    """
+    for arg in kwargs:
+      if arg not in self.metrics:
+        if self.reinitialize:
+          self.reinit(arg)
+        self.metrics += [arg]
+      with open('%s/%s.log' % (self.root, arg), 'a') as f:
+        f.write('%d: %s\n' % (itr, self.logstyle % kwargs[arg]))
+
 
 
