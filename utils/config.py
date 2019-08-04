@@ -13,6 +13,7 @@ from . import config_utils
 from . import torch_utils
 from . import shutil_utils
 from . import modelarts_utils
+from . import tensorboardX_utils
 
 
 def get_config_from_file(config_file, saved_path):
@@ -43,68 +44,92 @@ def setup_dirs_and_files(args):
   args.configfile = os.path.join(args.outdir, "config.yaml")
 
 
-def process_config(outdir, config_file, resume_root=None, args=None, myargs=None):
-  """
-  """
+def setup_outdir(args, resume_root, resume):
   TIME_STR = bool(int(os.getenv('TIME_STR', 0)))
   time_str = time.strftime("%Y%m%d-%H_%M_%S")
+  args.outdir = args.outdir if not TIME_STR else (args.outdir + '_' + time_str)
 
-  args.outdir = outdir if not TIME_STR else (outdir + '_' + time_str)
-  if resume_root and args.resume:
+  if resume_root and resume:
     args.outdir = resume_root
-    config_file = os.path.join(args.outdir, "config.yaml")
-    args.config = config_file
-    modelarts_utils.modelarts_resume(args)
+    print('Using config.yaml in resume_root: %s'%resume_root)
+    args.config = os.path.join(args.outdir, "config.yaml")
   else:
     shutil.rmtree(args.outdir, ignore_errors=True)
     os.makedirs(args.outdir, exist_ok=True)
     try:
+      print('Start copying code to outdir.')
       shutil.copytree('.', os.path.join(args.outdir, 'code'),
                       ignore=shutil_utils.ignoreAbsPath(['results', ]))
       shutil.copytree(
         '../submodule/template_lib',
         os.path.join(args.outdir, 'submodule/template_lib'),
         ignore=shutil_utils.ignoreNamePath(['results', 'submodule']))
+      print('End copying code to outdir.')
     except:
       print("Error! Copying code to results.")
 
-  # Setup dirs in args
-  setup_dirs_and_files(args=args)
+  return
 
+
+def setup_logger_and_redirect_stdout(logfile, myargs):
   # setup logging in the project
-  logger = logging_utils.get_logger(filename=args.logfile)
+  logger = logging_utils.get_logger(filename=logfile)
   myargs.logger = logger
-  logger.info("The outdir is {}".format(args.outdir))
-  logger.info("The args: ")
-  logger.info_msg(pprint.pformat(args))
   myargs.stdout = sys.stdout
   myargs.stderr = sys.stderr
   logging_utils.redirect_print_to_logger(logger=logger)
+  return
 
+
+def setup_config(config_file, saved_config_file, myargs):
   # Parse config file
-  config = get_config_from_file(config_file, saved_path=args.configfile)
-  myargs.config = EasyDict(config)
-  logger.info(" THE config of experiment:")
-  logger.info_msg(pprint.pformat(config))
+  config = get_config_from_file(config_file, saved_path=saved_config_file)
+  myargs.config = config
+  # print(" THE config of experiment:")
+  # print(pprint.pformat(config))
+  return
 
-  # For huawei modelarts tb
-  modelarts_utils.modelarts_setup(args, myargs)
 
+def setup_tensorboardX(tbdir, args, config, myargs, start_tb=True):
   # tensorboard
-  tbtool = torch_utils.TensorBoardTool(tbdir=args.tbdir)
-  writer = tbtool.run()
+  tbtool = tensorboardX_utils.TensorBoardTool(tbdir=tbdir)
+  writer = tbtool.writer
+  myargs.writer = writer
+  if start_tb:
+    tbtool.run()
   tbtool.add_text_md_args(args=args, name='args')
   tbtool.add_text_str_args(args=config, name='config')
   if hasattr(args, 'command'):
-    tbtool.add_text_str_args(args=getattr(config, args.command, 'None'),
-                             name='command')
-    logger.info_msg(pprint.pformat(getattr(config, args.command, 'None')))
-  myargs.writer = writer
+    command_config = getattr(config, args.command, 'None')
+    tbtool.add_text_str_args(args=command_config, name='command')
+    print(pprint.pformat(command_config))
+  return
 
-  # checkpoint
-  checkpoint = torch_utils.CheckpointTool(ckptdir=args.ckptdir)
+
+def setup_checkpoint(ckptdir, myargs):
+  checkpoint = torch_utils.CheckpointTool(ckptdir=ckptdir)
   myargs.checkpoint = checkpoint
   myargs.checkpoint_dict = collections.OrderedDict()
 
+
+def setup_args_and_myargs(args, myargs):
+  setup_outdir(args=args, resume_root=args.resume_root, resume=args.resume)
+  setup_dirs_and_files(args=args)
+  setup_logger_and_redirect_stdout(args.logfile, myargs)
+
+  print("The outdir is {}".format(args.outdir))
+  print("The args: ")
+  print(pprint.pformat(args))
+
+  setup_config(config_file=args.config, saved_config_file=args.configfile,
+               myargs=myargs)
+  setup_tensorboardX(tbdir=args.tbdir, args=args, config=myargs.config,
+                     myargs=myargs, start_tb=True)
+
+  modelarts_utils.modelarts_setup(args, myargs)
+
+  setup_checkpoint(ckptdir=args.ckptdir, myargs=myargs)
+
   args = EasyDict(args)
-  return args
+  myargs.config = EasyDict(myargs.config)
+  return args, myargs

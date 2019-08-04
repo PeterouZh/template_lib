@@ -3,6 +3,7 @@ import sys
 import unittest
 import argparse
 
+os.chdir('..')
 import utils
 
 
@@ -46,10 +47,8 @@ class TestingUnit(unittest.TestCase):
       return args, argv_str
     args, argv_str = build_args()
 
-    # parse the config json file
-    args = utils.config.process_config(outdir=outdir, config_file=args.config,
-                                       resume_root=args.resume_root, args=args,
-                                       myargs=myargs)
+    args.outdir = outdir
+    args, myargs = utils.config.setup_args_and_myargs(args=args, myargs=myargs)
 
     input('End %s' % outdir)
     return

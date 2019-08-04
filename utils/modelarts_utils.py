@@ -27,6 +27,9 @@ class CopyObsProcessing(multiprocessing.Process):
 
 
 def modelarts_setup(args, myargs):
+  if args.resume_root and args.resume:
+    # modelarts resume setup
+    modelarts_resume(args)
   try:
     import moxing as mox
     myargs.logger.info("Using modelarts!")

@@ -19,7 +19,7 @@ def CelebA64(datadir, batch_size, shuffle, num_workers, seed,
     [transforms.ToTensor(),
      transforms.Lambda(crop),
      transforms.ToPILImage(),
-     transforms.Scale(size=(re_size, re_size), interpolation=Image.BICUBIC),
+     transforms.Resize(size=(re_size, re_size), interpolation=Image.BICUBIC),
      transforms.ToTensor(),
      transforms.Normalize(mean=[0.5] * 3, std=[0.5] * 3)])
 
