@@ -15,7 +15,7 @@ class TestingUnit(unittest.TestCase):
         export CUDA_VISIBLE_DEVICES=2,3,4,5
         export PORT=6006
         export TIME_STR=1
-        export PYTHONPATH=../submodule:..
+        export PYTHONPATH=../../submodule:..
         python -c "import main; \
         main.TestingUnit().test_Case()"
     :return:
