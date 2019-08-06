@@ -166,7 +166,7 @@ class TextLogger(object):
           self.reinit(arg)
         self.metrics += [arg]
       with open('%s/%s.log' % (self.root, arg), 'a') as f:
-        f.write('%d: %s\n' % (itr, self.logstyle % kwargs[arg]))
+        f.write('%3d: %s\n' % (itr, self.logstyle % kwargs[arg]))
 
   def logstr(self, itr, **kwargs):
     for arg in kwargs:
@@ -175,7 +175,7 @@ class TextLogger(object):
           self.reinit(arg)
         self.metrics += [arg]
       with open('%s/%s.log' % (self.root, arg), 'a') as f:
-        f.write('%d: %s\n' % (itr, kwargs[arg]))
+        f.write('%3d: %s\n' % (itr, kwargs[arg]))
 
 
 
