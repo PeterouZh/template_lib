@@ -21,7 +21,8 @@ def wgan_agp_gradient_penalty(x, y, f):
   return gp, g_norm_mean
 
 
-def wgan_gp_gradient_penalty(x, y, f, gp_lambda, retain_graph=False):
+def wgan_gp_gradient_penalty(x, y, f, backward=True,
+                             gp_lambda=10., retain_graph=False):
   # interpolation
   device = x.device
   shape = [x.size(0)] + [1] * (x.dim() - 1)
@@ -36,7 +37,8 @@ def wgan_gp_gradient_penalty(x, y, f, gp_lambda, retain_graph=False):
   gp = ((g.norm(p=2, dim=1) - 1)**2).mean()
 
   gp_loss = gp * gp_lambda
-  gp_loss.backward(retain_graph=retain_graph)
+  if backward:
+    gp_loss.backward(retain_graph=retain_graph)
   return gp_loss
 
 
@@ -73,7 +75,8 @@ def wgan_div_gradient_penalty(real_imgs, fake_imgs,
   return div_gp
 
 
-def compute_grad2(d_out, x_in, backward=False, gp_lambda=10., retain_graph=True):
+def compute_grad2(d_out, x_in, backward=False, gp_lambda=10.,
+                  retain_graph=True, return_grad=False):
   batch_size = x_in.size(0)
   grad_dout = autograd.grad(
     outputs=d_out.sum(), inputs=x_in,
@@ -86,7 +89,10 @@ def compute_grad2(d_out, x_in, backward=False, gp_lambda=10., retain_graph=True)
   reg_mean = gp_lambda * reg_mean
   if backward:
     reg_mean.backward(retain_graph=retain_graph)
-  return reg_mean
+  if return_grad:
+    return grad_dout.detach(), reg_mean
+  else:
+    return reg_mean
 
 
 def agp_real(d_out, x_in):
