@@ -134,8 +134,9 @@ class TestingUnit(unittest.TestCase):
 
           # os.system(command)
         modelarts_utils.modelarts_sync_results(args, myargs, join=True)
+      time.sleep(2)
       if hasattr(args, 'outdir_obs'):
         mox.file.copy_parallel(args.outdir, args.outdir_obs)
-      time.sleep(1)
+
 
 

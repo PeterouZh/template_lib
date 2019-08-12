@@ -95,6 +95,31 @@ def compute_grad2(d_out, x_in, backward=False, gp_lambda=10.,
     return reg_mean
 
 
+def compute_grad2_adaptive(d_out, x_in, backward=False, gp_lambda=10.,
+                  retain_graph=True, return_grad=False):
+  batch_size = x_in.size(0)
+  grad_dout = autograd.grad(
+    outputs=d_out.sum(), inputs=x_in,
+    create_graph=True, retain_graph=True, only_inputs=True
+  )[0]
+  grad_dout2 = grad_dout.pow(2)
+  assert (grad_dout2.size() == x_in.size())
+  reg = grad_dout2.view(batch_size, -1).sum(1)
+  reg = reg.sqrt()
+
+  with torch.no_grad():
+    g_norm_mean = reg.mean().item()
+
+  reg_mean = (reg - g_norm_mean).pow(2).mean()
+  reg_mean = gp_lambda * reg_mean
+  if backward:
+    reg_mean.backward(retain_graph=retain_graph)
+  if return_grad:
+    return grad_dout.detach(), reg_mean, g_norm_mean
+  else:
+    return reg_mean
+
+
 def agp_real(d_out, x_in):
   batch_size = x_in.size(0)
   grad_dout = autograd.grad(
