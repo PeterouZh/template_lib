@@ -73,13 +73,14 @@ def modelarts_sync_results(args, myargs, join=False, end=False):
     import moxing as mox
     # sync jobs.txt
     log_obs = os.environ['DLS_TRAIN_URL']
-    command_file = os.path.join(args.outdir, 'jobs.txt')
-    try:
-      mox.file.copy(os.path.join(log_obs, 'jobs.txt'), command_file)
-    except:
-      pass
+    jobs_file_obs = os.path.join(log_obs, 'jobs.txt')
+    jobs_file = os.path.join(args.outdir, 'jobs.txt')
+    if mox.file.exists(jobs_file_obs):
+      mox.file.copy(jobs_file_obs, jobs_file)
+
     if end:
       modelarts_record_jobs(args, myargs, end=end)
+
     print('Copying args.outdir to outdir_obs ...', file=myargs.stdout)
     worker = myargs.copy_obs(args.outdir, args.outdir_obs,
                              copytree=True)
@@ -94,18 +95,18 @@ def modelarts_record_jobs(args, myargs, end=False):
     import moxing as mox
     assert os.environ['DLS_TRAIN_URL']
     log_obs = os.environ['DLS_TRAIN_URL']
-    command_file = os.path.join(args.outdir, 'jobs.txt')
-    try:
-      mox.file.copy(os.path.join(log_obs, 'jobs.txt'), command_file)
-    except:
-      pass
-    with open(command_file, 'a') as f:
+    jobs_file_obs = os.path.join(log_obs, 'jobs.txt')
+    jobs_file = os.path.join(args.outdir, 'jobs.txt')
+    if mox.file.exists(jobs_file_obs):
+      mox.file.copy(jobs_file_obs, jobs_file)
+
+    with open(jobs_file, 'a') as f:
       if not end:
         f.write(args.outdir)
       else:
         f.write(args.outdir + ' end.')
       f.write('\n')
-    mox.file.copy(command_file, os.path.join(log_obs, 'jobs.txt'))
+    mox.file.copy(jobs_file, jobs_file_obs)
 
   except ModuleNotFoundError as e:
     myargs.logger.info("Don't use modelarts!")

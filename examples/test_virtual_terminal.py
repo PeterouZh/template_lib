@@ -15,7 +15,7 @@ from template_lib.utils import modelarts_utils
 class Worker(multiprocessing.Process):
   def run(self):
     command = self._args[0]
-    print('Execute: %s'%command)
+    print('===Execute: %s'%command)
     os.system(command)
     return
 
@@ -25,9 +25,7 @@ def modelarts_record_bash_command(args, myargs, command=None):
     import moxing as mox
     assert os.environ['DLS_TRAIN_URL']
     log_obs = os.environ['DLS_TRAIN_URL']
-    if mox.file.exists(log_obs):
-      mox.file.remove(log_obs, recursive=True)
-    mox.file.make_dirs(log_obs)
+    command_file_obs = os.path.join(log_obs, 'commands.txt')
     command_file = os.path.join(args.outdir, 'commands.txt')
     with open(command_file, 'a') as f:
       if not command:
@@ -35,7 +33,7 @@ def modelarts_record_bash_command(args, myargs, command=None):
       else:
         f.write(command)
       f.write('\n')
-    mox.file.copy(command_file, os.path.join(log_obs, 'commands.txt'))
+    mox.file.copy(command_file, command_file_obs)
 
   except ModuleNotFoundError as e:
     myargs.logger.info("Don't use modelarts!")
@@ -81,15 +79,26 @@ class TestingUnit(unittest.TestCase):
       return args, argv_str
     args, argv_str = build_args()
 
+    try:
+      # Clean log_obs dir
+      import moxing as mox
+      assert os.environ['DLS_TRAIN_URL']
+      log_obs = os.environ['DLS_TRAIN_URL']
+      if mox.file.exists(log_obs):
+        mox.file.remove(log_obs, recursive=True)
+      mox.file.make_dirs(log_obs)
+    except:
+      pass
     args.outdir = outdir
     args, myargs = utils.config.setup_args_and_myargs(args=args, myargs=myargs)
+    modelarts_record_bash_command(args, myargs)
 
     old_command = ''
     myargs.logger.info('Begin loop.')
-    modelarts_record_bash_command(args, myargs)
+    # Create bash_command.sh
     bash_file = os.path.join(args.outdir, 'bash_command.sh')
     with open(bash_file, 'w') as f:
-      f.close()
+      pass
     cwd = os.getcwd()
     # copy outdir to outdir_obs
     modelarts_utils.modelarts_sync_results(args, myargs, join=True)
@@ -97,6 +106,7 @@ class TestingUnit(unittest.TestCase):
       try:
         import moxing as mox
         # copy oudir_obs to outdir
+        time.sleep(3)
         mox.file.copy_parallel(args.outdir_obs, args.outdir)
       except:
         pass
@@ -119,7 +129,7 @@ class TestingUnit(unittest.TestCase):
         elif type(command) is list:
           command = list(map(str, command))
           # command = ' '.join(command)
-          print('Execute: %s' % command)
+          print('===Execute: %s' % command)
           err_f = open(os.path.join(args.outdir, 'err.txt'), 'w')
           try:
             cwd = os.getcwd()
@@ -134,7 +144,6 @@ class TestingUnit(unittest.TestCase):
 
           # os.system(command)
         modelarts_utils.modelarts_sync_results(args, myargs, join=True)
-      time.sleep(2)
       if hasattr(args, 'outdir_obs'):
         mox.file.copy_parallel(args.outdir, args.outdir_obs)
 
