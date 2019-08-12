@@ -70,6 +70,14 @@ def modelarts_resume(args):
 
 def modelarts_sync_results(args, myargs, join=False, end=False):
   if hasattr(args, 'outdir_obs'):
+    import moxing as mox
+    # sync jobs.txt
+    log_obs = os.environ['DLS_TRAIN_URL']
+    command_file = os.path.join(args.outdir, 'jobs.txt')
+    try:
+      mox.file.copy(os.path.join(log_obs, 'jobs.txt'), command_file)
+    except:
+      pass
     if end:
       modelarts_record_jobs(args, myargs, end=end)
     print('Copying args.outdir to outdir_obs ...', file=myargs.stdout)
@@ -87,6 +95,10 @@ def modelarts_record_jobs(args, myargs, end=False):
     assert os.environ['DLS_TRAIN_URL']
     log_obs = os.environ['DLS_TRAIN_URL']
     command_file = os.path.join(args.outdir, 'jobs.txt')
+    try:
+      mox.file.copy(os.path.join(log_obs, 'jobs.txt'), command_file)
+    except:
+      pass
     with open(command_file, 'a') as f:
       if not end:
         f.write(args.outdir)
