@@ -96,7 +96,7 @@ def compute_grad2(d_out, x_in, backward=False, gp_lambda=10.,
 
 
 def compute_grad2_adaptive(d_out, x_in, backward=False, gp_lambda=10.,
-                  retain_graph=True, return_grad=False):
+                  retain_graph=True, return_grad=False, g_norm_mean=None):
   batch_size = x_in.size(0)
   grad_dout = autograd.grad(
     outputs=d_out.sum(), inputs=x_in,
@@ -107,8 +107,9 @@ def compute_grad2_adaptive(d_out, x_in, backward=False, gp_lambda=10.,
   reg = grad_dout2.view(batch_size, -1).sum(1)
   reg = reg.sqrt()
 
-  with torch.no_grad():
-    g_norm_mean = reg.mean().item()
+  if not g_norm_mean:
+    with torch.no_grad():
+      g_norm_mean = reg.mean().item()
 
   reg_mean = (reg - g_norm_mean).pow(2).mean()
   reg_mean = gp_lambda * reg_mean
