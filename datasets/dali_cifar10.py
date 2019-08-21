@@ -21,6 +21,7 @@ class HybridTrainPipe_CIFAR(Pipeline):
                cutout=0):
     super(HybridTrainPipe_CIFAR, self).__init__(batch_size, num_threads,
                                                 device_id, seed=12 + device_id)
+    self.bs = batch_size
     self.iterator = iter(CIFAR_INPUT_ITER(batch_size, 'train', root=data_dir))
     dali_device = "gpu"
     self.input = ops.ExternalSource()
@@ -40,6 +41,10 @@ class HybridTrainPipe_CIFAR(Pipeline):
                                              0.26158768 * 255.]
                                         )
     self.coin = ops.CoinFlip(probability=0.5)
+
+  def __len__(self):
+    length = (len(self.iterator) + self.bs - 1) // self.bs
+    return length
 
   def iter_setup(self):
     (images, labels) = self.iterator.next()
@@ -63,6 +68,7 @@ class HybridValPipe_CIFAR(Pipeline):
                local_rank=0, world_size=1):
     super(HybridValPipe_CIFAR, self).__init__(batch_size, num_threads,
                                               device_id, seed=12 + device_id)
+    self.bs = batch_size
     self.iterator = iter(CIFAR_INPUT_ITER(batch_size, 'val', root=data_dir))
     self.input = ops.ExternalSource()
     self.input_label = ops.ExternalSource()
@@ -77,6 +83,10 @@ class HybridValPipe_CIFAR(Pipeline):
                                              0.24348505 * 255.,
                                              0.26158768 * 255.]
                                         )
+
+  def __len__(self):
+    length = (len(self.iterator) + self.bs - 1) // self.bs
+    return length
 
   def iter_setup(self):
     (images, labels) = self.iterator.next()
@@ -115,6 +125,14 @@ class CIFAR_INPUT_ITER():
     else:
       downloaded_list = self.test_list
 
+    data_npy = os.path.join(root, "cifar_%s.npy" % type)
+    if os.path.exists(data_npy):
+      with open(data_npy, 'rb') as f:
+        data_npy = pickle.load(f)
+      self.data = data_npy['data']
+      self.targets = data_npy['targets']
+      return
+
     self.data = []
     self.targets = []
     for file_name, checksum in downloaded_list:
@@ -133,9 +151,11 @@ class CIFAR_INPUT_ITER():
     self.data = np.vstack(self.data).reshape(-1, 3, 32, 32)
     self.targets = np.vstack(self.targets)
     self.data = self.data.transpose((0, 2, 3, 1))  # convert to HWC
-    data_npy = os.path.join(root, "cifar.npy")
-    np.save(data_npy, self.data)
-    self.data = np.load(data_npy)  # to serialize, increase locality
+
+    if not os.path.exists(data_npy):
+      with open(data_npy, 'wb') as f:
+        pickle.dump({'data': self.data, 'targets': self.targets}, f)
+
 
   def __iter__(self):
     self.i = 0
@@ -155,6 +175,9 @@ class CIFAR_INPUT_ITER():
       self.i = (self.i + 1) % self.n
     return (batch, labels)
 
+  def __len__(self):
+    return len(self.data)
+
   next = __next__
 
 
@@ -170,7 +193,8 @@ def get_cifar_iter_dali(type, image_dir, batch_size, num_threads, local_rank=0,
                                       local_rank=local_rank, cutout=cutout)
     pip_train.build()
     dali_iter_train = DALIClassificationIterator(pip_train,
-                                                 size=50000 // world_size)
+                                                 size=50000 // world_size,
+                                                 auto_reset=True)
     return dali_iter_train
 
   elif type == 'val':
@@ -181,7 +205,8 @@ def get_cifar_iter_dali(type, image_dir, batch_size, num_threads, local_rank=0,
                                   local_rank=local_rank)
     pip_val.build()
     dali_iter_val = DALIClassificationIterator(pip_val,
-                                               size=10000 // world_size)
+                                               size=10000 // world_size,
+                                               auto_reset=True)
     return dali_iter_val
 
 
@@ -231,11 +256,13 @@ if __name__ == '__main__':
                                      num_threads=4)
   print('start iterate')
   start = time.time()
+  count = 0
   for i, data in enumerate(train_loader):
     images = data[0]["data"].cuda(non_blocking=True)
     labels = data[0]["label"].squeeze().long().cuda(non_blocking=True)
+    count += len(labels)
   end = time.time()
-  print('end iterate')
+  print('end iterate, length=%d'%count)
   print('dali iterate time: %fs' % (end - start))
 
   train_loader = get_cifar_iter_torch(type='train',

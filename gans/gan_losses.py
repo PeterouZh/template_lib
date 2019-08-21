@@ -107,7 +107,7 @@ def compute_grad2_adaptive(d_out, x_in, backward=False, gp_lambda=10.,
   reg = grad_dout2.view(batch_size, -1).sum(1)
   reg = reg.sqrt()
 
-  if not g_norm_mean:
+  if g_norm_mean is None:
     with torch.no_grad():
       g_norm_mean = reg.mean().item()
 
