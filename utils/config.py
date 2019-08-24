@@ -39,7 +39,8 @@ def setup_dirs_and_files(args):
   args.ckptdir = os.path.join(args.outdir, "models/")
   args.tbdir = os.path.join(args.outdir, "tb/")
   args.textlogdir = os.path.join(args.outdir, 'textlog/')
-  create_dirs([args.ckptdir, args.tbdir, args.textlogdir])
+  args.imgdir = os.path.join(args.outdir, 'saved_imgs/')
+  create_dirs([args.ckptdir, args.tbdir, args.textlogdir, args.imgdir])
 
   args.logfile = os.path.join(args.outdir, "log.txt")
   args.configfile = os.path.join(args.outdir, "config.yaml")

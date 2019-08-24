@@ -30,8 +30,8 @@ class Trainer(object):
 
   def print_number_params(self, models):
     for label, model in models.items():
-      self.logger.info('Number of params in {}: {}'.format(
-        label, sum([p.data.nelement() for p in model.parameters()])
+      self.logger.info('Number of params in {}: {}M'.format(
+        label, sum([p.data.nelement() for p in model.parameters()])/1e6
       ))
 
   def save_checkpoint(self, filename='ckpt.tar'):
