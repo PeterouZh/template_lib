@@ -122,8 +122,8 @@ class TestingUnit(unittest.TestCase):
         old_command = ''
       if command != old_command and command:
         old_command = command
-        if type(command) is str and command.startswith('bash'):
-          modelarts_record_bash_command(args, myargs, command)
+        if type(command) is list and command[0].startswith('bash'):
+          modelarts_record_bash_command(args, myargs, command[0])
           p = Worker(name='Command worker', args=(command, ))
           p.start()
         elif type(command) is list:
