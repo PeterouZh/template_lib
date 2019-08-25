@@ -15,7 +15,7 @@ from template_lib.utils import modelarts_utils
 class Worker(multiprocessing.Process):
   def run(self):
     command = self._args[0]
-    print('===Execute: %s'%command)
+    print('+++Execute: %s'%command)
     os.system(command)
     return
 
@@ -124,7 +124,7 @@ class TestingUnit(unittest.TestCase):
         old_command = command
         if type(command) is list and command[0].startswith('bash'):
           modelarts_record_bash_command(args, myargs, command[0])
-          p = Worker(name='Command worker', args=(command, ))
+          p = Worker(name='Command worker', args=(command[0], ))
           p.start()
         elif type(command) is list:
           command = list(map(str, command))
