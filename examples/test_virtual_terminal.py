@@ -145,6 +145,11 @@ class TestingUnit(unittest.TestCase):
           # os.system(command)
         modelarts_utils.modelarts_sync_results(args, myargs, join=True)
       if hasattr(args, 'outdir_obs'):
+        log_obs = os.environ['DLS_TRAIN_URL']
+        jobs_file_obs = os.path.join(log_obs, 'jobs.txt')
+        jobs_file = os.path.join(args.outdir, 'jobs.txt')
+        if mox.file.exists(jobs_file_obs):
+          mox.file.copy(jobs_file_obs, jobs_file)
         mox.file.copy_parallel(args.outdir, args.outdir_obs)
 
 
