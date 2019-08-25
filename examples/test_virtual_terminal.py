@@ -55,7 +55,7 @@ class TestingUnit(unittest.TestCase):
     if 'CUDA_VISIBLE_DEVICES' not in os.environ:
       os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1, 2, 3, 4, 5, 6, 7'
     if 'PORT' not in os.environ:
-      os.environ['PORT'] = '6006'
+      os.environ['PORT'] = '6106'
     if 'TIME_STR' not in os.environ:
       os.environ['TIME_STR'] = '0'
 

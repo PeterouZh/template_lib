@@ -102,9 +102,9 @@ def modelarts_record_jobs(args, myargs, end=False):
 
     with open(jobs_file, 'a') as f:
       if not end:
-        f.write(args.outdir)
+        f.write(args.outdir + ' ' + os.environ['PORT'])
       else:
-        f.write(args.outdir + ' end.')
+        f.write(args.outdir + ' ' + os.environ['PORT'] + ' end.')
       f.write('\n')
     mox.file.copy(jobs_file, jobs_file_obs)
 
