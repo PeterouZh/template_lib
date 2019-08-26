@@ -1,7 +1,6 @@
 import numpy as np
 import math
 import re, os
-import matplotlib.pyplot as plt
 import multiprocessing
 
 
@@ -11,6 +10,7 @@ class MatPlot(object):
 
     :param style: [classic, ggplot]
     """
+    import matplotlib.pyplot as plt
     # R style
     plt.style.use(style)
     pass
@@ -19,6 +19,7 @@ class MatPlot(object):
     """
     ax.legend(loc='best')
     """
+    import matplotlib.pyplot as plt
     fig, axes = plt.subplots(nrows=nrows, ncols=ncols)
     return fig, axes
 
@@ -60,6 +61,9 @@ def parse_logfile(args, myargs):
 
 
 def _plot_figure(names, datas, outdir, in_one_axes=False):
+  import matplotlib
+  matplotlib.use('Agg')
+  import matplotlib.pyplot as plt
   assert len(datas) == len(names)
   filename = os.path.join(outdir, 'plot_' + '__'.join(names) + '.png')
   matplot = MatPlot()
@@ -80,6 +84,7 @@ def _plot_figure(names, datas, outdir, in_one_axes=False):
     axes[idx].legend(loc='best')
 
   matplot.save_to_png(fig=fig, filepath=filename, dpi=500, bbox_inches=None)
+  plt.close(fig)
   pass
 
 
@@ -98,9 +103,12 @@ class PlotFigureProcessing(multiprocessing.Process):
     _plot_figure(
       names=names, datas=datas, outdir=outdir, in_one_axes=in_one_axes)
 
+    pass
+
 def plot_figure(names, filepaths, outdir, in_one_axes, join=False):
   worker = PlotFigureProcessing(args=(names, filepaths, outdir, in_one_axes))
   worker.start()
+
   if join:
     worker.join()
   pass
