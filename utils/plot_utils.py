@@ -1,20 +1,32 @@
+import numpy as np
+import math
 import re, os
 import matplotlib.pyplot as plt
+import multiprocessing
 
 
 class MatPlot(object):
-  def __init__(self):
+  def __init__(self, style='ggplot'):
+    """
+
+    :param style: [classic, ggplot]
+    """
     # R style
-    plt.style.use('ggplot')
+    plt.style.use(style)
     pass
 
-  def get_fig_and_ax(self):
-    fig, ax = plt.subplots()
-    return fig, ax
+  def get_fig_and_ax(self, nrows=1, ncols=1):
+    """
+    ax.legend(loc='best')
+    """
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols)
+    return fig, axes
 
-  def save_to_png(self, fig, filepath):
+  def save_to_png(self, fig, filepath, dpi=1000, bbox_inches='tight',
+                  pad_inches=0.1):
     assert filepath.endswith('.png')
-    fig.savefig(filepath, dpi=1000, bbox_inches='tight', pad_inches=0)
+    fig.savefig(
+      filepath, dpi=dpi, bbox_inches=bbox_inches, pad_inches=pad_inches)
 
   def save_to_pdf(self, fig, filepath):
     fig.savefig(filepath, bbox_inches='tight', pad_inches=0)
@@ -44,4 +56,51 @@ def parse_logfile(args, myargs):
   ax.legend()
   matplot.save_to_png(
     fig, filepath=os.path.join(args.outdir, config.title + '.png'))
+  pass
+
+
+def _plot_figure(names, datas, outdir, in_one_axes=False):
+  assert len(datas) == len(names)
+  filename = os.path.join(outdir, 'plot_' + '__'.join(names) + '.png')
+  matplot = MatPlot()
+  if not in_one_axes:
+    ncols = math.ceil(math.sqrt(len(names)))
+    nrows = (len(names) + ncols - 1) // ncols
+    fig, axes = matplot.get_fig_and_ax(nrows=nrows, ncols=ncols)
+    axes = axes.ravel()
+  else:
+    ncols = 1
+    nrows = 1
+    fig, axes = matplot.get_fig_and_ax(nrows=nrows, ncols=ncols)
+    axes = [axes] * len(names)
+
+  for idx, (label, data) in enumerate(zip(names, datas)):
+    data = data.reshape(-1, 2)
+    axes[idx].plot(data[:, 0], data[:, 1], marker='.', label=label)
+    axes[idx].legend(loc='best')
+
+  matplot.save_to_png(fig=fig, filepath=filename, dpi=500, bbox_inches=None)
+  pass
+
+
+class PlotFigureProcessing(multiprocessing.Process):
+  """
+    worker = PlotFigureProcessing(args=(s, d, copytree))
+    worker.start()
+    worker.join()
+  """
+  def run(self):
+    names, filepaths, outdir, in_one_axes = self._args
+    datas = []
+    for filepath in filepaths:
+      data = np.loadtxt(filepath, delimiter=':')
+      datas.append(data)
+    _plot_figure(
+      names=names, datas=datas, outdir=outdir, in_one_axes=in_one_axes)
+
+def plot_figure(names, filepaths, outdir, in_one_axes, join=False):
+  worker = PlotFigureProcessing(args=(names, filepaths, outdir, in_one_axes))
+  worker.start()
+  if join:
+    worker.join()
   pass

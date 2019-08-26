@@ -1,6 +1,9 @@
+import numpy as np
 import logging, os
 import datetime
 import sys
+
+from .plot_utils import plot_figure
 
 FORMAT = "[%(levelname)s]: %(message)s [%(name)s][%(filename)s:%(funcName)s():%(lineno)s][%(asctime)s.%(msecs)03d]"
 DATEFMT = '%Y/%m/%d %H:%M:%S'
@@ -167,6 +170,46 @@ class TextLogger(object):
         self.metrics += [arg]
       with open('%s/%s.log' % (self.root, arg), 'a') as f:
         f.write('%3d: %s\n' % (itr, self.logstyle % kwargs[arg]))
+
+  def log_axes(self, itr, **kwargs):
+    """
+    Log in plaintext;
+    """
+    names = []
+    filepaths = []
+    for arg in kwargs:
+      if arg not in self.metrics:
+        if self.reinitialize:
+          self.reinit(arg)
+        self.metrics += [arg]
+      filename = '%s/%s.log' % (self.root, arg)
+      with open(filename, 'a') as f:
+        f.write('%3d: %s\n' % (itr, self.logstyle % kwargs[arg]))
+
+      names.append(arg)
+      filepaths.append(filename)
+
+    plot_figure(names=names, filepaths=filepaths,
+                outdir=self.root, in_one_axes=False)
+
+  def log_ax(self, itr, **kwargs):
+    """
+    Log in plaintext;
+    """
+    names = []
+    filepaths = []
+    for arg in kwargs:
+      if arg not in self.metrics:
+        if self.reinitialize:
+          self.reinit(arg)
+        self.metrics += [arg]
+      filename = '%s/%s.log' % (self.root, arg)
+      with open(filename, 'a') as f:
+        f.write('%3d: %s\n' % (itr, self.logstyle % kwargs[arg]))
+      names.append(arg)
+      filepaths.append(filename)
+    plot_figure(names=names, filepaths=filepaths,
+                outdir=self.root, in_one_axes=True)
 
   def logstr(self, itr, **kwargs):
     for arg in kwargs:
