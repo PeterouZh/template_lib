@@ -80,10 +80,10 @@ def _plot_figure(names, datas, outdir, in_one_axes=False):
 
   for idx, (label, data) in enumerate(zip(names, datas)):
     data = data.reshape(-1, 2)
-    axes[idx].plot(data[:, 0], data[:, 1], marker='.', label=label)
+    axes[idx].plot(data[:, 0], data[:, 1], marker='.', label=label, alpha=0.7)
     axes[idx].legend(loc='best')
 
-  matplot.save_to_png(fig=fig, filepath=filename, dpi=500, bbox_inches=None)
+  matplot.save_to_png(fig=fig, filepath=filename, dpi=None, bbox_inches=None)
   plt.close(fig)
   pass
 
