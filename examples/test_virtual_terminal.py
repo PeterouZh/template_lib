@@ -120,7 +120,7 @@ class TestingUnit(unittest.TestCase):
         print('Parse config.yaml error!')
         command = None
         old_command = ''
-      if command != old_command and command:
+      if command != old_command:
         old_command = command
         if type(command) is list and command[0].startswith('bash'):
           modelarts_record_bash_command(args, myargs, command[0])
