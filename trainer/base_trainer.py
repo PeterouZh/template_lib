@@ -80,9 +80,11 @@ class Trainer(object):
     myargs = self.myargs
     for key in summary:
       myargs.writer.add_scalar(prefix + '/%s' % key, summary[key], step)
+    myargs.textlogger.log(step, **summary)
 
   def summary_scalars_together(self, summary, prefix, step):
     self.myargs.writer.add_scalars(prefix, summary, step)
+    self.myargs.textlogger.log(step, **summary)
 
   def evaluate(self):
     raise NotImplemented
