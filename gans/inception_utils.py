@@ -301,7 +301,8 @@ class InceptionMetrics(object):
     net = load_inception_net(parallel)
     self.net = net.cuda(device)
 
-  def __call__(self, G, z, num_inception_images, num_splits=10,
+  def __call__(self, G=None, z=None,
+               num_inception_images=50000, num_splits=10,
                prints=True, show_process=False, use_torch=False,
                no_fid=False, parallel=False, sample_func=None):
     start_time = time.time()
@@ -437,14 +438,20 @@ class InceptionMetricsCond(object):
   @staticmethod
   def sample(G, z, y, parallel):
     with torch.no_grad():
-      G.eval()
+      if isinstance(G, functools.partial):
+        G.func.eval()
+      else:
+        G.eval()
       z.sample_()
       y.sample_()
       if parallel:
         G_z = nn.parallel.data_parallel(G, (z, G.shared(y)))
       else:
         G_z = G(z, G.shared(y))
-      G.train()
+      if isinstance(G, functools.partial):
+        G.func.train()
+      else:
+        G.train()
       return G_z, y
 
   @staticmethod

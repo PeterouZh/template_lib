@@ -30,7 +30,7 @@ class Trainer(object):
 
   def print_number_params(self, models):
     for label, model in models.items():
-      self.logger.info('Number of params in {}: {}M'.format(
+      self.logger.info('Number of params in {}:\t {}M'.format(
         label, sum([p.data.nelement() for p in model.parameters()])/1e6
       ))
 

@@ -155,7 +155,8 @@ def wgan_gp_gradient_penalty_cond(x, G_z, gy, f, backward=False, gp_lambda=10):
 
   # gradient penalty
   z.requires_grad_()
-  o = torch.nn.parallel.data_parallel(f, (z, gy))
+  o = f(z, gy)
+  # o = torch.nn.parallel.data_parallel(f, (z, gy))
   g = torch.autograd.grad(o, z, grad_outputs=torch.ones(o.size()).cuda(), create_graph=True)[0].view(z.size(0), -1)
   gp = ((g.norm(p=2, dim=1) - 1) ** 2).mean()
   if backward:
