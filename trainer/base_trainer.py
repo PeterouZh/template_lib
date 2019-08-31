@@ -1,5 +1,6 @@
 import os, collections
 
+from ..utils import modelarts_utils
 
 class Trainer(object):
   def __init__(self, args, myargs):
@@ -88,3 +89,8 @@ class Trainer(object):
 
   def evaluate(self):
     raise NotImplemented
+
+  def modelarts(self, join=False, end=False):
+    modelarts_utils.modelarts_sync_results(self.args, self.myargs,
+                                           join=join, end=end)
+
