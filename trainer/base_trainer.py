@@ -87,6 +87,34 @@ class Trainer(object):
     self.myargs.writer.add_scalars(prefix, summary, step)
     self.myargs.textlogger.log(step, **summary)
 
+  def summary_dicts(self, summary_dicts, prefix, step):
+    prefix_split = prefix.split('_')
+    if len(prefix_split) == 1:
+      prefix_abb = prefix
+    else:
+      prefix_abb = ''.join([k[0] for k in prefix_split])
+    for summary_n, summary_v in summary_dicts.items():
+      summary_v = {prefix_abb + '.' + k: v for k, v in summary_v.items()}
+      if summary_n == 'scalars':
+        self.summary_scalars(
+          summary_v, prefix=prefix + '/' + summary_n, step=step)
+      else:
+        self.summary_scalars_together(
+          summary_v, prefix=prefix + '/' + summary_n, step=step)
+
+  def summary_figures(self, summary_dicts, prefix):
+    prefix_split = prefix.split('_')
+    if len(prefix_split) == 1:
+      prefix_abb = prefix
+    else:
+      prefix_abb = ''.join([k[0] for k in prefix_split])
+    for summary_n, summary_v in summary_dicts.items():
+      summary_v = {prefix_abb + '.' + k: v for k, v in summary_v.items()}
+      if summary_n == 'scalars':
+        self.myargs.textlogger.log_axes(**summary_v)
+      else:
+        self.myargs.textlogger.log_ax(**summary_v)
+
   def evaluate(self):
     raise NotImplemented
 
