@@ -7,7 +7,7 @@ import multiprocessing
 class MatPlot(object):
   def __init__(self, style='ggplot'):
     """
-
+      plt.rcParams['axes.prop_cycle'] = plt.cycler(color=['blue', 'green', 'red', 'cyan', 'magenta', 'yellow', 'black', 'purple', 'pink', 'brown', 'orange', 'teal', 'coral', 'lightblue', 'lime', 'lavender', 'turquoise', 'darkgreen', 'tan', 'salmon', 'gold', 'lightpurple', 'darkred', 'darkblue'])
     :param style: [classic, ggplot]
     """
     import matplotlib.pyplot as plt
