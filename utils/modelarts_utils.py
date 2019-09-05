@@ -90,7 +90,7 @@ def modelarts_sync_results(args, myargs, join=False, end=False):
   return
 
 
-def modelarts_record_jobs(args, myargs, end=False):
+def modelarts_record_jobs(args, myargs, end=False, str_info=''):
   try:
     import moxing as mox
     assert os.environ['DLS_TRAIN_URL']
@@ -102,9 +102,9 @@ def modelarts_record_jobs(args, myargs, end=False):
 
     with open(jobs_file, 'a') as f:
       if not end:
-        f.write(args.outdir + ' ' + os.environ['PORT'])
+        f.write(str_info + '\t' + args.outdir + ' ' + os.environ['PORT'])
       else:
-        f.write(args.outdir + ' ' + os.environ['PORT'] + ' end.')
+        f.write('End: \t' + args.outdir + ' ' + os.environ['PORT'])
       f.write('\n')
     mox.file.copy(jobs_file, jobs_file_obs)
 
