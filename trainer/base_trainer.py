@@ -62,7 +62,16 @@ class Trainer(object):
   def finetune(self):
     raise NotImplemented
 
-  def train(self, ):
+  def train(self):
+    try:
+      self.train_()
+    except:
+      from template_lib.utils import modelarts_utils
+      modelarts_utils.modelarts_record_jobs(self.args, self.myargs,
+                                            str_info='Exception!')
+      self.modelarts(join=True)
+
+  def train_(self, ):
     config = self.config
     for epoch in range(self.train_dict['epoch_done'], config.epochs):
       self.logger.info('epoch: [%d/%d]' % (epoch, config.epochs))

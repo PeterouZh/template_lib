@@ -1,3 +1,4 @@
+torchviz
 easydict
 graphviz
 gym

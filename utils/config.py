@@ -114,7 +114,7 @@ def setup_checkpoint(ckptdir, myargs):
   myargs.checkpoint_dict = collections.OrderedDict()
 
 
-def setup_args_and_myargs(args, myargs):
+def setup_args_and_myargs(args, myargs, start_tb=True):
   setup_outdir(args=args, resume_root=args.resume_root, resume=args.resume)
   setup_dirs_and_files(args=args)
   setup_logger_and_redirect_stdout(args.logfile, myargs)
@@ -129,7 +129,7 @@ def setup_args_and_myargs(args, myargs):
   setup_config(config_file=args.config, saved_config_file=args.configfile,
                myargs=myargs)
   setup_tensorboardX(tbdir=args.tbdir, args=args, config=myargs.config,
-                     myargs=myargs, start_tb=True)
+                     myargs=myargs, start_tb=start_tb)
 
   modelarts_utils.modelarts_setup(args, myargs)
 
