@@ -1,4 +1,5 @@
 import os, collections
+import sys
 
 from ..utils import modelarts_utils
 
@@ -70,6 +71,8 @@ class Trainer(object):
       modelarts_utils.modelarts_record_jobs(self.args, self.myargs,
                                             str_info='Exception!')
       self.modelarts(join=True)
+      import traceback
+      print(traceback.format_exc())
 
   def train_(self, ):
     config = self.config
