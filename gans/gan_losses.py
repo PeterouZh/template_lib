@@ -139,7 +139,8 @@ def agp_real(d_out, x_in):
   return gp, g_norm_mean
 
 
-def wgan_gp_gradient_penalty_cond(x, G_z, gy, f, backward=False, gp_lambda=10):
+def wgan_gp_gradient_penalty_cond(x, G_z, gy, f, backward=False, gp_lambda=10,
+                                  return_gp=False):
   """
   gradient penalty for conditional discriminator
   :param x:
@@ -160,9 +161,14 @@ def wgan_gp_gradient_penalty_cond(x, G_z, gy, f, backward=False, gp_lambda=10):
   g = torch.autograd.grad(o, z, grad_outputs=torch.ones(o.size()).cuda(), create_graph=True)[0].view(z.size(0), -1)
   gp = ((g.norm(p=2, dim=1) - 1) ** 2).mean()
   if backward:
-    gp = gp * gp_lambda
-    gp.backward()
-  return gp
+    gp_loss = gp * gp_lambda
+    gp_loss.backward()
+  else:
+    gp_loss = gp
+  if return_gp:
+    return gp_loss, gp
+  else:
+    return gp_loss
 
 
 def wgan_agp_gradient_penalty_cond(x, G_z, gy, f):
