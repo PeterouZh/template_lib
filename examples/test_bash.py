@@ -41,15 +41,15 @@ def modelarts_record_bash_command(args, myargs, command=None):
 
 class TestingUnit(unittest.TestCase):
 
-  def test_virtual_terminal(self):
+  def test_bash(self):
     """
     Usage:
         export CUDA_VISIBLE_DEVICES=2,3,4,5
         export PORT=6006
         export TIME_STR=1
         export PYTHONPATH=../submodule:..
-        python -c "import test_virtual_terminal; \
-        test_virtual_terminal.TestingUnit().test_virtual_terminal()"
+        python -c "import test_bash; \
+        test_bash.TestingUnit().test_bash()"
     :return:
     """
     if 'CUDA_VISIBLE_DEVICES' not in os.environ:
