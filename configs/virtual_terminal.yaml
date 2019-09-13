@@ -1,1 +1,2 @@
-command: bash test_bash.sh
+command:
+  - bash test_bash.sh
