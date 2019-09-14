@@ -31,17 +31,17 @@ class CheckpointTool(object):
     if is_best:
       shutil.copyfile(filename, filename + '.best')
 
-  def load_checkpoint(self, checkpoint_dict, resumepath):
+  def load_checkpoint(self, checkpoint_dict, filename):
     """
         args.start_epoch = checkpoint['epoch']
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
-    :param resumepath:
+    :param filename:
     :return:
     """
     import torch
-    if os.path.isfile(resumepath):
-      state_dict = torch.load(resumepath)
+    if os.path.isfile(filename):
+      state_dict = torch.load(filename)
 
       for key in checkpoint_dict:
         if hasattr(checkpoint_dict[key], 'state_dict'):
@@ -49,7 +49,7 @@ class CheckpointTool(object):
 
       return state_dict
     else:
-      print("=> no checkpoint found at '{}'".format(resumepath))
+      print("=> no checkpoint found at '{}'".format(filename))
       assert 0
 
 

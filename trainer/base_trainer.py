@@ -40,6 +40,11 @@ class Trainer(object):
     self.myargs.checkpoint.save_checkpoint(
       checkpoint_dict=self.myargs.checkpoint_dict, filename=filename)
 
+  def load_checkpoint(self, filename='ckpt.tar'):
+    state_dict = self.myargs.checkpoint.load_checkpoint(
+      checkpoint_dict=self.myargs.checkpoint_dict, filename=filename)
+    return state_dict
+
   def optimizer_create(self):
     raise NotImplemented
 
@@ -55,13 +60,16 @@ class Trainer(object):
     self.logger.info('=> Resume from: %s', args.resume_path)
     loaded_state_dict = myargs.checkpoint.load_checkpoint(
       checkpoint_dict=myargs.checkpoint_dict,
-      resumepath=args.resume_path)
+      filename=args.resume_path)
     for key in self.train_dict:
       if key in loaded_state_dict['train_dict']:
         self.train_dict[key] = loaded_state_dict['train_dict'][key]
 
   def finetune(self):
-    raise NotImplemented
+    modelarts_utils.modelarts_finetune(self.args)
+    filename = os.path.join(self.args.finetune_path, 'models/ckpt.tar')
+    state_dict = self.load_checkpoint(filename=filename)
+    pass
 
   def train(self):
     try:

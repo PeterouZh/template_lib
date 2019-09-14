@@ -68,6 +68,22 @@ def modelarts_resume(args):
   return
 
 
+def modelarts_finetune(args):
+  try:
+    import moxing as mox
+
+    assert args.finetune_path.startswith('results/')
+    args.finetune_path_obs = os.path.join(
+      args.results_obs, args.finetune_path[8:])
+
+    assert mox.file.exists(args.finetune_path_obs)
+    print('Copying %s \n to %s'%(args.finetune_path_obs, args.finetune_path))
+    mox.file.copy_parallel(args.finetune_path_obs, args.finetune_path)
+  except ModuleNotFoundError as e:
+    print("Finetune, don't use modelarts!")
+  return
+
+
 def modelarts_sync_results(args, myargs, join=False, end=False):
   if hasattr(args, 'outdir_obs'):
     import moxing as mox
