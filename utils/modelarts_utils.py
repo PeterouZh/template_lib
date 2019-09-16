@@ -68,10 +68,10 @@ def modelarts_resume(args):
   return
 
 
-def modelarts_finetune(args):
+def modelarts_finetune(args, finetune_path):
   try:
     import moxing as mox
-
+    args.finetune_path = finetune_path
     assert args.finetune_path.startswith('results/')
     args.finetune_path_obs = os.path.join(
       args.results_obs, args.finetune_path[8:])

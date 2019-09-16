@@ -65,10 +65,15 @@ class Trainer(object):
       if key in loaded_state_dict['train_dict']:
         self.train_dict[key] = loaded_state_dict['train_dict'][key]
 
-  def finetune(self):
-    modelarts_utils.modelarts_finetune(self.args)
-    filename = os.path.join(self.args.finetune_path, 'models/ckpt.tar')
-    state_dict = self.load_checkpoint(filename=filename)
+  def finetune(self, ):
+    config = self.config.finetune
+    self.args.finetune_path = config.finetune_path
+    modelarts_utils.modelarts_finetune(
+      self.args, finetune_path=config.finetune_path)
+    if config.load_model:
+      self.logger.info_msg('Loading finetune model weights.')
+      filename = os.path.join(config.finetune_path, 'models/ckpt.tar')
+      state_dict = self.load_checkpoint(filename=filename)
     pass
 
   def train(self):
