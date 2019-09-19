@@ -71,7 +71,10 @@ def _plot_figure(names, datas, outdir, in_one_axes=False):
     ncols = math.ceil(math.sqrt(len(names)))
     nrows = (len(names) + ncols - 1) // ncols
     fig, axes = matplot.get_fig_and_ax(nrows=nrows, ncols=ncols)
-    axes = axes.ravel()
+    if ncols == 1 and nrows == 1:
+      axes = [axes]
+    else:
+      axes = axes.ravel()
   else:
     ncols = 1
     nrows = 1
