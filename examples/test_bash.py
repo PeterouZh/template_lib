@@ -108,7 +108,7 @@ class TestingUnit(unittest.TestCase):
         try:
           import moxing as mox
           # copy oudir_obs to outdir
-          # time.sleep(3)
+          time.sleep(1)
           mox.file.copy_parallel(args.outdir_obs, args.outdir)
         except:
           os.rename(args.configfile_old, args.configfile)
