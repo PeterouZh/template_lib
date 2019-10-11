@@ -3,3 +3,5 @@ pytorch/results/
 submodule/
 test/results/
 .idea/
+examples/results/
+examples/bash_command.sh

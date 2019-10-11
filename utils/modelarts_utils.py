@@ -124,5 +124,6 @@ def modelarts_record_jobs(args, myargs, end=False, str_info=''):
       f.write('\n')
     mox.file.copy(jobs_file, jobs_file_obs)
 
-  except ModuleNotFoundError as e:
-    myargs.logger.info("Don't use modelarts!")
+  except:
+    import traceback
+    myargs.logger.info(traceback.format_exc())

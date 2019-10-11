@@ -55,7 +55,7 @@ class TestingUnit(unittest.TestCase):
     if 'CUDA_VISIBLE_DEVICES' not in os.environ:
       os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1, 2, 3, 4, 5, 6, 7'
     if 'PORT' not in os.environ:
-      os.environ['PORT'] = '6106'
+      os.environ['PORT'] = '6001'
     if 'TIME_STR' not in os.environ:
       os.environ['TIME_STR'] = '0'
 
@@ -91,7 +91,6 @@ class TestingUnit(unittest.TestCase):
       pass
     args.outdir = outdir
     args, myargs = utils.config.setup_args_and_myargs(args=args, myargs=myargs)
-    modelarts_record_bash_command(args, myargs)
 
     old_command = ''
     myargs.logger.info('Begin loop.')
@@ -100,57 +99,67 @@ class TestingUnit(unittest.TestCase):
     with open(bash_file, 'w') as f:
       pass
     cwd = os.getcwd()
-    # copy outdir to outdir_obs
+    args.configfile_old = args.configfile + '.old'
+    shutil.copy(args.configfile, args.configfile_old)
+    # copy outdir to outdir_obs, copy bash_file to outdir_obs
     modelarts_utils.modelarts_sync_results(args, myargs, join=True)
     while True:
       try:
-        import moxing as mox
-        # copy oudir_obs to outdir
-        time.sleep(3)
-        mox.file.copy_parallel(args.outdir_obs, args.outdir)
-      except:
-        pass
-      shutil.copy(bash_file, cwd)
-      try:
-        with open(args.configfile, 'rt') as handle:
-          config = yaml.load(handle)
-          config = EasyDict(config)
-        command = config.command
-      except:
-        print('Parse config.yaml error!')
-        command = None
-        old_command = ''
-      if command != old_command:
-        old_command = command
-        if type(command) is list and command[0].startswith('bash'):
-          modelarts_record_bash_command(args, myargs, command[0])
-          p = Worker(name='Command worker', args=(command[0], ))
-          p.start()
-        elif type(command) is list:
-          command = list(map(str, command))
-          # command = ' '.join(command)
-          print('===Execute: %s' % command)
-          err_f = open(os.path.join(args.outdir, 'err.txt'), 'w')
-          try:
-            cwd = os.getcwd()
-            return_str = subprocess.check_output(
-              command, encoding='utf-8', cwd=cwd, shell=True)
-            print(return_str, file=err_f, flush=True)
-          except subprocess.CalledProcessError as e:
-            print("Oops!\n", e.output, "\noccured.",
-                  file=err_f, flush=True)
-            print(e.returncode, file=err_f, flush=True)
-          err_f.close()
+        try:
+          import moxing as mox
+          # copy oudir_obs to outdir
+          # time.sleep(3)
+          mox.file.copy_parallel(args.outdir_obs, args.outdir)
+        except:
+          os.rename(args.configfile_old, args.configfile)
+          pass
+        shutil.copy(bash_file, cwd)
+        try:
+          with open(args.configfile, 'rt') as handle:
+            config = yaml.load(handle)
+            config = EasyDict(config)
+          command = config.command
+        except:
+          print('Parse config.yaml error!')
+          command = None
+          old_command = ''
+        os.rename(args.configfile, args.configfile_old)
+        if command != old_command:
+          old_command = command
+          if type(command) is list and command[0].startswith('bash'):
+            p = Worker(name='Command worker', args=(command[0], ))
+            p.start()
+          elif type(command) is list:
+            command = list(map(str, command))
+            # command = ' '.join(command)
+            print('===Execute: %s' % command)
+            err_f = open(os.path.join(args.outdir, 'err.txt'), 'w')
+            try:
+              cwd = os.getcwd()
+              return_str = subprocess.check_output(
+                command, encoding='utf-8', cwd=cwd, shell=True)
+              print(return_str, file=err_f, flush=True)
+            except subprocess.CalledProcessError as e:
+              print("Oops!\n", e.output, "\noccured.",
+                    file=err_f, flush=True)
+              print(e.returncode, file=err_f, flush=True)
+            err_f.close()
 
-          # os.system(command)
+            # os.system(command)
+          modelarts_utils.modelarts_sync_results(args, myargs, join=True)
+        if hasattr(args, 'outdir_obs'):
+          log_obs = os.environ['DLS_TRAIN_URL']
+          jobs_file_obs = os.path.join(log_obs, 'jobs.txt')
+          jobs_file = os.path.join(args.outdir, 'jobs.txt')
+          if mox.file.exists(jobs_file_obs):
+            mox.file.copy(jobs_file_obs, jobs_file)
+          os.remove(bash_file)
+          mox.file.copy_parallel(args.outdir, args.outdir_obs)
+
+      except:
+        modelarts_utils.modelarts_record_jobs(
+          args, myargs, str_info='Exception!')
+        import traceback
+        myargs.logger.info(traceback.format_exc())
         modelarts_utils.modelarts_sync_results(args, myargs, join=True)
-      if hasattr(args, 'outdir_obs'):
-        log_obs = os.environ['DLS_TRAIN_URL']
-        jobs_file_obs = os.path.join(log_obs, 'jobs.txt')
-        jobs_file = os.path.join(args.outdir, 'jobs.txt')
-        if mox.file.exists(jobs_file_obs):
-          mox.file.copy(jobs_file_obs, jobs_file)
-        mox.file.copy_parallel(args.outdir, args.outdir_obs)
-
-
 
