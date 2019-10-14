@@ -25,15 +25,15 @@ class TestingUnit(unittest.TestCase):
     if 'PORT' not in os.environ:
       os.environ['PORT'] = '6006'
     if 'TIME_STR' not in os.environ:
-      os.environ['TIME_STR'] = '0'
-
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
     # func name
     outdir = os.path.join('results', sys._getframe().f_code.co_name)
     myargs = argparse.Namespace()
 
     def build_args():
       argv_str = f"""
-            --config ../configs/config.yaml \
+            --config ../configs/config.yaml 
+            --command none
             --resume False --resume_path None
             --resume_root None
             """
