@@ -83,9 +83,9 @@ class Trainer(object):
       from template_lib.utils import modelarts_utils
       modelarts_utils.modelarts_record_jobs(self.args, self.myargs,
                                             str_info='Exception!')
-      self.modelarts(join=True)
       import traceback
       print(traceback.format_exc())
+      self.modelarts(join=True)
 
   def train_(self, ):
     config = self.config
