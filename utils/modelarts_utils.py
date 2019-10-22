@@ -127,3 +127,17 @@ def modelarts_record_jobs(args, myargs, end=False, str_info=''):
   except:
     import traceback
     myargs.logger.info(traceback.format_exc())
+
+
+def modelarts_catch_exception(func):
+  def inter_func(**kwargs):
+    try:
+      func(**kwargs)
+    except:
+      modelarts_record_jobs(args=kwargs['args'], myargs=kwargs['myargs'],
+                            str_info='Exception!')
+      import traceback
+      print(traceback.format_exc())
+      modelarts_sync_results(args=kwargs['args'], myargs=kwargs['myargs'],
+                             join=True)
+  return inter_func
