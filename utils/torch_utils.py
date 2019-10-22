@@ -89,4 +89,9 @@ class CheckpointTool(object):
 #     pass
 
 
+def print_number_params(**model_dict):
+  for label, model in model_dict.items():
+    print('Number of params in {}:\t {}M'.format(
+      label, sum([p.data.nelement() for p in model.parameters()]) / 1e6
+    ))
 
