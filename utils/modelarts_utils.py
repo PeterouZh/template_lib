@@ -131,10 +131,16 @@ def modelarts_record_jobs(args, myargs, end=False, str_info=''):
 
 def modelarts_catch_exception(func):
   def inter_func(**kwargs):
+    """
+
+    :param kwargs: args, myargs
+    :return:
+    """
     try:
       func(**kwargs)
     except:
-      modelarts_record_jobs(args=kwargs['args'], myargs=kwargs['myargs'],
+      args = getattr(kwargs['myargs'], 'args', kwargs['args'])
+      modelarts_record_jobs(args=args, myargs=kwargs['myargs'],
                             str_info='Exception!')
       import traceback
       print(traceback.format_exc())
