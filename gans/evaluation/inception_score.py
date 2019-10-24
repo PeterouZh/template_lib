@@ -24,7 +24,7 @@ config.gpu_options.allow_growth = True
 class InceptionScore(object):
   def __init__(self, tf_inception_model_dir):
     global softmax
-    MODEL_DIR = tf_inception_model_dir
+    MODEL_DIR = os.path.expanduser(tf_inception_model_dir)
     if not os.path.exists(MODEL_DIR):
       os.makedirs(MODEL_DIR)
     filename = DATA_URL.split('/')[-1]
@@ -67,7 +67,8 @@ class InceptionScore(object):
       sess.close()
     pass
 
-  def get_inception_score(self, images, splits=10, stdout=sys.stdout):
+  def get_inception_score(self, images, splits=10,
+                          bs=100, stdout=sys.stdout):
     """
     # Call this function with list of images. Each of elements should be a
     # numpy array with values ranging from 0 to 255.
@@ -84,7 +85,6 @@ class InceptionScore(object):
     for img in images:
       img = img.astype(np.float32)
       inps.append(np.expand_dims(img, 0))
-    bs = 100
     with tf.Session(config=config) as sess:
       preds = []
       n_batches = int(math.ceil(float(len(inps)) / float(bs)))

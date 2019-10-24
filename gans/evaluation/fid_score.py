@@ -101,7 +101,7 @@ def get_activations(images, sess, batch_size=50, verbose=True,
     end = start + batch_size
     if verbose:
       print('\r',
-            end='FID forwarding [%d/%d]'%(start, end),
+            end='FID forwarding [%d/%d]'%(start, n_used_imgs),
             file=stdout, flush=True)
     batch = images[start:end]
     pred = sess.run(inception_layer, {'FID_Inception_Net/ExpandDims:0': batch})
@@ -299,6 +299,7 @@ def check_or_download_inception(inception_path):
 
 def _handle_path(path, sess, low_profile=False, stdout=sys.stdout):
   if isinstance(path, str) and path.endswith('.npz'):
+    path = os.path.expanduser(path)
     f = np.load(path)
     m, s = f['mu'][:], f['sigma'][:]
     f.close()
@@ -342,6 +343,7 @@ def calculate_fid_given_paths(paths, inception_path, low_profile=False):
 
 class FIDScore(object):
   def __init__(self, tf_inception_model_dir):
+    tf_inception_model_dir = os.path.expanduser(tf_inception_model_dir)
     inception_path = check_or_download_inception(tf_inception_model_dir)
     create_inception_graph(inception_path)
     pass
@@ -367,3 +369,28 @@ class FIDScore(object):
     sess.close()
 
     return fid_value
+
+  def get_sample_imgs_list(self, sample_func, num_imgs=50000, stdout=sys.stdout):
+    """
+
+    :param sample_func: return imgs (b, c, h, w), range [-1, 1]
+    :param num_imgs:
+    :param stdout:
+    :return:
+    """
+    img_list = list()
+    imgs = sample_func()
+    bs = imgs.size(0)
+    eval_iter = num_imgs // bs
+    for iter_idx in range(eval_iter):
+      print('\r',
+            end='sample images [%d/%d]' % (iter_idx*bs, eval_iter*bs),
+            file=stdout, flush=True)
+
+      # Generate a batch of images
+      imgs = sample_func()
+      gen_imgs = imgs.mul_(127.5).add_(127.5).clamp_(0.0, 255.0) \
+        .permute(0, 2, 3, 1).to('cpu').numpy().astype(np.uint8)
+      img_list.extend(list(gen_imgs))
+    print('', file=stdout)
+    return img_list
