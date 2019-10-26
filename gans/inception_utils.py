@@ -250,7 +250,9 @@ def calculate_inception_score(pred, num_splits=10):
 
 
 
-def accumulate_inception_activations(sample, net, num_inception_images=50000, show_process=False):
+def accumulate_inception_activations(
+        sample, net, num_inception_images=50000,
+        show_process=False, stdout=sys.stdout):
   """
   # Loop and run the sampler and the net until it accumulates num_inception_images
   # activations. Return the pool, the logits, and the labels (if one wants
@@ -265,13 +267,18 @@ def accumulate_inception_activations(sample, net, num_inception_images=50000, sh
   count = 0
   while (torch.cat(logits, 0).shape[0] if len(logits) else 0) < num_inception_images:
     if show_process:
-      print('accumulate_inception_activations: [%d/%d]' % (count, num_inception_images))
+      print('\r',
+            end='accumulate_inception_activations: [%d/%d]'
+                % (count, num_inception_images),
+            file=stdout, flush=True)
     with torch.no_grad():
       images = sample()
       pool_val, logits_val = net(images.float())
       pool += [pool_val]
       logits += [F.softmax(logits_val, 1)]
       count += images.size(0)
+  if show_process:
+    print('', file=stdout)
   return torch.cat(pool, 0), torch.cat(logits, 0)
 
 
@@ -303,8 +310,9 @@ class InceptionMetrics(object):
 
   def __call__(self, G=None, z=None,
                num_inception_images=50000, num_splits=10,
-               prints=True, show_process=False, use_torch=False,
-               no_fid=False, parallel=False, sample_func=None):
+               prints=True, show_process=True, use_torch=False,
+               no_fid=False, parallel=False, sample_func=None,
+               stdout=sys.stdout):
     start_time = time.time()
     if prints:
       print('Gathering activations...')
@@ -317,7 +325,8 @@ class InceptionMetrics(object):
 
     pool, logits = accumulate_inception_activations(
       self.sample_func, net=self.net,
-      num_inception_images=num_inception_images, show_process=show_process)
+      num_inception_images=num_inception_images,
+      show_process=show_process, stdout=stdout)
     # if prints:
     #   print('Calculating Inception Score...')
     IS_mean, IS_std = calculate_inception_score(

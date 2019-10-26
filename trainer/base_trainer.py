@@ -15,11 +15,25 @@ def get_prefix_abb(prefix):
     prefix_abb = ''.join([k[0] for k in prefix_split])
   return prefix_abb
 
+def write_scalars_to_text(summary, prefix, step, textlogger,
+                          log_axe, log_axe_sec):
+  prefix_abb = get_prefix_abb(prefix=prefix)
+  summary = {prefix_abb + '.' + k: v for k, v in summary.items()}
+  textlogger.log(step, **summary)
+  time_str = prefix + '-' + '-'.join(summary.keys())
+  if log_axe:
+    now = time.time()
+    last_time = getattr(Trainer, time_str, 0)
+    if now - last_time > log_axe_sec:
+      textlogger.log_axes(**summary)
+      setattr(Trainer, time_str, now)
+
 
 class Trainer(object):
   def __init__(self, args, myargs):
     self.args = args
     self.myargs = myargs
+    self.init_static_method()
     self.config = myargs.config
     self.logger = myargs.logger
     self.train_dict = self.init_train_dict()
@@ -28,16 +42,18 @@ class Trainer(object):
     self.model_create()
     self.optimizer_create()
     self.scheduler_create()
-
-    self.summary_scalars = functools.partial(
-      self.summary_scalars, writer=myargs.writer, textlogger=myargs.textlogger)
-    self.summary_scalars_together = functools.partial(
-      self.summary_scalars_together, writer=myargs.writer, textlogger=myargs.textlogger)
-    self.summary_dicts = functools.partial(
-      self.summary_dicts, writer=myargs.writer,
-      textlogger=myargs.textlogger)
-
     pass
+
+  def init_static_method(self):
+    self.summary_scalars = functools.partial(
+      self.summary_scalars, writer=self.myargs.writer,
+      textlogger=self.myargs.textlogger)
+    self.summary_scalars_together = functools.partial(
+      self.summary_scalars_together, writer=self.myargs.writer,
+      textlogger=self.myargs.textlogger)
+    self.summary_dicts = functools.partial(
+      self.summary_dicts, writer=self.myargs.writer,
+      textlogger=self.myargs.textlogger)
 
   def init_train_dict(self, ):
     train_dict = collections.OrderedDict()
@@ -133,32 +149,26 @@ class Trainer(object):
         writer.add_scalar(prefix + '/%s' % key, summary[key], step)
 
     if textlogger is not None:
-      prefix_abb = get_prefix_abb(prefix=prefix)
-      summary = {prefix_abb + '.' + k: v for k, v in summary.items()}
-      textlogger.log(step, **summary)
-      if log_axe:
-        now = time.time()
-        last_time = getattr(Trainer, 'summary_scalars_last_time', 0)
-        if now - last_time > log_axe_sec:
-          textlogger.log_axes(**summary)
-          setattr(Trainer, 'summary_scalars_last_time', now)
+      write_scalars_to_text(summary=summary, prefix=prefix, step=step,
+                            textlogger=textlogger,
+                            log_axe=log_axe, log_axe_sec=log_axe_sec)
+    if writer is None and textlogger is None:
+      print('Both writer and textlogger are None!')
+
 
   @staticmethod
   def summary_scalars_together(summary, prefix, step,
                                writer=None, textlogger=None,
                                log_axe=True, log_axe_sec=300):
+    prefix = prefix + '_together'
     if writer is not None:
       writer.add_scalars(prefix, summary, step)
     if textlogger is not None:
-      prefix_abb = get_prefix_abb(prefix=prefix)
-      summary = {prefix_abb + '.' + k: v for k, v in summary.items()}
-      textlogger.log(step, **summary)
-    if log_axe:
-      now = time.time()
-      last_time = getattr(Trainer, 'summary_scalars_together_last_time', 0)
-      if now - last_time > log_axe_sec:
-        textlogger.log_axes(**summary)
-        setattr(Trainer, 'summary_scalars_together_last_time', now)
+      write_scalars_to_text(summary=summary, prefix=prefix, step=step,
+                            textlogger=textlogger,
+                            log_axe=log_axe, log_axe_sec=log_axe_sec)
+    if writer is None and textlogger is None:
+      print('Both writer and textlogger are None!')
 
   @staticmethod
   def summary_dicts(summary_dicts, prefix, step,
