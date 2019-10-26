@@ -1,7 +1,20 @@
+import functools
 import os, collections
 import sys
+import time
 
-from ..utils import modelarts_utils
+# from ..utils import modelarts_utils
+from template_lib.utils import modelarts_utils
+
+
+def get_prefix_abb(prefix):
+  prefix_split = prefix.split('_')
+  if len(prefix_split) == 1:
+    prefix_abb = prefix
+  else:
+    prefix_abb = ''.join([k[0] for k in prefix_split])
+  return prefix_abb
+
 
 class Trainer(object):
   def __init__(self, args, myargs):
@@ -14,7 +27,16 @@ class Trainer(object):
     # self.dataset_load()
     self.model_create()
     self.optimizer_create()
-    self.schedule_create()
+    self.scheduler_create()
+
+    self.summary_scalars = functools.partial(
+      self.summary_scalars, writer=myargs.writer, textlogger=myargs.textlogger)
+    self.summary_scalars_together = functools.partial(
+      self.summary_scalars_together, writer=myargs.writer, textlogger=myargs.textlogger)
+    self.summary_dicts = functools.partial(
+      self.summary_dicts, writer=myargs.writer,
+      textlogger=myargs.textlogger)
+
     pass
 
   def init_train_dict(self, ):
@@ -28,7 +50,7 @@ class Trainer(object):
     raise NotImplemented
 
   def model_create(self):
-    raise NotImplemented
+    pass
 
   def print_number_params(self, models):
     for label, model in models.items():
@@ -46,7 +68,7 @@ class Trainer(object):
     return state_dict
 
   def optimizer_create(self):
-    raise NotImplemented
+    pass
 
   def scheduler_create(self):
     pass
@@ -102,43 +124,67 @@ class Trainer(object):
   def train_one_epoch(self):
     raise NotImplemented
 
-  def summary_scalars(self, summary, prefix, step):
-    myargs = self.myargs
-    for key in summary:
-      myargs.writer.add_scalar(prefix + '/%s' % key, summary[key], step)
-    myargs.textlogger.log(step, **summary)
+  @staticmethod
+  def summary_scalars(summary, prefix, step,
+                      writer=None, textlogger=None,
+                      log_axe=True, log_axe_sec=300):
+    if writer is not None:
+      for key in summary:
+        writer.add_scalar(prefix + '/%s' % key, summary[key], step)
 
-  def summary_scalars_together(self, summary, prefix, step):
-    self.myargs.writer.add_scalars(prefix, summary, step)
-    self.myargs.textlogger.log(step, **summary)
+    if textlogger is not None:
+      prefix_abb = get_prefix_abb(prefix=prefix)
+      summary = {prefix_abb + '.' + k: v for k, v in summary.items()}
+      textlogger.log(step, **summary)
+      if log_axe:
+        now = time.time()
+        last_time = getattr(Trainer, 'summary_scalars_last_time', 0)
+        if now - last_time > log_axe_sec:
+          textlogger.log_axes(**summary)
+          setattr(Trainer, 'summary_scalars_last_time', now)
 
-  def summary_dicts(self, summary_dicts, prefix, step):
-    prefix_split = prefix.split('_')
-    if len(prefix_split) == 1:
-      prefix_abb = prefix
-    else:
-      prefix_abb = ''.join([k[0] for k in prefix_split])
+  @staticmethod
+  def summary_scalars_together(summary, prefix, step,
+                               writer=None, textlogger=None,
+                               log_axe=True, log_axe_sec=300):
+    if writer is not None:
+      writer.add_scalars(prefix, summary, step)
+    if textlogger is not None:
+      prefix_abb = get_prefix_abb(prefix=prefix)
+      summary = {prefix_abb + '.' + k: v for k, v in summary.items()}
+      textlogger.log(step, **summary)
+    if log_axe:
+      now = time.time()
+      last_time = getattr(Trainer, 'summary_scalars_together_last_time', 0)
+      if now - last_time > log_axe_sec:
+        textlogger.log_axes(**summary)
+        setattr(Trainer, 'summary_scalars_together_last_time', now)
+
+  @staticmethod
+  def summary_dicts(summary_dicts, prefix, step,
+                    writer=None, textlogger=None,
+                    log_axe=True, log_axe_sec=300):
     for summary_n, summary_v in summary_dicts.items():
-      summary_v = {prefix_abb + '.' + k: v for k, v in summary_v.items()}
       if summary_n == 'scalars':
-        self.summary_scalars(
-          summary_v, prefix=prefix + '/' + summary_n, step=step)
+        Trainer.summary_scalars(
+          summary_v, prefix=prefix + '/' + summary_n, step=step,
+          writer=writer, textlogger=textlogger,
+          log_axe=log_axe, log_axe_sec=log_axe_sec)
       else:
-        self.summary_scalars_together(
-          summary_v, prefix=prefix + '/' + summary_n, step=step)
+        Trainer.summary_scalars_together(
+          summary_v, prefix=prefix + '/' + summary_n, step=step,
+          writer=writer, textlogger=textlogger,
+          log_axe=log_axe, log_axe_sec=log_axe_sec)
 
   def summary_figures(self, summary_dicts, prefix):
-    prefix_split = prefix.split('_')
-    if len(prefix_split) == 1:
-      prefix_abb = prefix
-    else:
-      prefix_abb = ''.join([k[0] for k in prefix_split])
-    for summary_n, summary_v in summary_dicts.items():
-      summary_v = {prefix_abb + '.' + k: v for k, v in summary_v.items()}
-      if summary_n == 'scalars':
-        self.myargs.textlogger.log_axes(**summary_v)
-      else:
-        self.myargs.textlogger.log_ax(**summary_v)
+    # prefix_abb = self.get_prefix_abb(prefix)
+    # for summary_n, summary_v in summary_dicts.items():
+    #   summary_v = {prefix_abb + '.' + k: v for k, v in summary_v.items()}
+    #   if summary_n == 'scalars':
+    #     self.myargs.textlogger.log_axes(**summary_v)
+    #   else:
+    #     self.myargs.textlogger.log_ax(**summary_v)
+    pass
 
   def evaluate(self):
     raise NotImplemented
@@ -147,3 +193,144 @@ class Trainer(object):
     modelarts_utils.modelarts_sync_results(self.args, self.myargs,
                                            join=join, end=end)
 
+
+
+from template_lib import utils
+import unittest, argparse
+
+class TestingUnit(unittest.TestCase):
+
+  def test_summary_scalars(self):
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'PORT' not in os.environ:
+      os.environ['PORT'] = '6006'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
+    # func name
+    outdir = os.path.join('results', sys._getframe().f_code.co_name)
+    myargs = argparse.Namespace()
+
+    def build_args():
+      argv_str = f"""
+            --config ../configs/config.yaml 
+            --command test_command
+            """
+      parser = utils.args_parser.build_parser()
+      if len(sys.argv) == 1:
+        args = parser.parse_args(args=argv_str.split())
+      else:
+        args = parser.parse_args()
+      args.CUDA_VISIBLE_DEVICES = os.environ['CUDA_VISIBLE_DEVICES']
+      args = utils.config_utils.DotDict(vars(args))
+      return args, argv_str
+    args, argv_str = build_args()
+
+    args.outdir = outdir
+    args, myargs = utils.config.setup_args_and_myargs(args=args, myargs=myargs)
+
+    prefix = 'test_summary_scalars'
+    for step in range(1000):
+      summary = {'a': step, 'b': step}
+      # Trainer.summary_scalars(summary, prefix, step=step,
+      #                         writer=myargs.writer,
+      #                         textlogger=myargs.textlogger)
+
+      trainer = Trainer(args=args, myargs=myargs)
+      trainer.summary_scalars(summary, prefix, step,
+                              log_axe=True, log_axe_sec=100)
+
+    input('End %s' % outdir)
+    return
+
+  def test_summary_scalars_together(self):
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'PORT' not in os.environ:
+      os.environ['PORT'] = '6006'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
+    # func name
+    outdir = os.path.join('results', sys._getframe().f_code.co_name)
+    myargs = argparse.Namespace()
+
+    def build_args():
+      argv_str = f"""
+            --config ../configs/config.yaml 
+            --command test_command
+            """
+      parser = utils.args_parser.build_parser()
+      if len(sys.argv) == 1:
+        args = parser.parse_args(args=argv_str.split())
+      else:
+        args = parser.parse_args()
+      args.CUDA_VISIBLE_DEVICES = os.environ['CUDA_VISIBLE_DEVICES']
+      args = utils.config_utils.DotDict(vars(args))
+      return args, argv_str
+
+    args, argv_str = build_args()
+
+    args.outdir = outdir
+    args, myargs = utils.config.setup_args_and_myargs(args=args, myargs=myargs)
+
+    prefix = 'test_summary_scalars'
+    for step in range(1000):
+      summary = {'a': step, 'b': step}
+      # Trainer.summary_scalars(summary, prefix, step=step,
+      #                         writer=myargs.writer,
+      #                         textlogger=myargs.textlogger)
+
+      trainer = Trainer(args=args, myargs=myargs)
+      trainer.summary_scalars_together(summary, prefix, step,
+                                       log_axe=True, log_axe_sec=100)
+
+    input('End %s' % outdir)
+    return
+
+  def test_summary_dict(self):
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'PORT' not in os.environ:
+      os.environ['PORT'] = '6006'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
+    # func name
+    outdir = os.path.join('results', sys._getframe().f_code.co_name)
+    myargs = argparse.Namespace()
+
+    def build_args():
+      argv_str = f"""
+            --config ../configs/config.yaml 
+            --command test_command
+            """
+      parser = utils.args_parser.build_parser()
+      if len(sys.argv) == 1:
+        args = parser.parse_args(args=argv_str.split())
+      else:
+        args = parser.parse_args()
+      args.CUDA_VISIBLE_DEVICES = os.environ['CUDA_VISIBLE_DEVICES']
+      args = utils.config_utils.DotDict(vars(args))
+      return args, argv_str
+
+    args, argv_str = build_args()
+
+    args.outdir = outdir
+    args, myargs = utils.config.setup_args_and_myargs(args=args, myargs=myargs)
+
+    prefix = 'test_summary_scalars'
+    import collections
+    summary_dict = collections.defaultdict(dict)
+    for step in range(1000):
+      summary = {'a': step, 'b': step + 1}
+      # Trainer.summary_scalars(summary, prefix, step=step,
+      #                         writer=myargs.writer,
+      #                         textlogger=myargs.textlogger)
+
+      summary_dict['dict1'] = summary
+      summary_dict['scalars'] = summary
+      trainer = Trainer(args=args, myargs=myargs)
+      trainer.summary_dicts(summary_dict, prefix, step,
+                            log_axe=True, log_axe_sec=10)
+
+    input('End %s' % outdir)
+    return
