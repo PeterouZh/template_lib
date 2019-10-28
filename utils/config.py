@@ -124,6 +124,7 @@ def get_git_hash():
     print('git checkout sha', end='')
     print('git submodule update --recursive')
   except:
+    sha = 0
     print('Error in get_git_hash')
     import traceback
     print(traceback.format_exc(), flush=True)
