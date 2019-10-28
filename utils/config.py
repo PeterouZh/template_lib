@@ -58,18 +58,17 @@ def setup_outdir(args, resume_root, resume):
   else:
     shutil.rmtree(args.outdir, ignore_errors=True)
     os.makedirs(args.outdir, exist_ok=True)
-    try:
-      print('Start copying code to outdir.')
-      shutil.copytree('.', os.path.join(args.outdir, 'code'),
-                      ignore=shutil_utils.ignoreAbsPath(['results', ]))
-      shutil.copytree(
-        '../submodule/template_lib',
-        os.path.join(args.outdir, 'submodule/template_lib'),
-        ignore=shutil_utils.ignoreNamePath(['results', 'submodule']))
-      print('End copying code to outdir.')
-    except:
-      print("Error! Copying code to results.")
-
+  #   try:
+  #     print('Start copying code to outdir.')
+  #     shutil.copytree('.', os.path.join(args.outdir, 'code'),
+  #                     ignore=shutil_utils.ignoreAbsPath(['results', ]))
+  #     shutil.copytree(
+  #       '../submodule/template_lib',
+  #       os.path.join(args.outdir, 'submodule/template_lib'),
+  #       ignore=shutil_utils.ignoreNamePath(['results', 'submodule']))
+  #     print('End copying code to outdir.')
+  #   except:
+  #     print("Error! Copying code to results.")
   return
 
 
@@ -114,10 +113,30 @@ def setup_checkpoint(ckptdir, myargs):
   myargs.checkpoint_dict = collections.OrderedDict()
 
 
+def get_git_hash():
+  cwd = os.getcwd()
+  os.chdir(os.path.join(cwd, '..'))
+  try:
+    import git
+    repo = git.Repo(search_parent_directories=True)
+    sha = repo.head.object.hexsha
+    print('git hash: \n%s'%sha)
+    print('git checkout sha', end='')
+    print('git submodule update --recursive')
+  except:
+    print('Error in get_git_hash')
+    import traceback
+    print(traceback.format_exc(), flush=True)
+  os.chdir(cwd)
+  return sha
+
+
 def setup_args_and_myargs(args, myargs, start_tb=True):
   setup_outdir(args=args, resume_root=args.resume_root, resume=args.resume)
   setup_dirs_and_files(args=args)
   setup_logger_and_redirect_stdout(args.logfile, myargs)
+  get_git_hash()
+
   myargs.textlogger = logging_utils.TextLogger(
     log_root=args.textlogdir, reinitialize=(not args.resume),
     logstyle='%10.3f')
