@@ -394,3 +394,55 @@ class FIDScore(object):
       img_list.extend(list(gen_imgs))
     print('', file=stdout)
     return img_list
+
+  def get_activations_from_pytorch_dataloader(
+          self, dataloader, sess, stdout=sys.stdout):
+    """Calculates the activations of the pool_3 layer for all images.
+    Returns:
+    -- A numpy array of dimension (num images, 2048) that contains the
+       activations of the given tensor when feeding inception with the query tensor.
+    """
+
+    import tqdm
+    pbar = tqdm.tqdm(dataloader, file=stdout,
+                     desc='get_activations_from_pytorch_dataloader')
+
+    inception_layer = _get_inception_layer(sess)
+    pred_arr_list = []
+    for b_imgs, _ in pbar:
+      batch = b_imgs.cpu().numpy()
+      try:
+        pred = sess.run(inception_layer,
+                        {'FID_Inception_Net/ExpandDims:0': batch})
+      except:
+        print('Exception when forwarding inception net')
+        continue
+      pred_arr = pred.reshape(pred.shape[0], -1)
+      pred_arr_list.append(pred_arr)
+      del batch  # clean up memory
+    pred_arr_list = np.concatenate(pred_arr_list)
+    print('Num of images: %d'%pred_arr_list.shape[0])
+    return pred_arr_list
+
+  def calculate_fid_stat_for_pytorch_dataset(
+          self, dataloader, fid_stat, low_profile=False, stdout=sys.stdout):
+    """Calculates the FID of two paths.
+
+    :param dataloader: images: uint8 [0, 255], (b, h, w, c)
+    :param fid_stat: *.npz
+    :param low_profile:
+    :return:
+    """
+    fid_stat = os.path.expanduser(fid_stat)
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    with tf.Session(config=config) as sess:
+      sess.run(tf.global_variables_initializer())
+      act = self.get_activations_from_pytorch_dataloader(
+        dataloader=dataloader, sess=sess, stdout=stdout)
+
+    sess.close()
+    mu = np.mean(act, axis=0)
+    sigma = np.cov(act, rowvar=False)
+    np.savez(fid_stat, mu=mu, sigma=sigma)
+

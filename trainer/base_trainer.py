@@ -92,16 +92,15 @@ class Trainer(object):
   def scheduler_step(self, epoch):
     pass
 
-  def resume(self):
-    args = self.args
-    myargs = self.myargs
-    self.logger.info('=> Resume from: %s', args.resume_path)
+  @staticmethod
+  def resume(myargs, resume_path):
+    myargs.logger.info_msg('=> Resume from: \n%s', resume_path)
     loaded_state_dict = myargs.checkpoint.load_checkpoint(
       checkpoint_dict=myargs.checkpoint_dict,
-      filename=args.resume_path)
-    for key in self.train_dict:
+      filename=resume_path)
+    for key in myargs.train_dict:
       if key in loaded_state_dict['train_dict']:
-        self.train_dict[key] = loaded_state_dict['train_dict'][key]
+        myargs.train_dict[key] = loaded_state_dict['train_dict'][key]
 
   def finetune(self, ):
     config = self.config.finetune
