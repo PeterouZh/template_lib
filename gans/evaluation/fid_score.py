@@ -396,7 +396,7 @@ class FIDScore(object):
     return img_list
 
   def get_activations_from_pytorch_dataloader(
-          self, dataloader, sess, stdout=sys.stdout):
+          self, dataloader, sess, transform_to_uint8=False, stdout=sys.stdout):
     """Calculates the activations of the pool_3 layer for all images.
     Returns:
     -- A numpy array of dimension (num images, 2048) that contains the
@@ -410,7 +410,11 @@ class FIDScore(object):
     inception_layer = _get_inception_layer(sess)
     pred_arr_list = []
     for b_imgs, _ in pbar:
-      batch = b_imgs.cpu().numpy()
+      if transform_to_uint8:
+        batch = b_imgs.mul_(127.5).add_(127.5).clamp_(0.0, 255.0) \
+          .permute(0, 2, 3, 1).to('cpu').numpy().astype(np.uint8)
+      else:
+        batch = b_imgs.cpu().numpy()
       try:
         pred = sess.run(inception_layer,
                         {'FID_Inception_Net/ExpandDims:0': batch})
@@ -425,12 +429,11 @@ class FIDScore(object):
     return pred_arr_list
 
   def calculate_fid_stat_for_pytorch_dataset(
-          self, dataloader, fid_stat, low_profile=False, stdout=sys.stdout):
+          self, dataloader, fid_stat, transform_to_uint8=False, stdout=sys.stdout):
     """Calculates the FID of two paths.
 
     :param dataloader: images: uint8 [0, 255], (b, h, w, c)
     :param fid_stat: *.npz
-    :param low_profile:
     :return:
     """
     fid_stat = os.path.expanduser(fid_stat)
@@ -439,7 +442,8 @@ class FIDScore(object):
     with tf.Session(config=config) as sess:
       sess.run(tf.global_variables_initializer())
       act = self.get_activations_from_pytorch_dataloader(
-        dataloader=dataloader, sess=sess, stdout=stdout)
+        dataloader=dataloader, sess=sess,
+        transform_to_uint8=transform_to_uint8, stdout=stdout)
 
     sess.close()
     mu = np.mean(act, axis=0)
