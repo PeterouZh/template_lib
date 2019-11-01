@@ -4,7 +4,7 @@ import unittest
 import argparse
 
 os.chdir('..')
-import utils
+from template_lib import utils
 
 
 class TestingUnit(unittest.TestCase):
@@ -50,6 +50,8 @@ class TestingUnit(unittest.TestCase):
     args.outdir = outdir
     args, myargs = utils.config.setup_args_and_myargs(args=args, myargs=myargs)
 
+    utils.modelarts_utils.start_process(
+      func=run.train, args=args, myargs=myargs, loop=10)
     input('End %s' % outdir)
     return
 
