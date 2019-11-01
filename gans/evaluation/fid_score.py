@@ -419,7 +419,7 @@ class FIDScore(object):
         pred = sess.run(inception_layer,
                         {'FID_Inception_Net/ExpandDims:0': batch})
       except:
-        print('Exception when forwarding inception net')
+        print('\nException when forwarding inception net')
         continue
       pred_arr = pred.reshape(pred.shape[0], -1)
       pred_arr_list.append(pred_arr)
