@@ -1,4 +1,4 @@
-from . import config, config_utils, args_parser
+from . import config, config_utils, args_parser, modelarts_utils
 
 
 def is_debugging():

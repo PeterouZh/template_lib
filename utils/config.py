@@ -73,6 +73,10 @@ def setup_outdir(args, resume_root, resume):
 
 
 def setup_logger_and_redirect_stdout(logfile, myargs):
+  # sys.stdout is changed
+  if isinstance(sys.stdout, logging_utils.StreamToLogger):
+    sys.stdout = myargs.stdout
+    sys.stderr = myargs.stderr
   # setup logging in the project
   logger = logging_utils.get_logger(filename=logfile)
   myargs.logger = logger

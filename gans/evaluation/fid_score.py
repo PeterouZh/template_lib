@@ -26,6 +26,7 @@ import numpy as np
 import tensorflow as tf
 from scipy import linalg
 from imageio import imread
+import tarfile
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -344,9 +345,30 @@ def calculate_fid_given_paths(paths, inception_path, low_profile=False):
 class FIDScore(object):
   def __init__(self, tf_inception_model_dir):
     tf_inception_model_dir = os.path.expanduser(tf_inception_model_dir)
-    inception_path = check_or_download_inception(tf_inception_model_dir)
+    inception_path = self.check_or_download_inception(tf_inception_model_dir)
     create_inception_graph(inception_path)
     pass
+
+  def check_or_download_inception(self, tf_inception_model_dir):
+    MODEL_DIR = os.path.expanduser(tf_inception_model_dir)
+    if not os.path.exists(MODEL_DIR):
+      os.makedirs(MODEL_DIR)
+    DATA_URL = 'http://download.tensorflow.org/models/image/imagenet/inception-2015-12-05.tgz'
+    filename = DATA_URL.split('/')[-1]
+    filepath = os.path.join(MODEL_DIR, filename)
+    if not os.path.exists(filepath):
+      def _progress(count, block_size, total_size):
+        sys.stdout.write('\r>> Downloading %s %.1f%%' % (
+          filename, float(count * block_size) / float(total_size) * 100.0))
+        sys.stdout.flush()
+      from six.moves import urllib
+      filepath, _ = urllib.request.urlretrieve(DATA_URL, filepath, _progress)
+      print()
+      statinfo = os.stat(filepath)
+      print('Succesfully downloaded', filename, statinfo.st_size, 'bytes.')
+    tarfile.open(filepath, 'r:gz').extractall(MODEL_DIR)
+    model_file = os.path.join(MODEL_DIR, 'classify_image_graph_def.pb')
+    return model_file
 
   def calculate_fid_given_paths(self, fid_buffer, fid_stat,
                                 low_profile=False, stdout=sys.stdout):

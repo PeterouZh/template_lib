@@ -1,5 +1,8 @@
 import os, time
 import multiprocessing
+import shutil
+
+from . import config
 
 
 class CopyObsProcessing(multiprocessing.Process):
@@ -147,3 +150,15 @@ def modelarts_catch_exception(func):
       modelarts_sync_results(args=args, myargs=kwargs['myargs'],
                              join=True)
   return inter_func
+
+
+def start_process(func, args, myargs, loop=10):
+  for idx in range(loop):
+    start_tb = True if idx == 0 else False
+    args, myargs = config.setup_args_and_myargs(
+      args=args, myargs=myargs, start_tb=start_tb)
+    func(args=args, myargs=myargs)
+    if os.environ['TIME_STR'] == '0':
+      return
+    if idx > 0:
+      shutil.rmtree(args.outdir, ignore_errors=True)
