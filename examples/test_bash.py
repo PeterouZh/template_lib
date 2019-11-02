@@ -91,7 +91,7 @@ class TestingUnit(unittest.TestCase):
       pass
     args.outdir = outdir
     args, myargs = utils.config.setup_args_and_myargs(
-      args=args, myargs=myargs, add_number_to_configfile=True)
+      args=args, myargs=myargs, start_tb=False, add_number_to_configfile=True)
 
     old_command = ''
     myargs.logger.info('Begin loop.')
