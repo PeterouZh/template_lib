@@ -6,6 +6,7 @@ import collections
 import json, yaml
 from easydict import EasyDict
 import pprint
+from datetime import datetime
 
 from .dirs import create_dirs
 from . import logging_utils
@@ -61,7 +62,7 @@ def setup_dirs_and_files(args, **kwargs):
 
 def setup_outdir(args, resume_root, resume):
   TIME_STR = bool(int(os.getenv('TIME_STR', 0)))
-  time_str = time.strftime("%Y%m%d-%H_%M_%S")
+  time_str = datetime.now().strftime("%Y%m%d-%H_%M_%S_%f")[:-3]
   args.outdir = args.outdir if not TIME_STR else (args.outdir + '_' + time_str)
 
   if resume_root and resume:
