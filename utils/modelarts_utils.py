@@ -82,8 +82,8 @@ def modelarts_finetune(args, finetune_path):
     assert mox.file.exists(args.finetune_path_obs)
     print('Copying %s \n to %s'%(args.finetune_path_obs, args.finetune_path))
     mox.file.copy_parallel(args.finetune_path_obs, args.finetune_path)
-  except ModuleNotFoundError as e:
-    print("Finetune, don't use modelarts!")
+  except:
+    print("Finetune load failed!")
   return
 
 
