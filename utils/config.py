@@ -34,16 +34,29 @@ def get_config_from_file(config_file, saved_path):
     exit(-1)
 
 
-def setup_dirs_and_files(args):
+def setup_dirs_and_files(args, **kwargs):
   # create some important directories to be used for that experiment.
   args.ckptdir = os.path.join(args.outdir, "models/")
   args.tbdir = os.path.join(args.outdir, "tb/")
   args.textlogdir = os.path.join(args.outdir, 'textlog/')
   args.imgdir = os.path.join(args.outdir, 'saved_imgs/')
   create_dirs([args.ckptdir, args.tbdir, args.textlogdir, args.imgdir])
-
   args.logfile = os.path.join(args.outdir, "log.txt")
-  args.configfile = os.path.join(args.outdir, "config.yaml")
+  try:
+    # append log dir name in configfile
+    import moxing as mox
+    assert os.environ['DLS_TRAIN_URL']
+    log_obs = os.environ['DLS_TRAIN_URL']
+    log_obs = log_obs.strip('/')
+    log_number = log_obs[-1]
+    assert log_number.isdigit()
+    if kwargs['add_number_to_configfile']:
+      args.configfile = os.path.join(args.outdir, "config_%s.yaml"%log_number)
+    else:
+      args.configfile = os.path.join(args.outdir, "config.yaml")
+  except:
+    args.configfile = os.path.join(args.outdir, "config.yaml")
+    pass
 
 
 def setup_outdir(args, resume_root, resume):
@@ -136,9 +149,9 @@ def get_git_hash():
   return sha
 
 
-def setup_args_and_myargs(args, myargs, start_tb=True):
+def setup_args_and_myargs(args, myargs, start_tb=True, **kwargs):
   setup_outdir(args=args, resume_root=args.resume_root, resume=args.resume)
-  setup_dirs_and_files(args=args)
+  setup_dirs_and_files(args=args, **kwargs)
   setup_logger_and_redirect_stdout(args.logfile, myargs)
   get_git_hash()
 
