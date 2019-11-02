@@ -79,6 +79,7 @@ class TestingUnit(unittest.TestCase):
       return args, argv_str
     args, argv_str = build_args()
 
+    kwargs = {}
     try:
       # Clean log_obs dir
       import moxing as mox
@@ -87,11 +88,16 @@ class TestingUnit(unittest.TestCase):
       if mox.file.exists(log_obs):
         mox.file.remove(log_obs, recursive=True)
       mox.file.make_dirs(log_obs)
+      # Get log dir number
+      log_number = log_obs.strip('/').split('/')[-1]
+      assert log_number.isdigit()
+      kwargs['log_number'] = log_number
     except:
       pass
     args.outdir = outdir
     args, myargs = utils.config.setup_args_and_myargs(
-      args=args, myargs=myargs, start_tb=False, add_number_to_configfile=True)
+      args=args, myargs=myargs, start_tb=False, add_number_to_configfile=True,
+      **kwargs)
 
     old_command = ''
     myargs.logger.info('Begin loop.')

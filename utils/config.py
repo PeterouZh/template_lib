@@ -60,10 +60,12 @@ def setup_dirs_and_files(args, **kwargs):
     pass
 
 
-def setup_outdir(args, resume_root, resume):
+def setup_outdir(args, resume_root, resume, **kwargs):
   TIME_STR = bool(int(os.getenv('TIME_STR', 0)))
   time_str = datetime.now().strftime("%Y%m%d-%H_%M_%S_%f")[:-3]
   args.outdir = args.outdir if not TIME_STR else (args.outdir + '_' + time_str)
+  if 'log_number' in kwargs:
+    args.outdir += '_%s'%kwargs['log_number']
 
   if resume_root and resume:
     args.outdir = resume_root
@@ -151,7 +153,8 @@ def get_git_hash():
 
 
 def setup_args_and_myargs(args, myargs, start_tb=True, **kwargs):
-  setup_outdir(args=args, resume_root=args.resume_root, resume=args.resume)
+  setup_outdir(args=args, resume_root=args.resume_root, resume=args.resume,
+               **kwargs)
   setup_dirs_and_files(args=args, **kwargs)
   setup_logger_and_redirect_stdout(args.logfile, myargs)
   get_git_hash()
