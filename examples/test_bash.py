@@ -136,7 +136,7 @@ class TestingUnit(unittest.TestCase):
           if type(command) is list and command[0].startswith('bash'):
             p = Worker(name='Command worker', args=(command[0], ))
             p.start()
-          elif type(command) is list:
+          elif type(command) is list and len(command) == 1:
             command = list(map(str, command))
             # command = ' '.join(command)
             print('===Execute: %s' % command)
