@@ -47,7 +47,7 @@ def setup_dirs_and_files(args, **kwargs):
     import moxing as mox
     assert os.environ['DLS_TRAIN_URL']
     log_obs = os.environ['DLS_TRAIN_URL']
-    log_obs = log_obs.strip('/')
+    log_obs = log_obs.strip('/').split('/')
     log_number = log_obs[-1]
     assert log_number.isdigit()
     if kwargs['add_number_to_configfile']:
