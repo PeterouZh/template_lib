@@ -16,7 +16,7 @@ def get_prefix_abb(prefix):
   return prefix_abb
 
 def write_scalars_to_text(summary, prefix, step, textlogger,
-                          log_axe, log_axe_sec):
+                          log_axe, log_axe_sec, log_together=False):
   prefix_abb = get_prefix_abb(prefix=prefix)
   summary = {prefix_abb + '.' + k: v for k, v in summary.items()}
   textlogger.log(step, **summary)
@@ -25,7 +25,10 @@ def write_scalars_to_text(summary, prefix, step, textlogger,
     now = time.time()
     last_time = getattr(Trainer, time_str, 0)
     if now - last_time > log_axe_sec:
-      textlogger.log_axes(**summary)
+      if log_together:
+        textlogger.log_ax(**summary)
+      else:
+        textlogger.log_axes(**summary)
       setattr(Trainer, time_str, now)
 
 
@@ -165,7 +168,8 @@ class Trainer(object):
     if textlogger is not None:
       write_scalars_to_text(summary=summary, prefix=prefix, step=step,
                             textlogger=textlogger,
-                            log_axe=log_axe, log_axe_sec=log_axe_sec)
+                            log_axe=log_axe, log_axe_sec=log_axe_sec,
+                            log_together=True)
     if writer is None and textlogger is None:
       print('Both writer and textlogger are None!')
 
