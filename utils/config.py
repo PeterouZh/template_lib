@@ -52,7 +52,7 @@ def setup_dirs_and_files(args, **kwargs):
     log_number = log_obs[-1]
     assert log_number.isdigit()
     if kwargs['add_number_to_configfile']:
-      args.configfile = os.path.join(args.outdir, "config_%s.yaml"%log_number)
+      args.configfile = os.path.join(args.outdir, "c_%s.yaml"%log_number)
     else:
       args.configfile = os.path.join(args.outdir, "config.yaml")
   except:
