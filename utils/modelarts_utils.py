@@ -170,6 +170,11 @@ def start_process(func, args, myargs, loop=10):
 def modelarts_copy_data(datapath_obs, datapath, overwrite=False):
   try:
     import moxing as mox
+    if datapath_obs == 'auto':
+      root_obs = os.environ['root_obs']
+      datapath_obs = os.path.join(
+        root_obs, 'keras', datapath[datapath.find('.keras') + 7:])
+
     if not mox.file.exists(datapath_obs):
       assert 0
 
@@ -202,7 +207,7 @@ class TestingUnit(unittest.TestCase):
     """
     Usage:
         exp_name=wgan-pytorch0
-        root_obs=s3://bucket-cv-competition/ZhouPeng
+        export root_obs=s3://bucket-cv-competition/ZhouPeng
         mkdir -p /cache/.keras/ && rm -rf $HOME/.keras && ln -s /cache/.keras $HOME/.keras
         export RESULTS_OBS=$root_obs/results/$exp_name
         python /home/work/user-job-dir/code/copy_tool.py \
