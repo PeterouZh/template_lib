@@ -112,6 +112,42 @@ class InceptionScore(object):
       sess.close()
     return np.mean(scores), np.std(scores)
 
+  def get_inception_score_dataloader(self, dataloader, splits=10,
+                                     stdout=sys.stdout):
+    """
+    # Call this function with list of images. Each of elements should be a
+    # numpy array with values ranging from 0 to 255.
+    :param images: [img, ], range: [0, 255]
+    :param stdout:
+    :return:
+    """
+
+    with tf.Session(config=config) as sess:
+      preds = []
+      bs = len(next(iter(dataloader))[0])
+      n_batches = len(dataloader)
+      for i, (img, _) in enumerate(dataloader):
+        print('\r',
+              end='Calculate inception score [%d/%d]' % (
+              i * bs, n_batches * bs),
+              file=stdout, flush=True)
+        inp = self.img_float_to_uint(img)
+
+        pred = sess.run(softmax, {'ExpandDims:0': inp})
+        preds.append(pred)
+      print('', file=stdout)
+      preds = np.concatenate(preds, 0)
+      scores = []
+      for i in range(splits):
+        part = preds[(i * preds.shape[0] // splits):(
+                (i + 1) * preds.shape[0] // splits), :]
+        kl = part * (np.log(part) - np.log(np.expand_dims(np.mean(part, 0), 0)))
+        kl = np.mean(np.sum(kl, 1))
+        scores.append(np.exp(kl))
+
+      sess.close()
+    return np.mean(scores), np.std(scores)
+
   @staticmethod
   def img_float_to_uint(imgs):
     import torch
