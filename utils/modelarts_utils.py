@@ -203,6 +203,7 @@ class TestingUnit(unittest.TestCase):
     Usage:
         exp_name=wgan-pytorch0
         root_obs=s3://bucket-cv-competition/ZhouPeng
+        mkdir -p /cache/.keras/ && rm -rf $HOME/.keras && ln -s /cache/.keras $HOME/.keras
         export RESULTS_OBS=$root_obs/results/$exp_name
         python /home/work/user-job-dir/code/copy_tool.py \
           -s $root_obs/code/$exp_name \
