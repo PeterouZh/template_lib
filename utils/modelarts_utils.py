@@ -200,8 +200,9 @@ class TestingUnit(unittest.TestCase):
         root_obs=s3://bucket-cv-competition/ZhouPeng
         export RESULTS_OBS=$root_obs/results/$exp_name
         python /home/work/user-job-dir/code/copy_tool.py \
-          -s $root_obs/code/$exp_name
+          -s $root_obs/code/$exp_name \
           -d /cache/code/$exp_name -t copytree
+        ln -s /cache/code/$exp_name /cache/code/template_lib
         cd /cache/code/$exp_name/
 
         export CUDA_VISIBLE_DEVICES=0
