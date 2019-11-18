@@ -245,10 +245,19 @@ class TestingUnit(unittest.TestCase):
     args, myargs = utils.config.setup_args_and_myargs(
       args=args, myargs=myargs, start_tb=False)
 
+    modelarts_sync_results(args, myargs, join=True)
+
     datapath_obs = 's3://bucket-cv-competition/ZhouPeng/keras/cifar10'
     datapath = '~/.keras/cifar10'
     modelarts_copy_data(
       datapath_obs=datapath_obs, datapath=datapath, overwrite=True)
+
+    datapath_obs = 's3://bucket-cv-competition/ZhouPeng/keras/cifar10/cifar10_inception_moments.npz'
+    datapath = '~/.keras/cifar10_inception_moments.npz'
+    modelarts_copy_data(
+      datapath_obs=datapath_obs, datapath=datapath, overwrite=True)
+
+    modelarts_sync_results(args, myargs, join=True, end=True)
     input('End %s' % outdir)
     return
 
