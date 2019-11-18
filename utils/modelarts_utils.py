@@ -175,6 +175,11 @@ def modelarts_copy_data(datapath_obs, datapath, overwrite=False):
 
     print('=== Copying dataset ===')
     datapath = os.path.expanduser(datapath)
+
+    if not overwrite and os.path.exists(datapath):
+      print('Skip copy [%s] \n to [%s]' % (datapath_obs, datapath))
+      return
+
     if mox.file.is_directory(datapath_obs):
       # dir
       print('Copying dir [%s] \n to [%s]' % (datapath_obs, datapath))
@@ -255,7 +260,7 @@ class TestingUnit(unittest.TestCase):
     datapath_obs = 's3://bucket-cv-competition/ZhouPeng/keras/cifar10/cifar10_inception_moments.npz'
     datapath = '~/.keras/cifar10_inception_moments.npz'
     modelarts_copy_data(
-      datapath_obs=datapath_obs, datapath=datapath, overwrite=True)
+      datapath_obs=datapath_obs, datapath=datapath, overwrite=False)
 
     modelarts_sync_results(args, myargs, join=True, end=True)
     input('End %s' % outdir)
