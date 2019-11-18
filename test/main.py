@@ -48,7 +48,7 @@ class TestingUnit(unittest.TestCase):
     args, argv_str = build_args()
 
     args.outdir = outdir
-    args, myargs = utils.config.setup_args_and_myargs(args=args, myargs=myargs)
+    # args, myargs = utils.config.setup_args_and_myargs(args=args, myargs=myargs)
 
     utils.modelarts_utils.start_process(
       func=run.train, args=args, myargs=myargs, loop=10)

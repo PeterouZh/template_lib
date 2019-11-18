@@ -1,3 +1,6 @@
+import argparse
+import sys
+import unittest
 import os, time
 import multiprocessing
 import shutil
@@ -162,3 +165,89 @@ def start_process(func, args, myargs, loop=10):
       return
     if idx > 0:
       shutil.rmtree(args.outdir, ignore_errors=True)
+
+
+def modelarts_copy_data(datapath_obs, datapath, overwrite=False):
+  try:
+    import moxing as mox
+    if not mox.file.exists(datapath_obs):
+      assert 0
+
+    print('=== Copying dataset ===')
+    datapath = os.path.expanduser(datapath)
+    if mox.file.is_directory(datapath_obs):
+      # dir
+      print('Copying dir [%s] \n to [%s]' % (datapath_obs, datapath))
+      mox.file.copy_parallel(datapath_obs, datapath)
+    else:
+      # file
+      print('Copying file [%s] \n to [%s]' % (datapath_obs, datapath))
+      mox.file.copy(datapath_obs, datapath)
+    print('End [%s] \n to [%s]' % (datapath_obs, datapath))
+
+  except:
+    import traceback
+    print(traceback.format_exc())
+
+
+
+class TestingUnit(unittest.TestCase):
+
+  def test_modelarts_copy_data(self):
+    """
+    Usage:
+        exp_name=wgan-pytorch0
+        root_obs=s3://bucket-cv-competition/ZhouPeng
+        export RESULTS_OBS=$root_obs/results/$exp_name
+        python /home/work/user-job-dir/code/copy_tool.py \
+          -s $root_obs/code/$exp_name
+          -d /cache/code/$exp_name -t copytree
+        cd /cache/code/$exp_name/
+
+        export CUDA_VISIBLE_DEVICES=0
+        export PORT=6006
+        export TIME_STR=1
+        export PYTHONPATH=../
+        python -c "from utils import modelarts_utils; \
+          modelarts_utils.TestingUnit().test_modelarts_copy_data()"
+    :return:
+    """
+    import template_lib.utils as utils
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'PORT' not in os.environ:
+      os.environ['PORT'] = '6006'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
+    # func name
+    outdir = os.path.join('results', sys._getframe().f_code.co_name)
+    myargs = argparse.Namespace()
+
+    def build_args():
+      argv_str = f"""
+            --config ./configs/config.yaml 
+            --command test_command
+            --resume False --resume_path None
+            --resume_root None
+            """
+      parser = utils.args_parser.build_parser()
+      if len(sys.argv) == 1:
+        args = parser.parse_args(args=argv_str.split())
+      else:
+        args = parser.parse_args()
+      args.CUDA_VISIBLE_DEVICES = os.environ['CUDA_VISIBLE_DEVICES']
+      args = utils.config_utils.DotDict(vars(args))
+      return args, argv_str
+    args, argv_str = build_args()
+
+    args.outdir = outdir
+    args, myargs = utils.config.setup_args_and_myargs(
+      args=args, myargs=myargs, start_tb=False)
+
+    datapath_obs = 's3://bucket-cv-competition/ZhouPeng/keras/cifar10'
+    datapath = '~/.keras/cifar10'
+    modelarts_copy_data(
+      datapath_obs=datapath_obs, datapath=datapath, overwrite=True)
+    input('End %s' % outdir)
+    return
+

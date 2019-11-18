@@ -139,6 +139,22 @@ class TestingUnit(unittest.TestCase):
           elif type(command) is list and len(command) == 1:
             command = list(map(str, command))
             # command = ' '.join(command)
+            # print('===Execute: %s' % command)
+            err_f = open(os.path.join(args.outdir, 'err.txt'), 'w')
+            try:
+              cwd = os.getcwd()
+              return_str = subprocess.check_output(
+                command, encoding='utf-8', cwd=cwd, shell=True)
+              print(return_str, file=err_f, flush=True)
+            except subprocess.CalledProcessError as e:
+              print("Oops!\n", e.output, "\noccured.",
+                    file=err_f, flush=True)
+              print(e.returncode, file=err_f, flush=True)
+            err_f.close()
+          elif type(command) is list and len(command) > 1:
+            command = list(map(str, command))
+            command = [command[0]]
+            # command = ' '.join(command)
             print('===Execute: %s' % command)
             err_f = open(os.path.join(args.outdir, 'err.txt'), 'w')
             try:
