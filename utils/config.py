@@ -179,3 +179,29 @@ def setup_args_and_myargs(args, myargs, start_tb=True, **kwargs):
   args = EasyDict(args)
   myargs.config = EasyDict(myargs.config)
   return args, myargs
+
+
+def update_config(super_config, config):
+  for k in config:
+    if isinstance(config[k], EasyDict) and hasattr(super_config, k):
+      update_config(super_config[k], config[k])
+    else:
+      setattr(super_config, k, config[k])
+  return super_config
+
+
+def config_inherit_from_base(config, configs, arg_base=[]):
+  base = getattr(config, 'base', [])
+  if not isinstance(arg_base, list):
+    arg_base = [arg_base]
+  base += arg_base
+  if not base:
+    return EasyDict(config)
+
+  super_config = EasyDict()
+  for b in base:
+    b_config = getattr(configs, b)
+    b_config = config_inherit_from_base(b_config, configs)
+    super_config = update_config(super_config, b_config)
+  super_config = update_config(super_config, config)
+  return super_config
