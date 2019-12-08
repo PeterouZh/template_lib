@@ -43,6 +43,7 @@ def setup_dirs_and_files(args, **kwargs):
   args.imgdir = os.path.join(args.outdir, 'saved_imgs/')
   create_dirs([args.ckptdir, args.tbdir, args.textlogdir, args.imgdir])
   args.logfile = os.path.join(args.outdir, "log.txt")
+  args.config_command_file = os.path.join(args.outdir, "config_command.yaml")
   try:
     # append log dir name in configfile
     import moxing as mox
@@ -102,12 +103,24 @@ def setup_logger_and_redirect_stdout(logfile, myargs):
   return
 
 
-def setup_config(config_file, saved_config_file, myargs):
+def setup_config(config_file, saved_config_file, args, myargs):
   # Parse config file
   config = get_config_from_file(config_file, saved_path=saved_config_file)
   myargs.config = config
-  # print(" THE config of experiment:")
-  # print(pprint.pformat(config))
+
+  config_command = getattr(config, args.command, None)
+  if config_command:
+    # inherit from base
+    config_command = config_inherit_from_base(
+      config=config_command, configs=config)
+    config_command = convert_easydict_to_dict(config_command)
+    saved_config_command = {args.command: config_command}
+    config_utils.YamlConfigParser.write_yaml(
+      saved_config_command, fname=args.config_command_file)
+    # update command config
+    myargs.config[args.command] = \
+      config_utils.DotDict(config_command)
+
   return
 
 
@@ -167,8 +180,9 @@ def setup_args_and_myargs(args, myargs, start_tb=True, **kwargs):
   print("The args: ")
   print(pprint.pformat(args))
 
-  setup_config(config_file=args.config, saved_config_file=args.configfile,
-               myargs=myargs)
+  setup_config(
+    config_file=args.config, saved_config_file=args.configfile,
+    args=args, myargs=myargs)
   setup_tensorboardX(tbdir=args.tbdir, args=args, config=myargs.config,
                      myargs=myargs, start_tb=start_tb)
 
@@ -182,12 +196,27 @@ def setup_args_and_myargs(args, myargs, start_tb=True, **kwargs):
 
 
 def update_config(super_config, config):
+  """
+
+  :param super_config:
+  :param config:
+  :return:
+  """
   for k in config:
-    if isinstance(config[k], EasyDict) and hasattr(super_config, k):
+    if isinstance(config[k], dict) and hasattr(super_config, k):
       update_config(super_config[k], config[k])
     else:
       setattr(super_config, k, config[k])
   return super_config
+
+
+def convert_easydict_to_dict(config):
+  config = dict(config)
+  for k in config:
+    if isinstance(config[k], EasyDict):
+      config[k] = dict(config[k])
+      config.update({k: convert_easydict_to_dict(config[k])})
+  return config
 
 
 def config_inherit_from_base(config, configs, arg_base=[]):
@@ -200,7 +229,7 @@ def config_inherit_from_base(config, configs, arg_base=[]):
 
   super_config = EasyDict()
   for b in base:
-    b_config = getattr(configs, b)
+    b_config = getattr(configs, b, {})
     b_config = config_inherit_from_base(b_config, configs)
     super_config = update_config(super_config, b_config)
   super_config = update_config(super_config, config)
