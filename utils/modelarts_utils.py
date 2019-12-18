@@ -54,6 +54,8 @@ def modelarts_setup(args, myargs):
     myargs.copy_obs = copy_obs
   except ModuleNotFoundError as e:
     myargs.logger.info("Don't use modelarts!")
+  finally:
+    myargs.time_start = time.time()
   return
 
 
@@ -91,6 +93,18 @@ def modelarts_finetune(args, finetune_path):
 
 
 def modelarts_sync_results(args, myargs, join=False, end=False):
+  # measure elapsed time
+  if not hasattr(myargs, 'modelarts_sync_results_counter'):
+    setattr(myargs, 'modelarts_sync_results_counter', 0)
+  else:
+    myargs.modelarts_sync_results_counter += 1
+  elapsed = time.time() - myargs.time_start
+  hours, rem = divmod(elapsed, 3600)
+  minutes, seconds = divmod(rem, 60)
+  time_str = "{:0>2}h:{:0>2}m:{:05.2f}s".format(int(hours), int(minutes), seconds)
+  myargs.textlogger.logstr(itr=myargs.modelarts_sync_results_counter,
+                           time=time_str)
+
   if hasattr(args, 'outdir_obs'):
     import moxing as mox
     # sync jobs.txt
@@ -271,6 +285,65 @@ class TestingUnit(unittest.TestCase):
     datapath = '~/.keras/cifar10_inception_moments.npz'
     modelarts_copy_data(
       datapath_obs=datapath_obs, datapath=datapath, overwrite=False)
+
+    modelarts_sync_results(args, myargs, join=True, end=True)
+    input('End %s' % outdir)
+    return
+
+  def test_modelarts_time(self):
+    """
+    Usage:
+        exp_name=template_lib
+        export root_obs=s3://bucket-1893/ZhouPeng
+        mkdir -p /cache/.keras/ && rm -rf $HOME/.keras && ln -s /cache/.keras $HOME/.keras
+        export RESULTS_OBS=$root_obs/results/$exp_name
+        python /home/work/user-job-dir/code/copy_tool.py \
+          -s $root_obs/code/$exp_name \
+          -d /cache/code/$exp_name -t copytree
+        cd /cache/code/$exp_name/
+
+        export CUDA_VISIBLE_DEVICES=0
+        export PORT=6006
+        export TIME_STR=1
+        export PYTHONPATH=../
+        python -c "from utils import modelarts_utils; \
+          modelarts_utils.TestingUnit().test_modelarts_time()"
+    :return:
+    """
+    import template_lib.utils as utils
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'PORT' not in os.environ:
+      os.environ['PORT'] = '6006'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
+    # func name
+    outdir = os.path.join('results', sys._getframe().f_code.co_name)
+    myargs = argparse.Namespace()
+
+    def build_args():
+      argv_str = f"""
+            --config ./configs/config.yaml 
+            --command test_command
+            --resume False --resume_path None
+            --resume_root None
+            """
+      parser = utils.args_parser.build_parser()
+      if len(sys.argv) == 1:
+        args = parser.parse_args(args=argv_str.split())
+      else:
+        args = parser.parse_args()
+      args.CUDA_VISIBLE_DEVICES = os.environ['CUDA_VISIBLE_DEVICES']
+      args = utils.config_utils.DotDict(vars(args))
+      return args, argv_str
+
+    args, argv_str = build_args()
+
+    args.outdir = outdir
+    args, myargs = utils.config.setup_args_and_myargs(
+      args=args, myargs=myargs, start_tb=False)
+
+    modelarts_sync_results(args, myargs, join=True)
 
     modelarts_sync_results(args, myargs, join=True, end=True)
     input('End %s' % outdir)
