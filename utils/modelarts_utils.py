@@ -94,16 +94,12 @@ def modelarts_finetune(args, finetune_path):
 
 def modelarts_sync_results(args, myargs, join=False, end=False):
   # measure elapsed time
-  if not hasattr(myargs, 'modelarts_sync_results_counter'):
-    setattr(myargs, 'modelarts_sync_results_counter', 0)
-  else:
-    myargs.modelarts_sync_results_counter += 1
-  elapsed = time.time() - myargs.time_start
-  hours, rem = divmod(elapsed, 3600)
-  minutes, seconds = divmod(rem, 60)
-  time_str = "{:0>2}h:{:0>2}m:{:05.2f}s".format(int(hours), int(minutes), seconds)
-  myargs.textlogger.logstr(itr=myargs.modelarts_sync_results_counter,
-                           time=time_str)
+  if end:
+    elapsed = time.time() - myargs.time_start
+    hours, rem = divmod(elapsed, 3600)
+    minutes, seconds = divmod(rem, 60)
+    time_str = "{:0>2}h:{:0>2}m:{:05.2f}s".format(int(hours), int(minutes), seconds)
+    myargs.textlogger.logstr(itr=0, time=time_str)
 
   if hasattr(args, 'outdir_obs'):
     import moxing as mox
