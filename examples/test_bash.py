@@ -110,6 +110,12 @@ class TestingUnit(unittest.TestCase):
     shutil.copy(args.configfile, args.configfile_old)
     # copy outdir to outdir_obs, copy bash_file to outdir_obs
     modelarts_utils.modelarts_sync_results(args, myargs, join=True)
+    
+    # disable moxing copy_parallel output
+    import logging
+    logger = logging.getLogger()
+    logger.disabled = True
+    
     while True:
       try:
         try:
