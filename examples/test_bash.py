@@ -41,23 +41,24 @@ def modelarts_record_bash_command(args, myargs, command=None):
 
 class TestingUnit(unittest.TestCase):
 
-  def test_bash(self):
+  def test_bash(self, *tmp):
     """
     Usage:
-        export CUDA_VISIBLE_DEVICES=2,3,4,5
-        export PORT=6006
+        export CUDA_VISIBLE_DEVICES=0
+        export PORT=6001
         export TIME_STR=1
-        export PYTHONPATH=../submodule:..
+        export PYTHONPATH=../..
         python -c "import test_bash; \
-        test_bash.TestingUnit().test_bash()"
+          test_bash.TestingUnit().test_bash($PORT)"
+
     :return:
     """
     if 'CUDA_VISIBLE_DEVICES' not in os.environ:
-      os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1, 2, 3, 4, 5, 6, 7'
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     if 'PORT' not in os.environ:
       os.environ['PORT'] = '6001'
     if 'TIME_STR' not in os.environ:
-      os.environ['TIME_STR'] = '0'
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
 
     # func name
     outdir = os.path.join('results', sys._getframe().f_code.co_name)

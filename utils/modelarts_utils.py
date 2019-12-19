@@ -4,6 +4,7 @@ import unittest
 import os, time
 import multiprocessing
 import shutil
+import logging
 
 from . import config
 
@@ -199,6 +200,9 @@ def modelarts_copy_data(datapath, datapath_obs='auto', overwrite=False):
       return
 
     if mox.file.is_directory(datapath_obs):
+      # disable info output
+      logger = logging.getLogger()
+      logger.disabled = True
       # dir
       print('Copying dir [%s] \n to [%s]' % (datapath_obs, datapath))
       mox.file.copy_parallel(datapath_obs, datapath)
@@ -212,6 +216,9 @@ def modelarts_copy_data(datapath, datapath_obs='auto', overwrite=False):
     import traceback
     print(traceback.format_exc())
     print('Ignore datapath: %s' % datapath)
+  finally:
+    logger = logging.getLogger()
+    logger.disabled = False
 
 
 
