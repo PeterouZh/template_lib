@@ -1,3 +1,6 @@
 
-bash /home/work/user-job-dir/code/GAN_stability-master/gan_stability-master/run_GAN_stability.sh wgan_gpreal
-
+bs=$1
+gpu=$2
+export PYTHONPATH=../..
+python -c "import test_bash; \
+  test_bash.TestingUnit().test_resnet($bs, '$gpu')"

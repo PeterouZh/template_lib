@@ -8,6 +8,7 @@ import os
 import sys
 import unittest
 import argparse
+import random
 
 from template_lib import utils
 from template_lib.utils import modelarts_utils
@@ -15,7 +16,7 @@ from template_lib.utils import modelarts_utils
 class Worker(multiprocessing.Process):
   def run(self):
     command = self._args[0]
-    print('+++Execute: %s'%command)
+    print('%s'%command)
     os.system(command)
     return
 
@@ -193,3 +194,18 @@ class TestingUnit(unittest.TestCase):
         myargs.logger.info(traceback.format_exc())
         modelarts_utils.modelarts_sync_results(args, myargs, join=True)
 
+  def test_resnet(self, bs=32, gpu='0,1,2,3,4,5,6,7'):
+    """
+    export PYTHONPATH=../..
+    python -c "import test_bash; \
+      test_bash.TestingUnit().test_resnet(32)"
+
+    """
+
+    while True:
+      p = utils.TorchResnetWorker(name='Command worker', args=(bs, gpu))
+      p.start()
+      p.join()
+      bs -= 1
+      if bs < 1:
+        break
