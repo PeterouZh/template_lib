@@ -27,12 +27,14 @@ class TorchResnetWorker(multiprocessing.Process):
     import torchvision
     net = torchvision.models.resnet152().cuda()
     net = torch.nn.DataParallel(net).cuda()
+
+    rbs = bs
     try:
       while True:
         t = random.random()
         time.sleep(t)
 
-        x = torch.rand(bs, 3, 299, 299).cuda()
+        x = torch.rand(rbs, 3, 299, 299).cuda()
         y = net(x)
 
         tensor = torch.randint(0, 1000, (bs,))  # tensor([0, 1, 2, 0, 1])
@@ -42,5 +44,6 @@ class TorchResnetWorker(multiprocessing.Process):
 
         t = random.random()
         time.sleep(t)
+        rbs = random.randint(1, bs)
     except RuntimeError:
       pass
