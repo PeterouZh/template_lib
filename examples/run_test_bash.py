@@ -11,6 +11,7 @@ root_obs_dict = {
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-ro', '--root-obs', '--root_obs', type=str, default=None, choices=list(root_obs_dict.keys()))
+parser.add_argument('--train_url', default=None)
 parser.add_argument('--port', type=int, default=6001)
 parser.add_argument('--exp', type=str, default='')
 
@@ -23,6 +24,20 @@ def setup_package():
     print('=Installing %s'%pack)
     os.system(command)
 
+def setup_env(root_obs, train_url=None, **kwargs):
+  os.environ['RESULTS_OBS'] = os.path.join(root_obs, 'results/template_lib')
+  if 'DLS_TRAIN_URL' not in os.environ:
+    if train_url is not None:
+      os.environ['DLS_TRAIN_URL'] = train_url
+    else:
+      os.environ['DLS_TRAIN_URL'] = '/tmp/logs/1'
+
+def setup_dir():
+  home_dir = os.path.expanduser('~')
+  os.system('rm %s'%(os.path.join(home_dir, '.keras')))
+  os.system('mkdir /cache/.keras')
+  os.system('ln -s /cache/.keras %s'%home_dir)
+
 
 if __name__ == '__main__':
   # args = parser.parse_args()
@@ -30,6 +45,8 @@ if __name__ == '__main__':
   args.root_obs = root_obs_dict[args.root_obs]
 
   setup_package()
+  setup_env(**vars(args))
+  setup_dir()
 
   try:
     import moxing
@@ -58,15 +75,6 @@ if __name__ == '__main__':
         python -c "import test_bash; \
           test_bash.TestingUnit().test_bash($PORT)"
         '''.format(port=args.port)
-
-
-  os.environ['RESULTS_OBS'] = os.path.join(args.root_obs, 'results/template_lib')
-  if 'DLS_TRAIN_URL' not in os.environ:
-    os.environ['DLS_TRAIN_URL'] = '/tmp/logs/1'
-
-  os.system('rm /root/.keras')
-  os.system('mkdir /cache/.keras')
-  os.system('ln -s /cache/.keras /root')
 
   try:
     os.system(command)
