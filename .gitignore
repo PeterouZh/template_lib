@@ -9,3 +9,7 @@ trainer/results/
 results/
 .ipynb_checkpoints/
 template_lib.ipynb
+.vscode/
+
+
+
