@@ -37,7 +37,7 @@ class TorchResnetWorker(multiprocessing.Process):
         x = torch.rand(rbs, 3, 299, 299).cuda()
         y = net(x)
 
-        tensor = torch.randint(0, 1000, (bs,))  # tensor([0, 1, 2, 0, 1])
+        tensor = torch.randint(0, 1000, (rbs,))  # tensor([0, 1, 2, 0, 1])
         one_hot = F.one_hot(tensor, num_classes=1000).float().cuda()
         loss = (y - one_hot).mean()
         loss.backward()
