@@ -37,6 +37,7 @@ def get_config_from_file(config_file, saved_path):
 
 def setup_dirs_and_files(args, **kwargs):
   # create some important directories to be used for that experiment.
+  args.abs_outdir = os.path.realpath(args.outdir)
   args.ckptdir = os.path.join(args.outdir, "models/")
   args.tbdir = os.path.join(args.outdir, "tb/")
   args.textlogdir = os.path.join(args.outdir, 'textlog/')
@@ -44,21 +45,13 @@ def setup_dirs_and_files(args, **kwargs):
   create_dirs([args.ckptdir, args.tbdir, args.textlogdir, args.imgdir])
   args.logfile = os.path.join(args.outdir, "log.txt")
   args.config_command_file = os.path.join(args.outdir, "config_command.yaml")
-  try:
-    # append log dir name in configfile
-    import moxing as mox
-    assert os.environ['DLS_TRAIN_URL']
-    log_obs = os.environ['DLS_TRAIN_URL']
-    log_obs = log_obs.strip('/').split('/')
-    log_number = log_obs[-1]
-    assert log_number.isdigit()
-    if kwargs['add_number_to_configfile']:
-      args.configfile = os.path.join(args.outdir, "c_%s.yaml"%log_number)
-    else:
-      args.configfile = os.path.join(args.outdir, "config.yaml")
-  except:
+
+  # append log dir name in configfile
+  if kwargs['add_number_to_configfile']:
+    args.configfile = os.path.join(args.outdir, "c_%s.yaml"%kwargs['log_number'])
+  else:
     args.configfile = os.path.join(args.outdir, "config.yaml")
-    pass
+  pass
 
 
 def setup_outdir(args, resume_root, resume, **kwargs):
@@ -136,6 +129,7 @@ def setup_tensorboardX(tbdir, args, config, myargs, start_tb=True):
   if hasattr(args, 'command'):
     command_config = getattr(config, args.command, 'None')
     tbtool.add_text_str_args(args=command_config, name='command')
+    print('command config: ')
     print(pprint.pformat(command_config))
   return
 
@@ -176,7 +170,7 @@ def setup_args_and_myargs(args, myargs, start_tb=True, **kwargs):
     log_root=args.textlogdir, reinitialize=(not args.resume),
     logstyle='%10.3f')
 
-  print("The outdir is {}".format(args.outdir))
+  print("The outdir is {}".format(args.abs_outdir))
   print("The args: ")
   print(pprint.pformat(args))
 
