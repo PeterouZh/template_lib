@@ -150,6 +150,8 @@ class TestingUnit(unittest.TestCase):
           pass
 
         # parse command
+        if not os.path.exists(bash_file):
+          continue
         shutil.copy(bash_file, cwd)
         try:
           with open(args.configfile, 'rt') as handle:
