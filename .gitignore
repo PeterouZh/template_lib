@@ -7,3 +7,5 @@ examples/results/
 examples/bash_command.sh
 trainer/results/
 results/
+.ipynb_checkpoints/
+template_lib.ipynb
