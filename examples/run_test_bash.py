@@ -12,6 +12,7 @@ root_obs_dict = {
 parser = argparse.ArgumentParser()
 parser.add_argument('-ro', '--root-obs', type=str, default=None, choices=list(root_obs_dict.keys()))
 parser.add_argument('--port', type=int, default=6001)
+parser.add_argument('--exp', type=str, default='')
 
 if __name__ == '__main__':
   args = parser.parse_args()
@@ -48,7 +49,7 @@ if __name__ == '__main__':
 
   os.environ['RESULTS_OBS'] = os.path.join(args.root_obs, 'results/template_lib')
   if 'DLS_TRAIN_URL' not in os.environ:
-    os.environ['DLS_TRAIN_URL'] = '/tmp'
+    os.environ['DLS_TRAIN_URL'] = '/tmp/logs/1'
 
   os.system('rm /root/.keras')
   os.system('mkdir /cache/.keras')
