@@ -10,13 +10,26 @@ root_obs_dict = {
 }
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-ro', '--root-obs', type=str, default=None, choices=list(root_obs_dict.keys()))
+parser.add_argument('-ro', '--root-obs', '--root_obs', type=str, default=None, choices=list(root_obs_dict.keys()))
 parser.add_argument('--port', type=int, default=6001)
 parser.add_argument('--exp', type=str, default='')
 
+
+def setup_package():
+  packages = ['pyyaml==5.2', 'easydict', 'tensorboardX==1.9']
+  command_template = 'pip install %s'
+  for pack in packages:
+    command = command_template % pack
+    print('=Installing %s'%pack)
+    os.system(command)
+
+
 if __name__ == '__main__':
-  args = parser.parse_args()
+  # args = parser.parse_args()
+  args, unparsed = parser.parse_known_args()
   args.root_obs = root_obs_dict[args.root_obs]
+
+  setup_package()
 
   try:
     import moxing
@@ -55,5 +68,8 @@ if __name__ == '__main__':
   os.system('mkdir /cache/.keras')
   os.system('ln -s /cache/.keras /root')
 
-  os.system(command)
+  try:
+    os.system(command)
+  except:
+    pass
   pass
