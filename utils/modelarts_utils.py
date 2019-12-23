@@ -28,8 +28,11 @@ class CopyObsProcessing(multiprocessing.Process):
       elapsed_time = time.time() - start_time
       time_str = time.strftime('%H:%M:%S', time.gmtime(elapsed_time))
       print('End %s, elapsed time: %s'%(self.name, time_str))
-    except:
-      print("Don't use modelarts!")
+    except Exception as e:
+      if str(e) == 'server is not set correctly':
+        print(str(e))
+      else:
+        print('Exception %s' % (self.name))
     return
 
 
@@ -39,10 +42,8 @@ def modelarts_setup(args, myargs):
     modelarts_resume(args)
   try:
     import moxing as mox
-    myargs.logger.info("Using modelarts!")
     modelarts_record_jobs(args, myargs)
 
-    assert os.environ['RESULTS_OBS']
     args.results_obs = os.environ['RESULTS_OBS']
     myargs.logger.info_msg('results_obs: %s', args.results_obs)
     assert args.outdir.startswith('results/')
