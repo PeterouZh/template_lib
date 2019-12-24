@@ -3,9 +3,10 @@ import sys
 import argparse
 import shutil
 
+
 root_obs_dict = {
-  'beijing': 's3://bucket-cv-competition-bj4/ZhouPeng/',
-  'huanan': 's3://bucket-1892/ZhouPeng/',
+  'beijing': 's3://bucket-cv-competition-bj4/ZhouPeng',
+  'huanan': 's3://bucket-1892/ZhouPeng',
 
 }
 
@@ -13,11 +14,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-ro', '--root-obs', '--root_obs', type=str, default=None, choices=list(root_obs_dict.keys()))
 parser.add_argument('--train_url', default=None)
 parser.add_argument('--port', type=int, default=6001)
+parser.add_argument('--env', type=str, default='')
 parser.add_argument('--exp', type=str, default='')
 
 
 def setup_package():
-  packages = ['pyyaml==5.2', 'easydict', 'tensorboardX==1.9']
+  packages = ['pyyaml==5.2', 'easydict', 'tensorboardX==1.9', 'gitpython']
   command_template = 'pip install %s'
   for pack in packages:
     command = command_template % pack
@@ -25,6 +27,7 @@ def setup_package():
     os.system(command)
 
 def setup_env(root_obs, train_url=None, **kwargs):
+  os.environ['ROOT_OBS'] = root_obs
   os.environ['RESULTS_OBS'] = os.path.join(root_obs, 'results/template_lib')
   if 'DLS_TRAIN_URL' not in os.environ:
     if train_url is not None:
@@ -66,6 +69,9 @@ if __name__ == '__main__':
 
   cwd = os.getcwd()
   print('cwd: %s'%cwd)
+
+  if 'PORT' in os.environ and os.environ['PORT'] == str(args.port):
+    assert 0, args.port
 
   command = '''
         export CUDA_VISIBLE_DEVICES=0
