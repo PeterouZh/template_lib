@@ -183,15 +183,15 @@ def modelarts_copy_data(datapath, datapath_obs='auto', overwrite=False):
   try:
     import moxing as mox
     if datapath_obs == 'auto':
-      root_obs = os.environ['root_obs']
+      root_obs = os.environ['ROOT_OBS']
       datapath_obs = os.path.join(
         root_obs, 'keras', datapath[datapath.find('.keras') + 7:])
     elif datapath_obs.startswith('root_obs'):
-      root_obs = os.environ['root_obs']
+      root_obs = os.environ['ROOT_OBS']
       datapath_obs = os.path.join(root_obs, datapath_obs[9:])
 
     if not mox.file.exists(datapath_obs):
-      assert 0
+      assert 0, datapath_obs
 
     print('=== Copying dataset ===')
     datapath = os.path.expanduser(datapath)
