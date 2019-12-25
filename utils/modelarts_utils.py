@@ -103,7 +103,7 @@ def modelarts_sync_results(args, myargs, join=False, end=False):
     time_str = "{:0>2}h:{:0>2}m:{:05.2f}s".format(int(hours), int(minutes), seconds)
     myargs.textlogger.logstr(itr=0, time=time_str)
 
-  if hasattr(args, 'outdir_obs'):
+  try:
     import moxing as mox
     # sync jobs.txt
     log_obs = os.environ['DLS_TRAIN_URL']
@@ -121,6 +121,9 @@ def modelarts_sync_results(args, myargs, join=False, end=False):
     if join:
       print('Join copy obs processing.', file=myargs.stdout)
       worker.join()
+  except:
+    import traceback
+    myargs.logger.info(traceback.format_exc())
   return
 
 
