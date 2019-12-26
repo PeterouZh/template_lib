@@ -45,7 +45,7 @@ def modelarts_setup(args, myargs):
     modelarts_record_jobs(args, myargs)
 
     args.results_obs = os.environ['RESULTS_OBS']
-    myargs.logger.info_msg('results_obs: %s', args.results_obs)
+    print('results_obs: %s', args.results_obs)
     assert args.outdir.startswith('results/')
     args.outdir_obs = os.path.join(args.results_obs, args.outdir[8:])
 
@@ -55,7 +55,7 @@ def modelarts_setup(args, myargs):
       return worker
     myargs.copy_obs = copy_obs
   except ModuleNotFoundError as e:
-    myargs.logger.info("Don't use modelarts!")
+    print("Don't use modelarts!")
   finally:
     myargs.time_start = time.time()
   return
@@ -114,16 +114,20 @@ def modelarts_sync_results(args, myargs, join=False, end=False):
 
     if end:
       modelarts_record_jobs(args, myargs, end=end)
+  except:
+    import traceback
+    print(traceback.format_exc())
 
-    print('Copying args.outdir to outdir_obs ...', file=myargs.stdout)
+  try:
+    print('Copying args.outdir to outdir_obs ...')
     worker = myargs.copy_obs(args.outdir, args.outdir_obs,
                              copytree=True)
     if join:
-      print('Join copy obs processing.', file=myargs.stdout)
+      print('Join copy obs processing.')
       worker.join()
   except:
     import traceback
-    myargs.logger.info(traceback.format_exc())
+    print(traceback.format_exc())
   return
 
 
@@ -147,7 +151,7 @@ def modelarts_record_jobs(args, myargs, end=False, str_info=''):
 
   except:
     import traceback
-    myargs.logger.info(traceback.format_exc())
+    print(traceback.format_exc())
 
 
 def modelarts_catch_exception(func):

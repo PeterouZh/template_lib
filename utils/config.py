@@ -88,7 +88,9 @@ def setup_logger_and_redirect_stdout(logfile, myargs):
     sys.stdout = myargs.stdout
     sys.stderr = myargs.stderr
   # setup logging in the project
-  logger = logging_utils.get_logger(filename=logfile)
+  logging_utils.get_logger(
+    filename=logfile, logger_names=['template_lib', 'tl'], stream=True)
+  logger = logging.getLogger('tl')
   myargs.logger = logger
   myargs.stdout = sys.stdout
   myargs.stderr = sys.stderr
@@ -129,8 +131,8 @@ def setup_tensorboardX(tbdir, args, config, myargs, start_tb=True):
   if hasattr(args, 'command'):
     command_config = getattr(config, args.command, 'None')
     tbtool.add_text_str_args(args=command_config, name='command')
-    print('command config: ')
-    print(pprint.pformat(command_config))
+    logger = logging.getLogger(__name__)
+    logger.info('command config: \n{}'.format(pprint.pformat(command_config)))
   return
 
 
@@ -170,9 +172,9 @@ def setup_args_and_myargs(args, myargs, start_tb=True, **kwargs):
     log_root=args.textlogdir, reinitialize=(not args.resume),
     logstyle='%10.3f')
 
-  print("The outdir is {}".format(args.abs_outdir))
-  print("The args: ")
-  print(pprint.pformat(args))
+  logger = logging.getLogger(__name__)
+  logger.info("The outdir: \n\t{}".format(args.abs_outdir))
+  logger.info("The args: \n{}".format(pprint.pformat(args)))
 
   setup_config(
     config_file=args.config, saved_config_file=args.configfile,

@@ -59,21 +59,28 @@ def get_root_logger(filename, stream=True, level=logging.INFO):
   return logger
 
 
-def get_logger(filename, stream=True, level=logging.INFO):
+def get_logger(filename, logger_names=[], stream=False, level=logging.DEBUG):
   """
 
   :param filename:
   :param propagate: whether log to stdout
   :return:
   """
-  logger = logging.getLogger(filename)
-  logger.setLevel(level)
-  set_hander(logger=logger, filename=filename, stream=stream, level=level)
+  logger_names += [filename, ]
+  for name in logger_names:
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.propagate = False
+    set_hander(logger=logger, filename=filename, stream=stream, level=level)
   return logger
 
 
 def set_hander(logger, filename, stream=True, level=logging.INFO):
-  formatter = logging.Formatter(FORMAT, datefmt=DATEFMT)
+  formatter = logging.Formatter(
+    "[%(asctime)s] %(name)s %(levelname)s: %(message)s <%(filename)s:%(funcName)s():%(lineno)s>",
+    datefmt="%m/%d %H:%M:%S"
+  )
+  # formatter = logging.Formatter(FORMAT, datefmt=DATEFMT)
 
   file_hander = logging.FileHandler(filename=filename, mode='a')
   file_hander.setLevel(level=level)
@@ -101,7 +108,6 @@ def set_hander(logger, filename, stream=True, level=logging.INFO):
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
 
-  logger.propagate = False
   return logger
 
 
@@ -115,9 +121,20 @@ class StreamToLogger(object):
     self.linebuf = ''
 
   def write(self, buf):
-    buf = '> ' + buf
-    for line in buf.rstrip().splitlines():
-      self.logger.info_msg(line.rstrip())
+    buf = buf.rstrip('\n')
+    if not buf:
+      return
+    buf = '<> ' + buf
+    # for line in buf.rstrip().splitlines():
+    #   self.logger.info_msg(line.rstrip())
+    org_formatters = []
+    for handler in self.logger.handlers:
+      org_formatters.append(handler.formatter)
+      handler.setFormatter(logging.Formatter("%(message)s"))
+    self.logger.info(buf)
+    # restore formats
+    for handler, formatter in zip(self.logger.handlers, org_formatters):
+      handler.setFormatter(formatter)
 
   def flush(self):
     pass
