@@ -47,7 +47,7 @@ def setup_dirs_and_files(args, **kwargs):
   args.config_command_file = os.path.join(args.outdir, "config_command.yaml")
 
   # append log dir name in configfile
-  if hasattr(kwargs, 'add_number_to_configfile') and kwargs['add_number_to_configfile']:
+  if ('add_number_to_configfile' in kwargs) and kwargs['add_number_to_configfile']:
     args.configfile = os.path.join(args.outdir, "c_%s.yaml"%kwargs['log_number'])
   else:
     args.configfile = os.path.join(args.outdir, "config.yaml")
