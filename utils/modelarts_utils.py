@@ -36,6 +36,12 @@ class CopyObsProcessing(multiprocessing.Process):
     return
 
 
+def copy_obs(s, d, copytree=False):
+  worker = CopyObsProcessing(args=(s, d, copytree))
+  worker.start()
+  return worker
+
+
 def modelarts_setup(args, myargs):
   if args.resume_root and args.resume:
     # modelarts resume setup
@@ -49,11 +55,11 @@ def modelarts_setup(args, myargs):
     assert args.outdir.startswith('results/')
     args.outdir_obs = os.path.join(args.results_obs, args.outdir[8:])
 
-    def copy_obs(s, d, copytree=False):
-      worker = CopyObsProcessing(args=(s, d, copytree))
-      worker.start()
-      return worker
-    myargs.copy_obs = copy_obs
+    # def copy_obs(s, d, copytree=False):
+    #   worker = CopyObsProcessing(args=(s, d, copytree))
+    #   worker.start()
+    #   return worker
+    # myargs.copy_obs = copy_obs
   except ModuleNotFoundError as e:
     print("Don't use modelarts!")
   finally:
@@ -120,8 +126,7 @@ def modelarts_sync_results(args, myargs, join=False, end=False):
 
   try:
     print('Copying args.outdir to outdir_obs ...')
-    worker = myargs.copy_obs(args.outdir, args.outdir_obs,
-                             copytree=True)
+    worker = copy_obs(args.outdir, args.outdir_obs, copytree=True)
     if join:
       print('Join copy obs processing.')
       worker.join()
