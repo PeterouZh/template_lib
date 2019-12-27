@@ -150,7 +150,7 @@ class TestingUnit(unittest.TestCase):
           pass
 
         # parse command
-        if not os.path.exists(bash_file):
+        if not os.path.exists(bash_file) or not os.path.exists(args.configfile):
           continue
         shutil.copy(bash_file, cwd)
         try:
@@ -159,9 +159,9 @@ class TestingUnit(unittest.TestCase):
             config = EasyDict(config)
           command = config.command
         except:
-          print('Parse config.yaml error!')
-          command = None
-          old_command = ''
+          logger = logging.getLogger(__name__)
+          logger.warning('Parse config.yaml error!')
+          command = old_command
 
         # execute command
         if command != old_command:
@@ -228,7 +228,8 @@ class TestingUnit(unittest.TestCase):
         else:
           modelarts_utils.modelarts_record_jobs(args, myargs, str_info='Exception!')
           import traceback
-          myargs.logger.info(traceback.format_exc())
+          logger = logging.getLogger(__name__)
+          logger.warning(traceback.format_exc())
         modelarts_utils.modelarts_sync_results(args, myargs, join=True)
 
   def test_resnet(self, bs=32, gpu='0,1,2,3,4,5,6,7'):
