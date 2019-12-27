@@ -45,7 +45,7 @@ def modelarts_setup(args, myargs):
     modelarts_record_jobs(args, myargs)
 
     args.results_obs = os.environ['RESULTS_OBS']
-    print('results_obs: %s', args.results_obs)
+    print('results_obs: %s'%args.results_obs)
     assert args.outdir.startswith('results/')
     args.outdir_obs = os.path.join(args.results_obs, args.outdir[8:])
 
