@@ -18,16 +18,23 @@ class CopyObsProcessing(multiprocessing.Process):
   def run(self):
     try:
       import moxing as mox
+      import logging
+      logger = logging.getLogger()
+
       s, d, copytree = self._args
-      print('Starting %s, Copying %s \nto %s.' % (self.name, s, d))
+      logger.info('Starting %s, Copying %s \nto %s.' % (self.name, s, d))
       start_time = time.time()
       if copytree:
+        logger = logging.getLogger()
+        logger.disabled = True
         mox.file.copy_parallel(s, d)
+        logger = logging.getLogger()
+        logger.disabled = False
       else:
         mox.file.copy(s, d)
       elapsed_time = time.time() - start_time
       time_str = time.strftime('%H:%M:%S', time.gmtime(elapsed_time))
-      print('End %s, elapsed time: %s'%(self.name, time_str))
+      logger.info('End %s, elapsed time: %s'%(self.name, time_str))
     except Exception as e:
       if str(e) == 'server is not set correctly':
         print(str(e))
@@ -125,10 +132,12 @@ def modelarts_sync_results(args, myargs, join=False, end=False):
     print(traceback.format_exc())
 
   try:
-    print('Copying args.outdir to outdir_obs ...')
+    import logging
+    logger = logging.getLogger()
+    logger.info('Copying args.outdir to outdir_obs ...')
     worker = copy_obs(args.outdir, args.outdir_obs, copytree=True)
     if join:
-      print('Join copy obs processing.')
+      logger.info('Join copy obs processing.')
       worker.join()
   except:
     import traceback
