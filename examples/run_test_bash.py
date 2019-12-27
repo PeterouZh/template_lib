@@ -25,6 +25,14 @@ def setup_package():
     command = command_template % pack
     print('=Installing %s'%pack)
     os.system(command)
+  # install git
+    print('=Installing git')
+    os.system('python /cache/code/template_lib/examples/copy_tool.py \
+              -s {root_obs}/pypi/template_lib -d /cache/pypi/template_lib -t copytree'.format(root_obs=os.environ['ROOT_OBS']))
+    os.system('cd /cache/pypi/template_lib && \
+              sudo dpkg -i liberror-perl_0.17-1.2_all.deb && \
+              sudo dpkg -i git-man_2.7.4-0ubuntu1_all.deb && \
+              sudo dpkg -i git_2.7.4-0ubuntu1_amd64.deb')
 
 def setup_env(root_obs, train_url=None, **kwargs):
   os.environ['ROOT_OBS'] = root_obs
@@ -47,8 +55,8 @@ if __name__ == '__main__':
   args, unparsed = parser.parse_known_args()
   args.root_obs = root_obs_dict[args.root_obs]
 
-  setup_package()
   setup_env(**vars(args))
+  setup_package()
   setup_dir()
 
   try:
