@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
       pypi_obs = os.path.join(args.root_obs, 'pypi', args.env)
       pypi = os.path.join('/cache/pypi', args.env)
-      os.system('python copy_tool.py -s {s} -d {d} -t {t}'.format(s=pypi_obs, d=pypi, t=args.t))
+      os.system('python /cache/code/template_lib/examples/copy_tool.py -s {s} -d {d} -t {t}'.format(s=pypi_obs, d=pypi, t=args.t))
       # moxing.file.copy_parallel(pypi_obs, pypi)
 
   except ImportError:
