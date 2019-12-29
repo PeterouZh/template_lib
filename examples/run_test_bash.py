@@ -56,7 +56,6 @@ if __name__ == '__main__':
   args.root_obs = root_obs_dict[args.root_obs]
 
   setup_env(**vars(args))
-  setup_package()
   setup_dir()
 
   try:
@@ -80,6 +79,8 @@ if __name__ == '__main__':
 
   if 'PORT' in os.environ and os.environ['PORT'] == str(args.port):
     assert 0, args.port
+  
+  setup_package()
 
   command = '''
         export CUDA_VISIBLE_DEVICES=0
