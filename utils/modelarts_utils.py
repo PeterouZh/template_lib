@@ -1,3 +1,4 @@
+import logging
 import argparse
 import sys
 import unittest
@@ -18,7 +19,6 @@ class CopyObsProcessing(multiprocessing.Process):
   def run(self):
     try:
       import moxing as mox
-      import logging
       logger = logging.getLogger()
 
       s, d, copytree = self._args
@@ -129,19 +129,18 @@ def modelarts_sync_results(args, myargs, join=False, end=False):
       modelarts_record_jobs(args, myargs, end=end)
   except:
     import traceback
-    print(traceback.format_exc())
+    logging.getLogger(__name__).info('\n\t%s', traceback.format_exc())
 
   try:
-    import logging
-    logger = logging.getLogger()
-    logger.info('Copying args.outdir to outdir_obs ...')
+    logger = logging.getLogger(__name__)
+    logger.info('\n\t%s', 'Copying args.outdir to outdir_obs ...')
     worker = copy_obs(args.outdir, args.outdir_obs, copytree=True)
     if join:
       logger.info('Join copy obs processing.')
       worker.join()
   except:
     import traceback
-    print(traceback.format_exc())
+    logging.getLogger(__name__).info('\n\t%s', traceback.format_exc())
   return
 
 
