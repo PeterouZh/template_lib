@@ -132,11 +132,10 @@ def modelarts_sync_results(args, myargs, join=False, end=False):
     logging.getLogger(__name__).info('\n\t%s', traceback.format_exc())
 
   try:
-    logger = logging.getLogger(__name__)
-    logger.info('\n\t%s', 'Copying args.outdir to outdir_obs ...')
+    print('Copying args.outdir to outdir_obs ...', file=myargs.stdout)
     worker = copy_obs(args.outdir, args.outdir_obs, copytree=True)
     if join:
-      logger.info('Join copy obs processing.')
+      print('Join copy obs processing.', file=myargs.stdout)
       worker.join()
   except:
     import traceback
@@ -164,7 +163,7 @@ def modelarts_record_jobs(args, myargs, end=False, str_info=''):
 
   except:
     import traceback
-    print(traceback.format_exc())
+    logging.getLogger(__name__).info('\n\t%s', traceback.format_exc())
 
 
 def modelarts_catch_exception(func):

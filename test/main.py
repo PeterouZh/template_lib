@@ -4,6 +4,7 @@ import unittest
 import argparse
 
 os.chdir('..')
+from template_lib.examples import test_bash
 from template_lib import utils
 
 
@@ -27,13 +28,18 @@ class TestingUnit(unittest.TestCase):
     if 'TIME_STR' not in os.environ:
       os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
     # func name
-    outdir = os.path.join('results', sys._getframe().f_code.co_name)
+    assert sys._getframe().f_code.co_name.startswith('test_')
+    command = sys._getframe().f_code.co_name[5:]
+    class_name = self.__class__.__name__[7:] \
+      if self.__class__.__name__.startswith('Testing') \
+      else self.__class__.__name__
+    outdir = f'results/{class_name}/{command}'
     myargs = argparse.Namespace()
 
     def build_args():
       argv_str = f"""
             --config ../configs/config.yaml 
-            --command none
+            --command {command}
             --resume False --resume_path None
             --resume_root None
             """
@@ -52,7 +58,9 @@ class TestingUnit(unittest.TestCase):
 
     utils.modelarts_utils.start_process(
       func=run.train, args=args, myargs=myargs, loop=10)
-    input('End %s' % outdir)
+
+    test_bash.TestingUnit().test_resnet(
+      bs=512, gpu=os.environ['CUDA_VISIBLE_DEVICES'])
     return
 
 
