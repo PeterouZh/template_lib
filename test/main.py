@@ -40,8 +40,7 @@ class TestingUnit(unittest.TestCase):
       argv_str = f"""
             --config ../configs/config.yaml 
             --command {command}
-            --resume False --resume_path None
-            --resume_root None
+            --outdir {outdir}
             """
       parser = utils.args_parser.build_parser()
       if len(sys.argv) == 1:
@@ -53,11 +52,7 @@ class TestingUnit(unittest.TestCase):
       return args, argv_str
     args, argv_str = build_args()
 
-    args.outdir = outdir
-    # args, myargs = utils.config.setup_args_and_myargs(args=args, myargs=myargs)
-
-    utils.modelarts_utils.start_process(
-      func=run.train, args=args, myargs=myargs, loop=10)
+    args, myargs = utils.config.setup_args_and_myargs(args=args, myargs=myargs)
 
     test_bash.TestingUnit().test_resnet(
       bs=512, gpu=os.environ['CUDA_VISIBLE_DEVICES'])
