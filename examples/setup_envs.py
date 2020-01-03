@@ -23,9 +23,9 @@ def detectron2():
           'torchvision-0.4.2+cu100-cp36-cp36m-linux_x86_64.whl']
   setup_package(packs)
   os.system('tar -zxvf cocoapi.tar.gz')
-  os.system('cd cocoapi/PythonAPI && python setup.py install')
+  os.system('cd cocoapi/PythonAPI && python setup.py install --user')
   os.system('tar -zxvf fvcore.tar.gz')
-  os.system('cd fvcore && python setup.py install')
+  os.system('cd fvcore && python setup.py install --user')
   
   pass
 
