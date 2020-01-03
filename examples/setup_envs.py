@@ -18,7 +18,7 @@ def setup_package(packages):
 
 def detectron2():
   print('=setup detectron2 envs:')
-  packs = ['termcolor==1.1.0', 'portalocker==1.5.2', 'yacs>=0.1.6']
+  packs = ['termcolor==1.1.0', 'portalocker==1.5.2', 'yacs>=0.1.6', 'Pillow==6.2.1']
   setup_package(packs)
   os.system('tar -zxvf cocoapi.tar.gz')
   os.system('cd cocoapi/PythonAPI && python setup.py install')
