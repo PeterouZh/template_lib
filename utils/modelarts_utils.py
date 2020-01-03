@@ -127,6 +127,8 @@ def modelarts_sync_results(args, myargs, join=False, end=False):
 
     if end:
       modelarts_record_jobs(args, myargs, end=end)
+  except ModuleNotFoundError:
+    return
   except:
     import traceback
     logging.getLogger(__name__).info('\n\t%s', traceback.format_exc())
