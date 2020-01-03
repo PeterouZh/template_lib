@@ -233,9 +233,10 @@ def modelarts_copy_data(datapath, datapath_obs='auto', overwrite=False):
     print('End [%s] \n to [%s]' % (datapath_obs, datapath))
 
   except:
+    logger = logging.getLogger(__name__)
     import traceback
-    print(traceback.format_exc())
-    print('Ignore datapath: %s' % datapath)
+    logger.info('\n%s', traceback.format_exc())
+    logger.info('\n\tIgnore datapath: %s' % datapath)
   finally:
     logger = logging.getLogger()
     logger.disabled = False
