@@ -200,16 +200,14 @@ def start_process(func, args, myargs, loop=10):
       shutil.rmtree(args.outdir, ignore_errors=True)
 
 
-def modelarts_copy_data(datapath, datapath_obs='auto', overwrite=False):
+def modelarts_copy_data(datapath_obs, datapath, overwrite=False):
   try:
     import moxing as mox
-    if datapath_obs == 'auto':
-      root_obs = os.environ['ROOT_OBS']
-      datapath_obs = os.path.join(
-        root_obs, 'keras', datapath[datapath.find('.keras') + 7:])
-    elif datapath_obs.startswith('root_obs'):
+    if datapath_obs.startswith('root_obs'):
       root_obs = os.environ['ROOT_OBS']
       datapath_obs = os.path.join(root_obs, datapath_obs[9:])
+    else:
+      assert 0, __name__
 
     if not mox.file.exists(datapath_obs):
       assert 0, datapath_obs
