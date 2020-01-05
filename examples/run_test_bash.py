@@ -64,6 +64,9 @@ if __name__ == '__main__':
     code = '/cache/code'
     print('Copying code from [%s] to [%s]'%(code_obs, code))
     moxing.file.copy_parallel(code_obs, code)
+    # print('Convert all bash files to unix end of line.')
+    # os.system("find /cache/code -name '*.sh' | xargs perl -pi -e 's/\r\n/\n/g'")
+    # print('End convert all bash files to unix end of line.')
   except ImportError:
     pass
   except Exception as e:
@@ -92,6 +95,7 @@ if __name__ == '__main__':
         '''.format(port=args.port)
 
   try:
+    os.system("sed -i.bak 's/\r$//' /cache/code/template_lib/examples/test_bash.sh")
     os.system(command)
   except:
     pass
