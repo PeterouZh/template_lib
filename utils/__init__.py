@@ -2,21 +2,8 @@ import os
 import multiprocessing
 import random
 import time
-
-__all__ = ['is_debugging', 'TorchResnetWorker']
-
-
-def is_debugging():
-  import sys
-  gettrace = getattr(sys, 'gettrace', None)
-
-  if gettrace is None:
-    assert 0, ('No sys.gettrace')
-  elif gettrace():
-    return True
-  else:
-    return False
-
+from .utils_func import is_debugging
+from . import config
 
 class TorchResnetWorker(multiprocessing.Process):
   def run(self):

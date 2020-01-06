@@ -201,12 +201,13 @@ def parse_args_and_setup_myargs(argv_str=None, start_tb=False):
   """
   if 'TIME_STR' not in os.environ:
     os.environ['TIME_STR'] = '0' if is_debugging() else '1'
-
+  if not isinstance(argv_str, list):
+    argv_str = argv_str.split()
   # parse args
   parser = args_parser.build_parser()
   unparsed_argv = []
   if argv_str:
-    args, unparsed_argv = parser.parse_known_args(args=argv_str.split())
+    args, unparsed_argv = parser.parse_known_args(args=argv_str)
   else:
     args = parser.parse_args()
   args = config_utils.DotDict(vars(args))
@@ -215,8 +216,17 @@ def parse_args_and_setup_myargs(argv_str=None, start_tb=False):
   myargs = argparse.Namespace()
   args, myargs = setup_args_and_myargs(
     args=args, myargs=myargs, start_tb=start_tb)
-
+  myargs.logger.info('\npython \t\\\n  ' + ' \\\n  '.join(argv_str))
   return args, myargs, unparsed_argv
+
+
+def config2args(config, args):
+  logger = logging.getLogger(__name__)
+  for k, v in config.items():
+    if not k in args:
+      logger.info('\n\t%s = %s \tnot in args' % (k, v))
+    setattr(args, k, v)
+  return args
 
 
 def update_config(super_config, config):
