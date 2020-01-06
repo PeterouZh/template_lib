@@ -1,3 +1,4 @@
+import argparse
 import os, sys
 import shutil
 import time
@@ -15,6 +16,7 @@ from . import torch_utils
 from . import shutil_utils
 from . import modelarts_utils
 from . import tensorboardX_utils
+from . import is_debugging, args_parser
 
 
 def get_config_from_file(config_file, saved_path):
@@ -189,6 +191,32 @@ def setup_args_and_myargs(args, myargs, start_tb=True, **kwargs):
   args = EasyDict(args)
   myargs.config = EasyDict(myargs.config)
   return args, myargs
+
+
+def parse_args_and_setup_myargs(argv_str=None, start_tb=False):
+  """
+  Usage:
+
+  :return:
+  """
+  if 'TIME_STR' not in os.environ:
+    os.environ['TIME_STR'] = '0' if is_debugging() else '1'
+
+  # parse args
+  parser = args_parser.build_parser()
+  unparsed_argv = []
+  if argv_str:
+    args, unparsed_argv = parser.parse_known_args(args=argv_str.split())
+  else:
+    args = parser.parse_args()
+  args = config_utils.DotDict(vars(args))
+
+  # setup args and myargs
+  myargs = argparse.Namespace()
+  args, myargs = setup_args_and_myargs(
+    args=args, myargs=myargs, start_tb=start_tb)
+
+  return args, myargs, unparsed_argv
 
 
 def update_config(super_config, config):

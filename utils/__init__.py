@@ -2,7 +2,8 @@ import os
 import multiprocessing
 import random
 import time
-from . import config, config_utils, args_parser, modelarts_utils
+
+__all__ = ['is_debugging', 'TorchResnetWorker']
 
 
 def is_debugging():
