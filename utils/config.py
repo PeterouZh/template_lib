@@ -201,7 +201,7 @@ def parse_args_and_setup_myargs(argv_str=None, start_tb=False):
   """
   if 'TIME_STR' not in os.environ:
     os.environ['TIME_STR'] = '0' if is_debugging() else '1'
-  if not isinstance(argv_str, list):
+  if argv_str and not isinstance(argv_str, list):
     argv_str = argv_str.split()
   # parse args
   parser = args_parser.build_parser()
@@ -216,7 +216,8 @@ def parse_args_and_setup_myargs(argv_str=None, start_tb=False):
   myargs = argparse.Namespace()
   args, myargs = setup_args_and_myargs(
     args=args, myargs=myargs, start_tb=start_tb)
-  myargs.logger.info('\npython \t\\\n  ' + ' \\\n  '.join(argv_str))
+  if argv_str:
+    myargs.logger.info('\npython \t\\\n  ' + ' \\\n  '.join(argv_str))
   return args, myargs, unparsed_argv
 
 
