@@ -181,11 +181,13 @@ class TextLogger(object):
     Log in plaintext;
     """
     for arg in kwargs:
+      file_path = '%s/%s.log' % (self.root, arg)
       if arg not in self.metrics:
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         if self.reinitialize:
           self.reinit(arg)
         self.metrics += [arg]
-      with open('%s/%s.log' % (self.root, arg), 'a') as f:
+      with open(file_path, 'a') as f:
         f.write('%3d: %s\n' % (itr, self.logstyle % kwargs[arg]))
 
   def log_axes(self, **kwargs):
