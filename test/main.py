@@ -10,15 +10,19 @@ from template_lib import utils
 
 class TestingUnit(unittest.TestCase):
 
-  def test_Case(self):
+  def test_func(self):
     """
     Usage:
-        export CUDA_VISIBLE_DEVICES=2,3,4,5
+
+        export CUDA_VISIBLE_DEVICES=0,1
         export PORT=6006
         export TIME_STR=1
-        export PYTHONPATH=../../submodule:..
-        python -c "import main; \
-        main.TestingUnit().test_Case()"
+        export PYTHONPATH=./submodule
+        python detectron2_exp/tests/run_detectron2.py \
+          --config ./detectron2_exp/configs/detectron2.yaml \
+          --command train_scratch_mask_rcnn_dense_R_50_FPN_3x_gn_2gpu \
+          --outdir results/Detectron2/train_scratch_mask_rcnn_dense_R_50_FPN_3x_gn_2gpu
+
     :return:
     """
     if 'CUDA_VISIBLE_DEVICES' not in os.environ:
@@ -34,32 +38,22 @@ class TestingUnit(unittest.TestCase):
       if self.__class__.__name__.startswith('Testing') \
       else self.__class__.__name__
     outdir = f'results/{class_name}/{command}'
-    myargs = argparse.Namespace()
 
-    def build_args():
-      argv_str = f"""
-            --config ../configs/config.yaml 
-            --command {command}
-            --outdir {outdir}
-            """
-      parser = utils.args_parser.build_parser()
-      if len(sys.argv) == 1:
-        args = parser.parse_args(args=argv_str.split())
-      else:
-        args = parser.parse_args()
-      args.CUDA_VISIBLE_DEVICES = os.environ['CUDA_VISIBLE_DEVICES']
-      args = utils.config_utils.DotDict(vars(args))
-      return args, argv_str
-    args, argv_str = build_args()
-
-    args, myargs = utils.config.setup_args_and_myargs(args=args, myargs=myargs)
-
-    test_bash.TestingUnit().test_resnet(
-      bs=512, gpu=os.environ['CUDA_VISIBLE_DEVICES'])
-    return
+    argv_str = f"""
+                --config domain_adaptive_faster_rcnn_pytorch_exp/configs/domain_faster_rcnn.yaml
+                --command {command}
+                --outdir {outdir}
+                """
+    import run
+    run(argv_str)
 
 
 
 
+def run(argv_str=None):
+  from template_lib.utils.config import parse_args_and_setup_myargs, config2args
+  args1, myargs, _ = parse_args_and_setup_myargs(argv_str, start_tb=False)
+  myargs.args = args1
+  myargs.config = getattr(myargs.config, args1.command)
 
-
+  main(myargs.config, stdout=myargs.stdout)

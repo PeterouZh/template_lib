@@ -230,6 +230,16 @@ def config2args(config, args):
   return args
 
 
+def setup_myargs_for_multiple_processing(myargs):
+  myargs.writer = None
+  myargs.logger = None
+  sys.stdout = myargs.stdout
+  sys.stderr = myargs.stderr
+  myargs.stdout = None
+  myargs.stderr = None
+  return myargs
+
+
 def update_config(super_config, config):
   """
 
