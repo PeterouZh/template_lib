@@ -242,6 +242,20 @@ def modelarts_copy_data(datapath_obs, datapath, overwrite=False):
     logger.disabled = False
 
 
+def prepare_dataset(dataset):
+  """
+    dataset:
+      dataset_root:
+        datapath_obs: 'root_obs/keras/coco'
+        datapath: './datasets/coco'
+        overwrite: false
+  :param dataset:
+  :return:
+  """
+  for k, v in dataset.items():
+    if v:
+      modelarts_copy_data(**v)
+
 
 class TestingUnit(unittest.TestCase):
 
