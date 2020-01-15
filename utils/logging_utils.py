@@ -77,7 +77,7 @@ def get_logger(filename, logger_names=[], stream=False, level=logging.DEBUG):
 
 def set_hander(logger, filename, stream=True, level=logging.INFO):
   formatter = logging.Formatter(
-    "[%(asctime)s] %(name)s:%(lineno)s %(levelname)s: %(message)s <%(filename)s:%(funcName)s():%(lineno)s>",
+    "[%(asctime)s] %(name)s:%(lineno)s %(levelname)s: %(message)s \t[%(filename)s:%(funcName)s():%(lineno)s]",
     datefmt="%m/%d %H:%M:%S"
   )
   # formatter = logging.Formatter(FORMAT, datefmt=DATEFMT)
