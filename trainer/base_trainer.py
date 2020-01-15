@@ -1,14 +1,17 @@
 import functools
 import os, collections
+import re
 import sys
 import time
+from collections import defaultdict
 
 # from ..utils import modelarts_utils
 from template_lib.utils import modelarts_utils
 
 
 def get_prefix_abb(prefix):
-  prefix_split = prefix.split('_')
+  # prefix_split = prefix.split('_')
+  prefix_split = re.split('_|/', prefix)
   if len(prefix_split) == 1:
     prefix_abb = prefix
   else:
@@ -188,6 +191,17 @@ class Trainer(object):
           summary_v, prefix=prefix + '/' + summary_n, step=step,
           writer=writer, textlogger=textlogger,
           log_axe=log_axe, log_axe_sec=log_axe_sec)
+
+  @staticmethod
+  def summary_dict(summary_dict, prefix, step,
+                   writer=None, textlogger=None,
+                   log_axe=True, log_axe_sec=300):
+
+    summary_dicts = defaultdict(dict)
+    summary_dicts['scalars'].update(summary_dict)
+    Trainer.summary_dicts(summary_dicts=summary_dicts, prefix=prefix, step=step,
+                          writer=writer, textlogger=textlogger,
+                          log_axe=log_axe, log_axe_sec=log_axe_sec)
 
   def summary_figures(self, summary_dicts, prefix):
     # prefix_abb = self.get_prefix_abb(prefix)

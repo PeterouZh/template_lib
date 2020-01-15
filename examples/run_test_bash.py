@@ -7,6 +7,7 @@ import shutil
 root_obs_dict = {
   'beijing': 's3://bucket-cv-competition-bj4/ZhouPeng',
   'huanan': 's3://bucket-1892/ZhouPeng',
+  'huabei': 's3://bucket-cv-competition/ZhouPeng',
 
 }
 
