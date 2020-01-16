@@ -6,17 +6,8 @@ import time
 from collections import defaultdict
 
 # from ..utils import modelarts_utils
-from template_lib.utils import modelarts_utils
+from template_lib.utils import (modelarts_utils, get_prefix_abb, )
 
-
-def get_prefix_abb(prefix):
-  # prefix_split = prefix.split('_')
-  prefix_split = re.split('_|/', prefix)
-  if len(prefix_split) == 1:
-    prefix_abb = prefix
-  else:
-    prefix_abb = ''.join([k[0] for k in prefix_split])
-  return prefix_abb
 
 def write_scalars_to_text(summary, prefix, step, textlogger,
                           log_axe, log_axe_sec, log_together=False):
@@ -203,6 +194,44 @@ class Trainer(object):
                           writer=writer, textlogger=textlogger,
                           log_axe=log_axe, log_axe_sec=log_axe_sec)
 
+
+  @staticmethod
+  def summary_defaultdict2txtfig(default_dict, prefix, step,
+                                 textlogger=None, in_one_figure=True,
+                                 log_txt=True, log_fig=True, save_fig_sec=300):
+    if textlogger is not None:
+      prefix_abb = get_prefix_abb(prefix=prefix)
+      default_dict_copy = defaultdict(dict)
+      # add prefix_abb and key to subkey
+      for k, v in default_dict.items():
+        default_dict_copy[k] = {prefix_abb + '.' + k + '.' + subk: subv for subk, subv in v.items()}
+      default_dict = default_dict_copy
+
+      if log_txt:
+        for k, v in default_dict.items():
+          textlogger.log(step, **v)
+      if log_fig:
+        textlogger.log_defaultdict2figure(default_dict, in_one_figure=in_one_figure, save_fig_sec=save_fig_sec)
+    else:
+      print('textlogger are None!')
+
+  @staticmethod
+  def summary_dict2txtfig(dict_data, prefix, step,
+                          textlogger=None, in_one_axe=True,
+                          log_txt=True, log_fig=True, save_fig_sec=300):
+    if in_one_axe:
+      default_dict = defaultdict(dict)
+      keys = 'sa'
+      default_dict[keys] = dict_data
+    else:
+      default_dict = defaultdict(dict)
+      keys = 'ma%d'
+      for i, (k, v) in enumerate(dict_data.items()):
+        default_dict[keys%i] = {k: v}
+    Trainer.summary_defaultdict2txtfig(default_dict=default_dict, prefix=prefix, step=step,
+                                       textlogger=textlogger, in_one_figure=True,
+                                       log_txt=log_txt, log_fig=log_fig, save_fig_sec=save_fig_sec)
+
   def summary_figures(self, summary_dicts, prefix):
     # prefix_abb = self.get_prefix_abb(prefix)
     # for summary_n, summary_v in summary_dicts.items():
@@ -225,7 +254,7 @@ class Trainer(object):
 from template_lib import utils
 import unittest, argparse
 
-class TestingUnit(unittest.TestCase):
+class TestingTemplateLib(unittest.TestCase):
 
   def test_summary_scalars(self):
     if 'CUDA_VISIBLE_DEVICES' not in os.environ:
@@ -314,7 +343,7 @@ class TestingUnit(unittest.TestCase):
     input('End %s' % outdir)
     return
 
-  def test_summary_dict(self):
+  def test_summary_dicts(self):
     if 'CUDA_VISIBLE_DEVICES' not in os.environ:
       os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     if 'PORT' not in os.environ:
@@ -322,27 +351,20 @@ class TestingUnit(unittest.TestCase):
     if 'TIME_STR' not in os.environ:
       os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
     # func name
-    outdir = os.path.join('results', sys._getframe().f_code.co_name)
-    myargs = argparse.Namespace()
+    assert sys._getframe().f_code.co_name.startswith('test_')
+    command = sys._getframe().f_code.co_name[5:]
+    class_name = self.__class__.__name__[7:] \
+      if self.__class__.__name__.startswith('Testing') \
+      else self.__class__.__name__
+    outdir = f'results/{class_name}/{command}'
 
-    def build_args():
-      argv_str = f"""
-            --config ../configs/config.yaml 
-            --command test_command
-            """
-      parser = utils.args_parser.build_parser()
-      if len(sys.argv) == 1:
-        args = parser.parse_args(args=argv_str.split())
-      else:
-        args = parser.parse_args()
-      args.CUDA_VISIBLE_DEVICES = os.environ['CUDA_VISIBLE_DEVICES']
-      args = utils.config_utils.DotDict(vars(args))
-      return args, argv_str
-
-    args, argv_str = build_args()
-
-    args.outdir = outdir
-    args, myargs = utils.config.setup_args_and_myargs(args=args, myargs=myargs)
+    argv_str = f"""
+                --config template_lib/configs/config.yaml
+                --command {command}
+                --outdir {outdir}
+                """
+    from template_lib.utils.config import parse_args_and_setup_myargs, config2args
+    args, myargs, _ = parse_args_and_setup_myargs(argv_str, start_tb=False)
 
     prefix = 'test_summary_scalars'
     import collections
@@ -355,9 +377,78 @@ class TestingUnit(unittest.TestCase):
 
       summary_dict['dict1'] = summary
       summary_dict['scalars'] = summary
-      trainer = Trainer(args=args, myargs=myargs)
-      trainer.summary_dicts(summary_dict, prefix, step,
-                            log_axe=True, log_axe_sec=10)
+      Trainer.summary_dicts(summary_dicts=summary_dict, prefix=prefix, step=step,
+                            textlogger=myargs.textlogger)
 
     input('End %s' % outdir)
+    return
+
+  def test_summary_defaultdict2txtfig(self):
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'PORT' not in os.environ:
+      os.environ['PORT'] = '6006'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
+    # func name
+    assert sys._getframe().f_code.co_name.startswith('test_')
+    command = sys._getframe().f_code.co_name[5:]
+    class_name = self.__class__.__name__[7:] \
+      if self.__class__.__name__.startswith('Testing') \
+      else self.__class__.__name__
+    outdir = f'results/{class_name}/{command}'
+
+    argv_str = f"""
+                --config template_lib/configs/config.yaml
+                --command {command}
+                --outdir {outdir}
+                """
+    from template_lib.utils.config import parse_args_and_setup_myargs, config2args
+    args, myargs, _ = parse_args_and_setup_myargs(argv_str, start_tb=False)
+
+    prefix = 'test_summary_scalars'
+    import collections
+    summary_dict = collections.defaultdict(dict)
+    for step in range(1000):
+      summary = {'a': step, 'b': step + 1}
+      for i in range(20):
+        summary_dict[f'dict{i}'] = summary
+      Trainer.summary_defaultdict2txtfig(default_dict=summary_dict, prefix=prefix, step=step,
+                                         textlogger=myargs.textlogger, in_one_figure=False)
+      Trainer.summary_defaultdict2txtfig(default_dict=summary_dict, prefix=prefix, step=step,
+                                         textlogger=myargs.textlogger, in_one_figure=True)
+
+    return
+
+  def test_summary_dict2txtfig(self):
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'PORT' not in os.environ:
+      os.environ['PORT'] = '6006'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
+    # func name
+    assert sys._getframe().f_code.co_name.startswith('test_')
+    command = sys._getframe().f_code.co_name[5:]
+    class_name = self.__class__.__name__[7:] \
+      if self.__class__.__name__.startswith('Testing') \
+      else self.__class__.__name__
+    outdir = f'results/{class_name}/{command}'
+
+    argv_str = f"""
+                --config template_lib/configs/config.yaml
+                --command {command}
+                --outdir {outdir}
+                """
+    from template_lib.utils.config import parse_args_and_setup_myargs, config2args
+    args, myargs, _ = parse_args_and_setup_myargs(argv_str, start_tb=False)
+
+    prefix = 'test_summary_scalars'
+    for step in range(1000):
+      dict_data = {'a': step, 'b': step + 1, 'c': step + 2}
+      Trainer.summary_dict2txtfig(dict_data=dict_data, prefix=prefix, step=step,
+                                  textlogger=myargs.textlogger, in_one_axe=False)
+      Trainer.summary_dict2txtfig(dict_data=dict_data, prefix=prefix, step=step,
+                                  textlogger=myargs.textlogger, in_one_axe=True)
+
     return

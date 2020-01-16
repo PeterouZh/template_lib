@@ -15,12 +15,18 @@ class MatPlot(object):
     plt.style.use(style)
     pass
 
-  def get_fig_and_ax(self, nrows=1, ncols=1):
+  def get_fig_and_ax(self, nrows=1, ncols=1, ravel=False, fig_w_h=(6.4, 4.8)):
     """
     ax.legend(loc='best')
     """
     import matplotlib.pyplot as plt
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols)
+    figsize = (fig_w_h[0] * ncols, fig_w_h[1] * nrows)
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+    if ravel:
+      if ncols == 1 and nrows == 1:
+        axes = [axes]
+      else:
+        axes = axes.ravel()
     return fig, axes
 
   def save_to_png(self, fig, filepath, dpi=1000, bbox_inches='tight',
@@ -105,11 +111,78 @@ class PlotFigureProcessing(multiprocessing.Process):
       datas.append(data)
     _plot_figure(
       names=names, datas=datas, outdir=outdir, in_one_axes=in_one_axes)
-
     pass
 
 def plot_figure(names, filepaths, outdir, in_one_axes, join=False):
   worker = PlotFigureProcessing(args=(names, filepaths, outdir, in_one_axes))
+  worker.start()
+
+  if join:
+    worker.join()
+  pass
+
+
+class PlotDefaultdict2figure(multiprocessing.Process):
+  """
+    worker = PlotDefaultdict2figure(args=(s, d, copytree))
+    worker.start()
+    worker.join()
+  """
+  def run(self):
+    label2filepaths_list, filepaths, in_one_figure = self._args
+    # load data
+    label2datas_list = []
+    for label2filepaths in label2filepaths_list:
+      label2datas_list.append({k: np.loadtxt(filepath, delimiter=':') for k, filepath in label2filepaths.items()})
+    self._plot_figure(label2datas_list=label2datas_list, filepaths=filepaths, in_one_figure=in_one_figure)
+    pass
+
+  def _plot_figure(self, label2datas_list, filepaths, in_one_figure=False):
+    import matplotlib
+    matplotlib.use('Agg')
+    if in_one_figure:
+      self._plot_in_one_figure(label2datas_list, filepaths)
+    else:
+      self._plot_in_multi_figures(label2datas_list=label2datas_list, filepaths=filepaths)
+
+  def _plot_in_one_figure(self, label2datas_list, filepaths):
+    import matplotlib.pyplot as plt
+    assert len(filepaths) == 1
+    matplot = MatPlot()
+    ncols = math.ceil(math.sqrt(len(label2datas_list)))
+    nrows = (len(label2datas_list) + ncols - 1) // ncols
+    fig, axes = matplot.get_fig_and_ax(nrows=nrows, ncols=ncols, ravel=True)
+
+
+    for idx, label2datas in enumerate(label2datas_list):
+      for label, data in label2datas.items():
+        data = data.reshape(-1, 2)
+        axes[idx].plot(data[:, 0], data[:, 1], marker='.', label=label, alpha=0.7)
+      axes[idx].legend(loc='best')
+
+    matplot.save_to_png(fig=fig, filepath=filepaths[0], dpi=None, bbox_inches=None)
+    plt.close(fig)
+    pass
+
+  def _plot_in_multi_figures(self, label2datas_list, filepaths):
+    import matplotlib.pyplot as plt
+    assert len(filepaths) == len(label2datas_list)
+    matplot = MatPlot()
+    for idx, label2datas in enumerate(label2datas_list):
+      fig, axes = matplot.get_fig_and_ax(nrows=1, ncols=1)
+
+      for label, data in label2datas.items():
+        data = data.reshape(-1, 2)
+        axes.plot(data[:, 0], data[:, 1], marker='.', label=label, alpha=0.7)
+      axes.legend(loc='best')
+
+      matplot.save_to_png(fig=fig, filepath=filepaths[idx], dpi=None, bbox_inches=None)
+      plt.close(fig)
+    pass
+
+
+def plot_defaultdict2figure(label2filepaths_list, filepaths, in_one_figure, join=False):
+  worker = PlotDefaultdict2figure(args=(label2filepaths_list, filepaths, in_one_figure))
   worker.start()
 
   if join:

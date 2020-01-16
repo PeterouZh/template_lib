@@ -1,9 +1,11 @@
+import time
+
 import numpy as np
 import logging, os
 import datetime
 import sys
 
-from .plot_utils import plot_figure
+from .plot_utils import plot_figure, plot_defaultdict2figure
 
 FORMAT = "[%(levelname)s]: %(message)s [%(name)s][%(filename)s:%(funcName)s():%(lineno)s][%(asctime)s.%(msecs)03d]"
 DATEFMT = '%Y/%m/%d %H:%M:%S'
@@ -211,6 +213,38 @@ class TextLogger(object):
 
     plot_figure(names=names, filepaths=filepaths,
                 outdir=self.root, in_one_axes=True)
+
+  def _get_filepath_from_dictlist(self, dict_list, in_one_figure, MAXLEN=100, ext='.png'):
+    filepaths = []
+    if in_one_figure:
+      labels = []
+      for d in dict_list:
+        labels += d.keys()
+      filename = '__'.join(labels)[:MAXLEN]
+      filepath = os.path.join(self.root, 'plot__' + filename + ext)
+      filepaths.append(filepath)
+    else:
+      for d in dict_list:
+        labels = d.keys()
+        filename = '__'.join(labels)[:MAXLEN]
+        filepath = os.path.join(self.root, 'plot__' + filename + ext)
+        filepaths.append(filepath)
+    return filepaths
+
+  def log_defaultdict2figure(self, default_dict, in_one_figure=True, save_fig_sec=300):
+    label2filepaths_list = []
+    for _, v in default_dict.items():
+      label2filepaths_list.append({subk : '%s/%s.log' % (self.root, subk) for subk, _ in v.items()})
+    filepaths = self._get_filepath_from_dictlist(dict_list=label2filepaths_list, in_one_figure=in_one_figure)
+    # save figure after a while
+    time_str = '_'.join(filepaths)
+    now = time.time()
+    last_time = getattr(TextLogger, time_str, 0)
+    if now - last_time > save_fig_sec:
+      plot_defaultdict2figure(label2filepaths_list=label2filepaths_list, filepaths=filepaths,
+                              in_one_figure=in_one_figure)
+      setattr(TextLogger, time_str, now)
+
 
   def logstr(self, itr, **kwargs):
     for arg in kwargs:
