@@ -232,16 +232,24 @@ class TestingUnit(unittest.TestCase):
           logger.warning(traceback.format_exc())
         modelarts_utils.modelarts_sync_results(args, myargs, join=True)
 
-  def test_resnet(self, bs=32, gpu='0,1,2,3,4,5,6,7'):
+  def test_resnet(self, gpu='0,1,2,3,4,5,6,7', *tmp, **kwargs):
     """
     export PYTHONPATH=../..
     python -c "import test_bash; \
       test_bash.TestingUnit().test_resnet(32)"
 
     """
-
+    from multiprocessing import Queue
+    determine_bs = True
+    q = Queue()
+    # determine max bs
+    p = utils.TorchResnetWorker(name='Command worker', args=(0, gpu, determine_bs, q))
+    p.start()
+    p.join()
+    bs = q.get()
+    determine_bs = False
     while True:
-      p = utils.TorchResnetWorker(name='Command worker', args=(bs, gpu))
+      p = utils.TorchResnetWorker(name='Command worker', args=(bs, gpu, determine_bs, q))
       p.start()
       p.join()
       bs -= 1

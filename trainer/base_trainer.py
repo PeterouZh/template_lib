@@ -194,6 +194,13 @@ class Trainer(object):
                           writer=writer, textlogger=textlogger,
                           log_axe=log_axe, log_axe_sec=log_axe_sec)
 
+  @staticmethod
+  def dict_of_dicts2defaultdict(dicts):
+    default_dict = defaultdict(dict)
+    for name, d in dicts.items():
+      for sub_k, sub_v in d.items():
+        default_dict[sub_k][name] = sub_v
+    return default_dict
 
   @staticmethod
   def summary_defaultdict2txtfig(default_dict, prefix, step,
@@ -217,7 +224,7 @@ class Trainer(object):
 
   @staticmethod
   def summary_dict2txtfig(dict_data, prefix, step,
-                          textlogger=None, in_one_axe=True,
+                          textlogger=None, in_one_axe=False,
                           log_txt=True, log_fig=True, save_fig_sec=300):
     if in_one_axe:
       default_dict = defaultdict(dict)
