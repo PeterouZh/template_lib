@@ -151,7 +151,8 @@ class PlotDefaultdict2figure(multiprocessing.Process):
     import matplotlib.pyplot as plt
     assert len(filepaths) == 1
     matplot = MatPlot()
-    ncols = math.ceil(math.sqrt(len(label2datas_list)))
+    # ncols = math.ceil(math.sqrt(len(label2datas_list)))
+    ncols = 2
     nrows = (len(label2datas_list) + ncols - 1) // ncols
     fig, axes = matplot.get_fig_and_ax(nrows=nrows, ncols=ncols, ravel=True)
 
