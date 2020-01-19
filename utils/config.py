@@ -194,7 +194,7 @@ def setup_args_and_myargs(args, myargs, start_tb=True, **kwargs):
   return args, myargs
 
 
-def parse_args_and_setup_myargs(argv_str=None, start_tb=False):
+def parse_args_and_setup_myargs(argv_str=None, run_script=None, start_tb=False):
   """
   Usage:
 
@@ -208,6 +208,7 @@ def parse_args_and_setup_myargs(argv_str=None, start_tb=False):
   parser = args_parser.build_parser()
   unparsed_argv = []
   if argv_str:
+    print('\npython \t%s \\\n  '%run_script + ' \\\n  '.join(argv_str))
     args, unparsed_argv = parser.parse_known_args(args=argv_str)
   else:
     args = parser.parse_args()
@@ -218,7 +219,7 @@ def parse_args_and_setup_myargs(argv_str=None, start_tb=False):
   args, myargs = setup_args_and_myargs(
     args=args, myargs=myargs, start_tb=start_tb)
   if argv_str:
-    myargs.logger.info('\npython \t\\\n  ' + ' \\\n  '.join(argv_str))
+    myargs.logger.info('\npython \t%s \\\n  '%run_script + ' \\\n  '.join(argv_str))
   return args, myargs, unparsed_argv
 
 
