@@ -1,4 +1,5 @@
 import argparse
+import copy
 import os, sys
 import shutil
 import time
@@ -100,7 +101,7 @@ def setup_logger_and_redirect_stdout(logfile, myargs):
   return
 
 
-def setup_config(config_file, saved_config_file, args, myargs):
+def setup_config(config_file, saved_config_file, overwrite_opts, args, myargs):
   # Parse config file
   config = get_config_from_file(config_file, saved_path=saved_config_file)
   myargs.config = config
@@ -109,7 +110,7 @@ def setup_config(config_file, saved_config_file, args, myargs):
   if config_command:
     # inherit from base
     config_command = config_inherit_from_base(
-      config=config_command, configs=config)
+      config=config_command, configs=config, overwrite_opts=overwrite_opts)
     config_command = convert_easydict_to_dict(config_command)
     saved_config_command = {args.command: config_command}
     config_utils.YamlConfigParser.write_yaml(
@@ -179,7 +180,7 @@ def setup_args_and_myargs(args, myargs, start_tb=True, **kwargs):
   logger.info("The args: \n{}".format(pprint.pformat(args)))
 
   setup_config(
-    config_file=args.config, saved_config_file=args.configfile,
+    config_file=args.config, saved_config_file=args.configfile, overwrite_opts=args.overwrite_opts,
     args=args, myargs=myargs)
   setup_tensorboardX(tbdir=args.tbdir, args=args, config=myargs.config,
                      myargs=myargs, start_tb=start_tb)
@@ -240,19 +241,40 @@ def setup_myargs_for_multiple_processing(myargs):
   return myargs
 
 
-def update_config(super_config, config):
+def update_config(super_config, config, overwrite_opts=True):
   """
 
   :param super_config:
   :param config:
+  :param overwrite_opts: overwrite opts directly or overwrite its elements only
   :return:
   """
+  ret_config = copy.deepcopy(super_config)
   for k in config:
-    if isinstance(config[k], dict) and hasattr(super_config, k):
-      update_config(super_config[k], config[k])
+    if k == 'opts' and not overwrite_opts and hasattr(super_config, k):
+      ret_config[k] = update_opts(super_config[k], config[k])
+    # merge dict element-wise
+    elif isinstance(config[k], dict) and hasattr(super_config, k):
+      ret_config = update_config(super_config[k], config[k])
     else:
-      setattr(super_config, k, config[k])
-  return super_config
+      setattr(ret_config, k, config[k])
+  return ret_config
+
+
+def update_opts(super_opts, opts):
+  assert isinstance(super_opts, list) and len(super_opts) % 2 ==0
+  assert isinstance(opts, list) and len(opts) % 2 == 0
+  for k_idx in range(0, len(opts), 2):
+    v_idx = k_idx + 1
+    if opts[k_idx] in super_opts:
+      s_k_idx = super_opts.index(opts[k_idx])
+      s_v_idx = s_k_idx + 1
+      super_opts[s_v_idx] = opts[v_idx]
+    else:
+      super_opts += [opts[k_idx], opts[v_idx]]
+  return super_opts
+
+
 
 
 def convert_easydict_to_dict(config):
@@ -264,7 +286,7 @@ def convert_easydict_to_dict(config):
   return config
 
 
-def config_inherit_from_base(config, configs, arg_base=[]):
+def config_inherit_from_base(config, configs, arg_base=[], overwrite_opts=True):
   base = getattr(config, 'base', [])
   if not isinstance(arg_base, list):
     arg_base = [arg_base]
@@ -276,6 +298,7 @@ def config_inherit_from_base(config, configs, arg_base=[]):
   for b in base:
     b_config = getattr(configs, b, {})
     b_config = config_inherit_from_base(b_config, configs)
-    super_config = update_config(super_config, b_config)
-  super_config = update_config(super_config, config)
+    super_config = update_config(super_config, b_config, overwrite_opts=overwrite_opts)
+  # update super_config by config
+  super_config = update_config(super_config, config, overwrite_opts=overwrite_opts)
   return super_config
