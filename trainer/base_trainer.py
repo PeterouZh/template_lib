@@ -226,6 +226,12 @@ class Trainer(object):
   def summary_dict2txtfig(dict_data, prefix, step,
                           textlogger=None, in_one_axe=False,
                           log_txt=True, log_fig=True, save_fig_sec=300):
+    new_key_dict_data = {}
+    for k, v in dict_data.items():
+      new_k = k.replace('/', '--')
+      new_key_dict_data[new_k] = v
+    dict_data = new_key_dict_data
+
     if in_one_axe:
       default_dict = defaultdict(dict)
       keys = 'sa'

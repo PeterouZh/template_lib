@@ -163,7 +163,7 @@ class PlotDefaultdict2figure(multiprocessing.Process):
         axes[idx].plot(data[:, 0], data[:, 1], marker='.', label=label, alpha=0.7)
       axes[idx].legend(loc='best')
 
-    matplot.save_to_png(fig=fig, filepath=filepaths[0], dpi=None, bbox_inches=None)
+    matplot.save_to_png(fig=fig, filepath=filepaths[0], dpi=None, bbox_inches='tight')
     plt.close(fig)
     pass
 
@@ -179,7 +179,7 @@ class PlotDefaultdict2figure(multiprocessing.Process):
         axes.plot(data[:, 0], data[:, 1], marker='.', label=label, alpha=0.7)
       axes.legend(loc='best')
 
-      matplot.save_to_png(fig=fig, filepath=filepaths[idx], dpi=None, bbox_inches=None)
+      matplot.save_to_png(fig=fig, filepath=filepaths[idx], dpi=None, bbox_inches='tight')
       plt.close(fig)
     pass
 
