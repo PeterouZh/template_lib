@@ -256,7 +256,8 @@ def update_config(super_config, config, overwrite_opts=True):
       ret_config[k] = update_opts(super_config[k], config[k])
     # merge dict element-wise
     elif isinstance(config[k], dict) and hasattr(super_config, k):
-      ret_config = update_config(super_config[k], config[k])
+      sub_config = update_config(super_config[k], config[k])
+      setattr(ret_config, k, sub_config)
     else:
       setattr(ret_config, k, config[k])
   return ret_config

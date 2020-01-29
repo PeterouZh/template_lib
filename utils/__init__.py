@@ -4,6 +4,7 @@ import random
 import time
 from .utils_func import is_debugging, get_prefix_abb
 from . import config
+from . import args_parser
 
 
 class TorchResnetWorker(multiprocessing.Process):
