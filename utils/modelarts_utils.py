@@ -231,7 +231,10 @@ def modelarts_copy_data(datapath_obs, datapath, overwrite=False):
       print('Copying file [%s] \n to [%s]' % (datapath_obs, datapath))
       mox.file.copy(datapath_obs, datapath)
     print('End [%s] \n to [%s]' % (datapath_obs, datapath))
-
+  except ModuleNotFoundError:
+    logger = logging.getLogger(__name__)
+    logger.info('\n\tIgnore datapath: %s' % datapath)
+    pass
   except:
     logger = logging.getLogger(__name__)
     import traceback

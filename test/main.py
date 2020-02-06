@@ -3,7 +3,6 @@ import sys
 import unittest
 import argparse
 
-os.chdir('..')
 from template_lib.examples import test_bash
 from template_lib import utils
 
