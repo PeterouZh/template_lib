@@ -7,6 +7,8 @@ import multiprocessing
 import shutil
 import logging
 
+from template_lib.d2.utils import comm
+
 from . import config
 
 
@@ -108,6 +110,8 @@ def modelarts_finetune(args, finetune_path):
 
 
 def modelarts_sync_results(args, myargs, join=False, end=False):
+  if not comm.is_main_process():
+    return
   # measure elapsed time
   if end:
     elapsed = time.time() - myargs.time_start
