@@ -61,6 +61,7 @@ def setup_outdir(args, resume_root, resume, **kwargs):
   TIME_STR = bool(int(os.getenv('TIME_STR', 0)))
   time_str = datetime.now().strftime("%Y%m%d-%H_%M_%S_%f")[:-3]
   args.outdir = args.outdir if not TIME_STR else (args.outdir + '_' + time_str)
+  args.time_str_suffix = time_str
   if 'log_number' in kwargs:
     args.outdir += '_%s'%kwargs['log_number']
 
@@ -280,12 +281,14 @@ def update_opts(super_opts, opts):
 
 
 def convert_easydict_to_dict(config):
-  config = dict(config)
+  ret_config = dict()
   for k in config:
     if isinstance(config[k], EasyDict):
-      config[k] = dict(config[k])
-      config.update({k: convert_easydict_to_dict(config[k])})
-  return config
+      # config[k] = dict(config[k])
+      ret_config.update({k: convert_easydict_to_dict(config[k])})
+    else:
+      ret_config.update({k: config[k]})
+  return ret_config
 
 
 def config_inherit_from_base(config, configs, arg_base=[], overwrite_opts=False):

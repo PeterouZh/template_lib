@@ -164,7 +164,7 @@ def wgan_gp_gradient_penalty_cond(x, G_z, gy, f, backward=False, gp_lambda=10,
     gp_loss = gp * gp_lambda
     gp_loss.backward()
   else:
-    gp_loss = gp
+    gp_loss = gp * gp_lambda
   if return_gp:
     return gp_loss, gp
   else:

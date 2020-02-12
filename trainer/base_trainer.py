@@ -4,9 +4,17 @@ import re
 import sys
 import time
 from collections import defaultdict
+import logging
 
 # from ..utils import modelarts_utils
 from template_lib.utils import (modelarts_utils, get_prefix_abb, )
+from template_lib.d2.utils import comm
+
+__all__ = ['Trainer', 'get_ddp_attr', 'summary_defaultdict2txtfig', 'summary_dict2txtfig']
+
+
+def get_ddp_attr(obj, attr):
+  return getattr(obj, attr, getattr(obj.module, attr))
 
 
 def write_scalars_to_text(summary, prefix, step, textlogger,
@@ -65,9 +73,11 @@ class Trainer(object):
   def model_create(self):
     pass
 
-  def print_number_params(self, models):
+  @staticmethod
+  def print_number_params(models):
+    logger = logging.getLogger('tl')
     for label, model in models.items():
-      self.logger.info('Number of params in {}:\t {}M'.format(
+      logger.info('Number of params in {}:\t {}M'.format(
         label, sum([p.data.nelement() for p in model.parameters()])/1e6
       ))
 
@@ -206,6 +216,8 @@ class Trainer(object):
   def summary_defaultdict2txtfig(default_dict, prefix, step,
                                  textlogger=None, in_one_figure=True,
                                  log_txt=True, log_fig=True, save_fig_sec=300):
+    if not comm.is_main_process():
+      return
     if textlogger is not None:
       prefix_abb = get_prefix_abb(prefix=prefix)
       default_dict_copy = defaultdict(dict)
@@ -226,6 +238,8 @@ class Trainer(object):
   def summary_dict2txtfig(dict_data, prefix, step,
                           textlogger=None, in_one_axe=False,
                           log_txt=True, log_fig=True, save_fig_sec=300):
+    if not comm.is_main_process():
+      return
     new_key_dict_data = {}
     for k, v in dict_data.items():
       new_k = k.replace('/', '--')
@@ -262,6 +276,9 @@ class Trainer(object):
     modelarts_utils.modelarts_sync_results(self.args, self.myargs,
                                            join=join, end=end)
 
+
+summary_defaultdict2txtfig = Trainer.summary_defaultdict2txtfig
+summary_dict2txtfig = Trainer.summary_dict2txtfig
 
 
 from template_lib import utils

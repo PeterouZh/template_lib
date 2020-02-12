@@ -11,6 +11,7 @@
     numbers. This code tends to produce IS values that are 5-10% lower than
     those obtained through TF. 
 '''
+import logging
 import sys
 import functools
 import os
@@ -297,16 +298,30 @@ class InceptionMetrics(object):
   # and iterates until it accumulates config['num_inception_images'] images.
   # The iterator can return samples with a different batch size than used in
   # training, using the setting confg['inception_batchsize']
-  def __init__(self, saved_inception_moments, parallel=True, device=0):
+  def __init__(self, saved_inception_moments, parallel=False, device='cuda'):
     """
 
     """
+    self.logger = logging.getLogger('tl')
     saved_inception_moments = os.path.expanduser(saved_inception_moments)
     self.data_mu = np.load(saved_inception_moments)['mu']
     self.data_sigma = np.load(saved_inception_moments)['sigma']
     # Load network
-    net = load_inception_net(parallel)
-    self.net = net.cuda(device)
+    net = load_inception_net(parallel=False)
+    self.net = net.to(device)
+    self.parallel = parallel
+    if parallel:
+      from torch.nn.parallel import DistributedDataParallel
+      if not torch.distributed.get_world_size() > 1:
+        self.parallel = False
+        return
+      from detectron2.utils import comm
+      pg = torch.distributed.new_group(range(torch.distributed.get_world_size()))
+      self.net = DistributedDataParallel(
+        self.net, device_ids=[comm.get_local_rank()], broadcast_buffers=False,
+        process_group=pg, check_reduction=False
+      )
+    pass
 
   def __call__(self, G=None, z=None,
                num_inception_images=50000, num_splits=10,
@@ -315,7 +330,11 @@ class InceptionMetrics(object):
                stdout=sys.stdout):
     start_time = time.time()
     if prints:
-      print('Gathering activations...')
+      self.logger.info('Gathering activations...')
+    if self.parallel:
+      ws = torch.distributed.get_world_size()
+      assert num_inception_images % ws == 0
+      num_inception_images = num_inception_images // ws
 
     if sample_func:
       self.sample_func = sample_func
@@ -327,6 +346,24 @@ class InceptionMetrics(object):
       self.sample_func, net=self.net,
       num_inception_images=num_inception_images,
       show_process=show_process, stdout=stdout)
+
+    if self.parallel:
+      from detectron2.utils import comm
+      pool_list = comm.all_gather(data=pool)
+      logits_list = comm.all_gather(data=logits)
+      pool = torch.cat(pool_list, dim=0).to('cuda')
+      logits = torch.cat(logits_list, dim=0).to('cuda')
+
+    IS_mean, IS_std, FID = self.calculate_FID_IS(
+      logits=logits, pool=pool, num_splits=num_splits, no_fid=no_fid, use_torch=use_torch)
+
+    elapsed_time = time.time() - start_time
+    time_str = time.strftime('%H:%M:%S', time.gmtime(elapsed_time))
+    self.logger.info('Elapsed time: %s' % (time_str))
+
+    return IS_mean, IS_std, FID
+
+  def calculate_FID_IS(self, logits, pool, num_splits=10, no_fid=False, use_torch=False,):
     # if prints:
     #   print('Calculating Inception Score...')
     IS_mean, IS_std = calculate_inception_score(
@@ -354,9 +391,7 @@ class InceptionMetrics(object):
           mu, sigma, self.data_mu, self.data_sigma)
     # Delete mu, sigma, pool, logits, and labels, just in case
     del mu, sigma, pool, logits
-    elapsed_time = time.time() - start_time
-    time_str = time.strftime('%H:%M:%S', time.gmtime(elapsed_time))
-    print('Elapsed time: %s' % (time_str))
+
     return IS_mean, IS_std, FID
 
   @staticmethod

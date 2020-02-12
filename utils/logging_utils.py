@@ -5,6 +5,8 @@ import logging, os
 import datetime
 import sys
 
+from template_lib.d2.utils import comm
+
 from .plot_utils import plot_figure, plot_defaultdict2figure
 
 FORMAT = "[%(levelname)s]: %(message)s [%(name)s][%(filename)s:%(funcName)s():%(lineno)s][%(asctime)s.%(msecs)03d]"
@@ -247,6 +249,8 @@ class TextLogger(object):
 
 
   def logstr(self, itr, **kwargs):
+    if not comm.is_main_process():
+      return
     for arg in kwargs:
       if arg not in self.metrics:
         if self.reinitialize:
