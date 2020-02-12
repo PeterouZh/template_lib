@@ -25,6 +25,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Parameter as P
 from torchvision.models.inception import inception_v3
+import torch.distributed as dist
+
+from template_lib.d2.utils import comm
 
 
 # Module that wraps the inception network to enable use with dataparallel and
@@ -266,6 +269,7 @@ def accumulate_inception_activations(
   """
   pool, logits = [], []
   count = 0
+  net.eval()
   while (torch.cat(logits, 0).shape[0] if len(logits) else 0) < num_inception_images:
     if show_process:
       print('\r',
@@ -312,13 +316,12 @@ class InceptionMetrics(object):
     self.parallel = parallel
     if parallel:
       from torch.nn.parallel import DistributedDataParallel
-      if not torch.distributed.get_world_size() > 1:
+      if not comm.get_world_size() > 1:
         self.parallel = False
         return
-      from detectron2.utils import comm
       pg = torch.distributed.new_group(range(torch.distributed.get_world_size()))
       self.net = DistributedDataParallel(
-        self.net, device_ids=[comm.get_local_rank()], broadcast_buffers=False,
+        self.net, device_ids=[dist.get_rank()], broadcast_buffers=False,
         process_group=pg, check_reduction=False
       )
     pass

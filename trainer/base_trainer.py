@@ -14,7 +14,7 @@ __all__ = ['Trainer', 'get_ddp_attr', 'summary_defaultdict2txtfig', 'summary_dic
 
 
 def get_ddp_attr(obj, attr):
-  return getattr(obj, attr, getattr(obj.module, attr))
+  return getattr(getattr(obj, 'module', obj), attr)
 
 
 def write_scalars_to_text(summary, prefix, step, textlogger,
