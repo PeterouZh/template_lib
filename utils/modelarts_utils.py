@@ -260,7 +260,7 @@ def prepare_dataset(dataset):
   :return:
   """
   for k, v in dataset.items():
-    if v:
+    if isinstance(v, dict):
       modelarts_copy_data(**v)
 
 

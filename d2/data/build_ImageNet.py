@@ -13,7 +13,7 @@ import json
 from detectron2.utils.visualizer import Visualizer
 from detectron2.data import DatasetCatalog, MetadataCatalog
 
-from template_lib.d2.data.BigGAN import ImageFolder, default_loader, find_classes, is_image_file
+from template_lib.d2.data.BigGAN import default_loader, find_classes, is_image_file
 
 
 class CenterCropLongEdge(object):
@@ -136,6 +136,8 @@ for name, data_path in zip(registed_names, data_paths):
   DatasetCatalog.register(
     name, (lambda name=name, data_path=data_path:
            get_dict(name=name, data_path=data_path)))
+  # Save index json file
+  get_dict(name=name, data_path=data_path)
 
 
 if __name__ == '__main__':

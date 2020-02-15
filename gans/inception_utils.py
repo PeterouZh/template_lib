@@ -26,6 +26,7 @@ import torch.nn.functional as F
 from torch.nn import Parameter as P
 from torchvision.models.inception import inception_v3
 import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel
 
 from template_lib.d2.utils import comm
 
@@ -311,20 +312,26 @@ class InceptionMetrics(object):
     self.data_mu = np.load(saved_inception_moments)['mu']
     self.data_sigma = np.load(saved_inception_moments)['sigma']
     # Load network
-    net = load_inception_net(parallel=False)
-    self.net = net.to(device)
     self.parallel = parallel
+    if not comm.get_world_size() > 1:
+      self.parallel = False
+    self.net = self.load_inception_net(parallel=self.parallel)
+    pass
+
+  @staticmethod
+  def load_inception_net(parallel, device='cuda'):
+    net = load_inception_net(parallel=False)
+    net = net.to(device)
+
     if parallel:
-      from torch.nn.parallel import DistributedDataParallel
       if not comm.get_world_size() > 1:
-        self.parallel = False
         return
       pg = torch.distributed.new_group(range(torch.distributed.get_world_size()))
-      self.net = DistributedDataParallel(
-        self.net, device_ids=[dist.get_rank()], broadcast_buffers=False,
+      net = DistributedDataParallel(
+        net, device_ids=[dist.get_rank()], broadcast_buffers=False,
         process_group=pg, check_reduction=False
       )
-    pass
+    return net
 
   def __call__(self, G=None, z=None,
                num_inception_images=50000, num_splits=10,
@@ -351,11 +358,7 @@ class InceptionMetrics(object):
       show_process=show_process, stdout=stdout)
 
     if self.parallel:
-      from detectron2.utils import comm
-      pool_list = comm.all_gather(data=pool)
-      logits_list = comm.all_gather(data=logits)
-      pool = torch.cat(pool_list, dim=0).to('cuda')
-      logits = torch.cat(logits_list, dim=0).to('cuda')
+      pool, logits = self.gather_pool_logits(pool, logits)
 
     IS_mean, IS_std, FID = self.calculate_FID_IS(
       logits=logits, pool=pool, num_splits=num_splits, no_fid=no_fid, use_torch=use_torch)
@@ -365,6 +368,17 @@ class InceptionMetrics(object):
     self.logger.info('Elapsed time: %s' % (time_str))
 
     return IS_mean, IS_std, FID
+
+  @staticmethod
+  def gather_pool_logits(pool, logits):
+    from detectron2.utils import comm
+    pool_list = comm.gather(data=pool)
+    logits_list = comm.gather(data=logits)
+    if len(pool_list) > 0:
+      pool = torch.cat(pool_list, dim=0).to('cuda')
+    if len(logits_list) > 0:
+      logits = torch.cat(logits_list, dim=0).to('cuda')
+    return pool, logits
 
   def calculate_FID_IS(self, logits, pool, num_splits=10, no_fid=False, use_torch=False,):
     # if prints:
