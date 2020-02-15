@@ -148,7 +148,7 @@ def setup_checkpoint(ckptdir, myargs):
 
 def get_git_hash():
   cwd = os.getcwd()
-  os.chdir(os.path.join(cwd, '..'))
+  # os.chdir(os.path.join(cwd, '..'))
   try:
     import git
     repo = git.Repo(search_parent_directories=True)

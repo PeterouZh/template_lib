@@ -360,8 +360,11 @@ class InceptionMetrics(object):
     if self.parallel:
       pool, logits = self.gather_pool_logits(pool, logits)
 
-    IS_mean, IS_std, FID = self.calculate_FID_IS(
-      logits=logits, pool=pool, num_splits=num_splits, no_fid=no_fid, use_torch=use_torch)
+    if comm.is_main_process():
+      IS_mean, IS_std, FID = self.calculate_FID_IS(
+        logits=logits, pool=pool, num_splits=num_splits, no_fid=no_fid, use_torch=use_torch)
+    else:
+      IS_mean = IS_std = FID = 0
 
     elapsed_time = time.time() - start_time
     time_str = time.strftime('%H:%M:%S', time.gmtime(elapsed_time))
