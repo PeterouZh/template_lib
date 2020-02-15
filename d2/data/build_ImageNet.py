@@ -80,7 +80,7 @@ class DatasetMapper:
     return dataset_dict
 
 
-def get_dict(name, data_path, show_bar=False):
+def get_dict(name, data_path, images_per_class=np.inf, show_bar=False):
   index_filename = '%s_index.json'%name
 
   if os.path.exists(index_filename):
@@ -95,17 +95,20 @@ def get_dict(name, data_path, show_bar=False):
     data_path = os.path.expanduser(data_path)
     pbar = sorted(os.listdir(data_path))
     if show_bar:
-      pbar = tqdm.tqdm(pbar, desc='get_dict')
+      pbar = tqdm.tqdm(pbar, desc=f'get_dict, {index_filename}')
 
     idx = 0
     for target in pbar:
       d = os.path.join(data_path, target)
       if not os.path.isdir(d):
         continue
-
+      num_imgs = 0
       for root, _, fnames in sorted(os.walk(d)):
         for fname in sorted(fnames):
           if is_image_file(fname):
+            if num_imgs >= images_per_class:
+              break
+            num_imgs += 1
             record = {}
 
             record["image_id"] = idx
@@ -128,16 +131,20 @@ def get_dict(name, data_path, show_bar=False):
   return dataset_dicts
 
 
-registed_names = ['imagenet_train', ]
-data_paths = ["datasets/imagenet/train", ]
+registed_names = ['imagenet_train',
+                  'imagenet_train_100x1k']
+data_paths = ["datasets/imagenet/train",
+              "datasets/imagenet/train"]
+images_per_class_list = [np.inf,
+                         100]
 
-for name, data_path in zip(registed_names, data_paths):
+for name, data_path, images_per_class in zip(registed_names, data_paths, images_per_class_list):
   # warning : lambda must specify keyword arguments
   DatasetCatalog.register(
-    name, (lambda name=name, data_path=data_path:
-           get_dict(name=name, data_path=data_path)))
+    name, (lambda name=name, data_path=data_path, images_per_class=images_per_class:
+           get_dict(name=name, data_path=data_path, images_per_class=images_per_class)))
   # Save index json file
-  get_dict(name=name, data_path=data_path)
+  get_dict(name=name, data_path=data_path, images_per_class=images_per_class, show_bar=True)
 
 
 if __name__ == '__main__':
