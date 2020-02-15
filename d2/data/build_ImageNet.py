@@ -12,6 +12,7 @@ import json
 
 from detectron2.utils.visualizer import Visualizer
 from detectron2.data import DatasetCatalog, MetadataCatalog
+from detectron2.utils import comm
 
 from template_lib.d2.data.BigGAN import default_loader, find_classes, is_image_file
 
@@ -81,7 +82,8 @@ class DatasetMapper:
 
 
 def get_dict(name, data_path, images_per_class=np.inf, show_bar=False):
-  index_filename = '%s_index.json'%name
+  rank = comm.get_rank()
+  index_filename = '%s_index_rank_%d.json'%(name, rank)
 
   if os.path.exists(index_filename):
     print('Loading pre-saved Index file %s...' % index_filename)
@@ -144,7 +146,7 @@ for name, data_path, images_per_class in zip(registed_names, data_paths, images_
     name, (lambda name=name, data_path=data_path, images_per_class=images_per_class:
            get_dict(name=name, data_path=data_path, images_per_class=images_per_class)))
   # Save index json file
-  get_dict(name=name, data_path=data_path, images_per_class=images_per_class, show_bar=True)
+  # get_dict(name=name, data_path=data_path, images_per_class=images_per_class, show_bar=True)
 
 
 if __name__ == '__main__':
