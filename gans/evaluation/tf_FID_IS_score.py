@@ -29,7 +29,10 @@ from scipy import linalg
 from imageio import imread
 import tarfile
 
+from template_lib.d2.utils import comm
+
 from .build import GAN_METRIC_REGISTRY
+from . import get_sample_imgs_list_ddp
 
 __all__ = ['TFFIDISScore']
 
@@ -350,10 +353,12 @@ def calculate_fid_given_paths(paths, inception_path, low_profile=False):
 
 @GAN_METRIC_REGISTRY.register()
 class TFFIDISScore(object):
-  def __init__(self, cfg):
+  def __init__(self, cfg, IS_splits=10, ):
 
     self.tf_inception_model_dir       = cfg.GAN_metric.tf_inception_model_dir
     self.tf_fid_stat                  = cfg.GAN_metric.tf_fid_stat
+    self.num_inception_images         = getattr(cfg.GAN_metric, 'num_inception_images', 50000)
+    self.IS_splits                    = getattr(cfg.GAN_metric, 'IS_splits', 10)
 
     self.logger = logging.getLogger('tl')
     self.logger.info('Load tf inception model in %s', self.tf_inception_model_dir)
@@ -453,7 +458,7 @@ class TFFIDISScore(object):
       end = start + batch_size
       if verbose:
         print('\r',
-              end='FID IS forwarding [%d/%d]' % (start, n_used_imgs),
+              end='TF FID IS forwarding [%d/%d]' % (start, n_used_imgs),
               file=stdout, flush=True)
       batch = images[start:end]
       pred_FID, pred_IS = sess.run([FID_pool3, IS_softmax], {f'{self.tf_graph_name}/ExpandDims:0': batch})
@@ -502,6 +507,21 @@ class TFFIDISScore(object):
     sess.close()
 
     return FID, IS_mean, IS_std
+
+  def __call__(self, sample_func, batch_size=50, stdout=sys.stdout):
+    import torch
+
+    imgs = get_sample_imgs_list_ddp(
+      sample_func=sample_func, num_imgs=self.num_inception_images, stdout=stdout)
+    if comm.is_main_process():
+      imgs = imgs.mul_(127.5).add_(127.5).clamp_(0.0, 255.0).permute(0, 2, 3, 1).type(torch.uint8)
+      img_list = list(imgs.to('cpu').numpy())
+
+      FID_tf, IS_mean_tf, IS_std_tf = self.calculate_FID_IS_given_image_list(
+        img_list=img_list, batch_size=batch_size, IS_splits=self.IS_splits, stdout=stdout)
+    else:
+      FID_tf = IS_mean_tf = IS_std_tf = 0
+    return FID_tf, IS_mean_tf, IS_std_tf
 
   def get_activations_from_pytorch_dataloader(
           self, dataloader, sess, transform_to_uint8=False, stdout=sys.stdout):
