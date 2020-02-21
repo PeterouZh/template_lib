@@ -7,13 +7,11 @@ import torch
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 
-from detectron2.utils.visualizer import Visualizer
-
 from .build import DATASET_MAPPER_REGISTRY
 
 
 @DATASET_MAPPER_REGISTRY.register()
-class STL10DatasetMapper:
+class CIFAR10DatasetMapper(object):
   """
   A callable which takes a dataset dict in Detectron2 Dataset format,
   and map it into a format used by the model.
@@ -36,7 +34,9 @@ class STL10DatasetMapper:
     return transform
 
   def __init__(self, cfg, is_train=True):
+
     img_size = cfg.dataset.img_size
+
     self.transform = self.build_transform(img_size=img_size)
     self.is_train = is_train
 
@@ -55,18 +55,21 @@ class STL10DatasetMapper:
     return dataset_dict
 
 
-def get_dict(name, data_path, split, labels_path=None):
-  stldataset = datasets.STL10(root=data_path, split=split, download=True)
-  if labels_path is not None:
-    labels_path = os.path.expanduser(labels_path)
-    stldataset.labels = np.load(labels_path)['plabels']
+def get_dict(name, data_path, subset):
+  if subset.lower() == 'train':
+    train = True
+  elif subset.lower() == 'test':
+    train = False
+  c10_dataset = datasets.CIFAR10(root=data_path, train=subset, download=True)
 
   meta_dict = {}
-  meta_dict['num_images'] = len(stldataset)
+  meta_dict['num_images'] = len(c10_dataset)
+  meta_dict['class_to_idx'] = c10_dataset.class_to_idx
+  meta_dict['classes'] = c10_dataset.classes
   MetadataCatalog.get(name).set(**meta_dict)
 
   dataset_dicts = []
-  data_iter = iter(stldataset)
+  data_iter = iter(c10_dataset)
   for idx, (img, label) in enumerate(data_iter):
     record = {}
 
@@ -74,38 +77,38 @@ def get_dict(name, data_path, split, labels_path=None):
     record["height"] = img.height
     record["width"] = img.width
     record["image"] = img
-    record["label"] = label
+    record["label"] = int(label)
     dataset_dicts.append(record)
   return dataset_dicts
 
 
 from detectron2.data import DatasetCatalog, MetadataCatalog
 
-data_path = "datasets/stl10/"
-registed_name = ['stl10_train+unlabeled_predicted_labels',
-                 'stl10_test']
-split_list = ['train+unlabeled',
-              'test']
-labels_path_list = ['datasets/stl10_plabels.npz',
-                    None]
+data_path = "datasets/cifar10/"
+registed_name = ['cifar10_train',
+                 'cifar10_test']
+subsets = ['train',
+           'test']
 
-
-for name, split, labels_path in zip(registed_name, split_list, labels_path_list):
+for name, subset in zip(registed_name, subsets):
   # warning : lambda must specify keyword arguments
   DatasetCatalog.register(
-    name, (lambda name=name, data_path=data_path, split=split, labels_path=labels_path:
-           get_dict(name=name, data_path=data_path, split=split, labels_path=labels_path)))
+    name, (lambda name=name, data_path=data_path, subset=subset:
+           get_dict(name=name, data_path=data_path, subset=subset)))
 
 
 if __name__ == '__main__':
   import matplotlib.pylab as plt
-  dataset_dicts = get_dict(data_path=data_path, split=split_list[0],
-                           labels_path=labels_path_list[0])
-  stl10_metadata = MetadataCatalog.get(registed_name[0])
+  dataset_dicts = get_dict(name=registed_name[0], data_path=data_path, subset=subsets[0])
+  metadata = MetadataCatalog.get(registed_name[0])
   for d in random.sample(dataset_dicts, 3):
-    img = np.asarray(d["image"])
-    visualizer = Visualizer(img, metadata=stl10_metadata, scale=0.5)
-    vis = visualizer.draw_dataset_dict(d)
-    plt.imshow(vis.get_image())
-    plt.show()
+    img = d["image"]
+    file_name = str(d['image_id']) + '.jpg'
+    saved_dir = 'results/build_cifar10'
+    os.makedirs(saved_dir, exist_ok=True)
+    img.save(os.path.join(saved_dir, file_name))
+
+    pass
+    # plt.imshow(vis.get_image())
+    # plt.show()
     # cv2_imshow(vis.get_image()[:, :, ::-1])

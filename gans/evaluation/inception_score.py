@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import logging
 import math
 import os
 import os.path
@@ -13,35 +14,49 @@ import numpy as np
 import tensorflow as tf
 from six.moves import urllib
 
+from .build import GAN_METRIC_REGISTRY
+
+__all__ = ['InceptionScore', 'TFInceptionScore']
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 DATA_URL = 'http://download.tensorflow.org/models/image/imagenet/inception-2015-12-05.tgz'
 softmax = None
 
-config = tf.ConfigProto()
+config = tf.ConfigProto(device_count = {'GPU': 0})
 config.gpu_options.allow_growth = True
 
 
-class InceptionScore(object):
-  def __init__(self, tf_inception_model_dir):
+@GAN_METRIC_REGISTRY.register()
+class TFInceptionScore(object):
+  def __init__(self, cfg):
+
+    self.tf_inception_model_dir = cfg.GAN_metric.tf_inception_model_dir
+
+    self.logger = logging.getLogger('tl')
+    self.logger.info('Load tf inception model in %s', self.tf_inception_model_dir)
+
     global softmax
-    MODEL_DIR = os.path.expanduser(tf_inception_model_dir)
+    MODEL_DIR = os.path.expanduser(self.tf_inception_model_dir)
     if not os.path.exists(MODEL_DIR):
       os.makedirs(MODEL_DIR)
     filename = DATA_URL.split('/')[-1]
-    filepath = os.path.join(MODEL_DIR, filename)
-    if not os.path.exists(filepath):
-      def _progress(count, block_size, total_size):
-        sys.stdout.write('\r>> Downloading %s %.1f%%' % (
-          filename, float(count * block_size) / float(total_size) * 100.0))
-        sys.stdout.flush()
 
-      filepath, _ = urllib.request.urlretrieve(DATA_URL, filepath, _progress)
-      print()
-      statinfo = os.stat(filepath)
-      print('Succesfully downloaded', filename, statinfo.st_size, 'bytes.')
-    tarfile.open(filepath, 'r:gz').extractall(MODEL_DIR)
-    with tf.gfile.FastGFile(os.path.join(
-            MODEL_DIR, 'classify_image_graph_def.pb'), 'rb') as f:
+    filepath = os.path.join(MODEL_DIR, filename)
+    pb_file = os.path.join(MODEL_DIR, 'classify_image_graph_def.pb')
+    if not os.path.exists(pb_file):
+      if not os.path.exists(filepath):
+        def _progress(count, block_size, total_size):
+          sys.stdout.write('\r>> Downloading %s %.1f%%' % (
+            filename, float(count * block_size) / float(total_size) * 100.0))
+          sys.stdout.flush()
+
+        filepath, _ = urllib.request.urlretrieve(DATA_URL, filepath, _progress)
+        print()
+        statinfo = os.stat(filepath)
+        print('Succesfully downloaded', filename, statinfo.st_size, 'bytes.')
+      tarfile.open(filepath, 'r:gz').extractall(MODEL_DIR)
+
+    with tf.gfile.FastGFile(pb_file, 'rb') as f:
       graph_def = tf.GraphDef()
       graph_def.ParseFromString(f.read())
       _ = tf.import_graph_def(graph_def, name='')
@@ -92,7 +107,7 @@ class InceptionScore(object):
       #               file=stdout):
       for i in range(n_batches):
         print('\r',
-              end='Calculate inception score [%d/%d]' % (i*bs, n_batches*bs),
+              end='IS forwarding [%d/%d]' % (i*bs, n_batches*bs),
               file=stdout, flush=True)
         # sys.stdout.flush()
         inp = inps[(i * bs):min((i + 1) * bs, len(inps))]
@@ -155,3 +170,4 @@ class InceptionScore(object):
       .permute(0, 2, 3, 1).to('cpu', torch.uint8).numpy()
     return uimgs
 
+InceptionScore = TFInceptionScore

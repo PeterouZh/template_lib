@@ -10,11 +10,12 @@ import logging
 from template_lib.utils import (modelarts_utils, get_prefix_abb, )
 from template_lib.d2.utils import comm
 
-__all__ = ['Trainer', 'get_ddp_attr', 'summary_defaultdict2txtfig', 'summary_dict2txtfig']
+__all__ = ['Trainer', 'get_ddp_attr', 'summary_defaultdict2txtfig', 'summary_dict2txtfig',
+           'print_number_params']
 
 
-def get_ddp_attr(obj, attr):
-  return getattr(getattr(obj, 'module', obj), attr)
+def get_ddp_attr(obj, attr, default=None):
+  return getattr(getattr(obj, 'module', obj), attr, default)
 
 
 def write_scalars_to_text(summary, prefix, step, textlogger,
@@ -279,6 +280,7 @@ class Trainer(object):
 
 summary_defaultdict2txtfig = Trainer.summary_defaultdict2txtfig
 summary_dict2txtfig = Trainer.summary_dict2txtfig
+print_number_params = Trainer.print_number_params
 
 
 from template_lib import utils

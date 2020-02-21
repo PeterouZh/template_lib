@@ -15,6 +15,7 @@ from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.utils import comm
 
 from template_lib.d2.data.BigGAN import default_loader, find_classes, is_image_file
+from .build import DATASET_MAPPER_REGISTRY
 
 
 class CenterCropLongEdge(object):
@@ -37,7 +38,8 @@ class CenterCropLongEdge(object):
     return self.__class__.__name__
 
 
-class DatasetMapper:
+@DATASET_MAPPER_REGISTRY.register()
+class ImageNetDatasetMapper:
   """
   A callable which takes a dataset dict in Detectron2 Dataset format,
   and map it into a format used by the model.

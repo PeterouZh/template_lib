@@ -2,6 +2,8 @@ import math
 import torch
 from torch.optim.optimizer import Optimizer, required
 
+from .build import OPTIMIZER_REGISTRY
+
 
 class RAdam(Optimizer):
 
@@ -81,6 +83,21 @@ class RAdam(Optimizer):
         p.data.copy_(p_data_fp32)
 
     return loss
+
+
+@OPTIMIZER_REGISTRY.register()
+class RAdamRegister(RAdam):
+
+  def __init__(self, cfg, params):
+
+    self.lr                = getattr(cfg.optimizer, 'lr', 1e-3)
+    self.betas             = getattr(cfg.optimizer, 'betas', (0.9, 0.999))
+    self.eps               = getattr(cfg.optimizer, 'eps', 1e-8)
+    self.weight_decay      = getattr(cfg.optimizer, 'weight_decay', 0)
+
+    super(RAdamRegister, self).__init__(
+      params, lr=self.lr, betas=self.betas, eps=self.eps, weight_decay=self.weight_decay)
+    pass
 
 
 class PlainRAdam(Optimizer):

@@ -31,7 +31,7 @@ import tarfile
 
 from .build import GAN_METRIC_REGISTRY
 
-__all__ = ['FIDScore', 'TFFIDScore']
+__all__ = ['TFFIDISScore']
 
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -179,7 +179,7 @@ def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
 
 
 def calculate_activation_statistics(
-        images, sess, batch_size=50, verbose=True, stdout=sys.stdout):
+      images, sess, batch_size=50, verbose=True, stdout=sys.stdout):
   """Calculation of the statistics used by the FID.
   Params:
   -- images      : Numpy array of dimension (n_images, hi, wi, 3). The values
@@ -349,18 +349,28 @@ def calculate_fid_given_paths(paths, inception_path, low_profile=False):
 
 
 @GAN_METRIC_REGISTRY.register()
-class TFFIDScore(object):
+class TFFIDISScore(object):
   def __init__(self, cfg):
 
-    self.tf_inception_model_dir = cfg.GAN_metric.tf_inception_model_dir
+    self.tf_inception_model_dir       = cfg.GAN_metric.tf_inception_model_dir
+    self.tf_fid_stat                  = cfg.GAN_metric.tf_fid_stat
 
     self.logger = logging.getLogger('tl')
     self.logger.info('Load tf inception model in %s', self.tf_inception_model_dir)
+    self.tf_graph_name = 'FID_IS_Inception_Net'
 
     self.tf_inception_model_dir = os.path.expanduser(self.tf_inception_model_dir)
     inception_path = self.check_or_download_inception(self.tf_inception_model_dir)
-    create_inception_graph(inception_path)
+    self.create_inception_graph(inception_path, name=self.tf_graph_name)
     pass
+
+  def create_inception_graph(self, pth, name):
+    """Creates a graph from saved GraphDef file."""
+    # Creates graph from saved graph_def.pb.
+    with tf.gfile.FastGFile(pth, 'rb') as f:
+      graph_def = tf.GraphDef()
+      graph_def.ParseFromString(f.read())
+      _ = tf.import_graph_def(graph_def, name=name)
 
   def check_or_download_inception(self, tf_inception_model_dir):
     MODEL_DIR = os.path.expanduser(tf_inception_model_dir)
@@ -385,11 +395,79 @@ class TFFIDScore(object):
 
     return model_file
 
-  def calculate_fid_given_paths(self, fid_buffer, fid_stat,
-                                low_profile=False, stdout=sys.stdout):
-    """Calculates the FID of two paths.
+  def _get_inception_layers(self, sess):
+    """Prepares inception net for batched usage and returns pool_3 layer. """
+    layername = f'{self.tf_graph_name}/pool_3:0'
+    pool3 = sess.graph.get_tensor_by_name(layername)
+    ops = pool3.graph.get_operations()
+    for op_idx, op in enumerate(ops):
+      for o in op.outputs:
+        shape = o.get_shape()
+        if shape._dims != []:
+          shape = [s.value for s in shape]
+          new_shape = []
+          for j, s in enumerate(shape):
+            if s == 1 and j == 0:
+              new_shape.append(None)
+            else:
+              new_shape.append(s)
+          o.__dict__['_shape_val'] = tf.TensorShape(new_shape)
 
-    :param fid_buffer: dir containing images or list of images
+    w = sess.graph.get_operation_by_name(f"{self.tf_graph_name}/softmax/logits/MatMul").inputs[1]
+    logits = tf.matmul(tf.squeeze(pool3, [1, 2]), w)
+    softmax = tf.nn.softmax(logits)
+
+    FID_pool3 = pool3
+    IS_softmax = softmax
+    return FID_pool3, IS_softmax
+
+  def get_activations_of_FID_IS(self, images, sess, batch_size=50, verbose=True,
+                                stdout=sys.stdout):
+    """Calculates the activations of the pool_3 layer for all images.
+
+    Params:
+    -- images      : Numpy array of dimension (n_images, hi, wi, 3). The values
+                     must lie between 0 and 256.
+    -- sess        : current session
+    -- batch_size  : the images numpy array is split into batches with batch size
+                     batch_size. A reasonable batch size depends on the disposable hardware.
+    -- verbose    : If set to True and parameter out_step is given, the number of calculated
+                     batches is reported.
+    Returns:
+    -- A numpy array of dimension (num images, 2048) that contains the
+       activations of the given tensor when feeding inception with the query tensor.
+    """
+    FID_pool3, IS_softmax = self._get_inception_layers(sess)
+    d0 = images.shape[0]
+    if batch_size > d0:
+      print(
+        "warning: batch size is bigger than the data size. setting batch size to data size")
+      batch_size = d0
+    n_batches = d0 // batch_size
+    n_used_imgs = n_batches * batch_size
+
+    pred_FIDs = []
+    pred_ISs = []
+    for i in range(n_batches):
+      start = i * batch_size
+      end = start + batch_size
+      if verbose:
+        print('\r',
+              end='FID IS forwarding [%d/%d]' % (start, n_used_imgs),
+              file=stdout, flush=True)
+      batch = images[start:end]
+      pred_FID, pred_IS = sess.run([FID_pool3, IS_softmax], {f'{self.tf_graph_name}/ExpandDims:0': batch})
+      pred_FIDs.append(pred_FID)
+      pred_ISs.append(pred_IS)
+    pred_FIDs = np.concatenate(pred_FIDs, 0).squeeze()
+    pred_ISs = np.concatenate(pred_ISs, 0)
+    if verbose:
+      print('', file=stdout)
+    return pred_FIDs, pred_ISs
+
+  def calculate_FID_IS_given_image_list(self, img_list, batch_size=50, IS_splits=10, stdout=sys.stdout):
+    """
+    :param img_list: dir containing images or list of images
                        images: (h, w, c), [0, 255]
     :param fid_stat: *.npz
     :param low_profile:
@@ -399,13 +477,31 @@ class TFFIDScore(object):
     config.gpu_options.allow_growth = True
     with tf.Session(config=config) as sess:
       sess.run(tf.global_variables_initializer())
-      m1, s1 = _handle_path(fid_buffer, sess, low_profile=low_profile,
-                            stdout=stdout)
-      m2, s2 = _handle_path(fid_stat, sess, low_profile=low_profile)
-      fid_value = calculate_frechet_distance(m1, s1, m2, s2)
+
+      imgs = np.array(img_list)
+      pred_FIDs, pred_ISs = self.get_activations_of_FID_IS(imgs, sess, batch_size=batch_size, verbose=True, stdout=stdout)
+
+      # calculate FID
+      mu = np.mean(pred_FIDs, axis=0)
+      sigma = np.cov(pred_FIDs, rowvar=False)
+
+      f = np.load(self.tf_fid_stat)
+      mu_data, sigma_data = f['mu'][:], f['sigma'][:]
+      f.close()
+      FID = calculate_frechet_distance(mu, sigma, mu_data, sigma_data)
+
+      # calculate IS
+      scores = []
+      for i in range(IS_splits):
+        part = pred_ISs[(i * pred_ISs.shape[0] // IS_splits) : ((i + 1) * pred_ISs.shape[0] // IS_splits), :]
+        kl = part * (np.log(part) - np.log(np.expand_dims(np.mean(part, 0), 0)))
+        kl = np.mean(np.sum(kl, 1))
+        scores.append(np.exp(kl))
+      IS_mean, IS_std = np.mean(scores), np.std(scores)
+
     sess.close()
 
-    return fid_value
+    return FID, IS_mean, IS_std
 
   def get_activations_from_pytorch_dataloader(
           self, dataloader, sess, transform_to_uint8=False, stdout=sys.stdout):
@@ -462,4 +558,3 @@ class TFFIDScore(object):
     sigma = np.cov(act, rowvar=False)
     np.savez(fid_stat, mu=mu, sigma=sigma)
 
-FIDScore = TFFIDScore
