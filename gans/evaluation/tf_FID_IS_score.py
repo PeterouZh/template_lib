@@ -366,7 +366,8 @@ class TFFIDISScore(object):
 
     self.tf_inception_model_dir = os.path.expanduser(self.tf_inception_model_dir)
     inception_path = self.check_or_download_inception(self.tf_inception_model_dir)
-    self.create_inception_graph(inception_path, name=self.tf_graph_name)
+    if comm.is_main_process():
+      self.create_inception_graph(inception_path, name=self.tf_graph_name)
     pass
 
   def create_inception_graph(self, pth, name):
@@ -509,13 +510,14 @@ class TFFIDISScore(object):
     return FID, IS_mean, IS_std
 
   def __call__(self, sample_func, batch_size=50, stdout=sys.stdout):
-    import torch
 
     imgs = get_sample_imgs_list_ddp(
       sample_func=sample_func, num_imgs=self.num_inception_images, stdout=stdout)
     if comm.is_main_process():
-      imgs = imgs.mul_(127.5).add_(127.5).clamp_(0.0, 255.0).permute(0, 2, 3, 1).type(torch.uint8)
-      img_list = list(imgs.to('cpu').numpy())
+      # imgs = imgs.mul_(127.5).add_(127.5).clamp_(0.0, 255.0).permute(0, 2, 3, 1).type(torch.uint8)
+      imgs = (imgs * 127.5 + 127.5).clip(0, 255.)
+      imgs = imgs.transpose(0, 2, 3, 1).astype(np.uint8)
+      img_list = list(imgs)
 
       FID_tf, IS_mean_tf, IS_std_tf = self.calculate_FID_IS_given_image_list(
         img_list=img_list, batch_size=batch_size, IS_splits=self.IS_splits, stdout=stdout)

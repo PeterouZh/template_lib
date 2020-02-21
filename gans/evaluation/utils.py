@@ -1,10 +1,11 @@
+import numpy as np
 import torch
 import sys
 from template_lib.d2.utils import comm
 
 __all__ = ['get_sample_imgs_list', "get_sample_imgs_list_ddp"]
 
-def get_sample_imgs_list(sample_func, num_imgs=50000, stdout=sys.stdout):
+def get_sample_imgs_list(sample_func, num_imgs=50000, as_numpy=True, stdout=sys.stdout):
   """
 
   :param sample_func: return imgs (b, c, h, w), range [-1, 1]
@@ -22,12 +23,18 @@ def get_sample_imgs_list(sample_func, num_imgs=50000, stdout=sys.stdout):
 
     # Generate a batch of images
     imgs = sample_func()
+    if as_numpy:
+      imgs = imgs.cpu().numpy()
     imgs_list.append(imgs)
+  if as_numpy:
+    imgs = np.concatenate(imgs_list, axis=0)
+  else:
+    imgs = torch.cat(imgs_list, dim=0)
   print('', file=stdout)
-  return imgs_list
+  return imgs
 
 
-def get_sample_imgs_list_ddp(sample_func, num_imgs=50000, stdout=sys.stdout):
+def get_sample_imgs_list_ddp(sample_func, num_imgs=50000, as_numpy=True, stdout=sys.stdout):
   """
 
   :param sample_func:
@@ -40,12 +47,15 @@ def get_sample_imgs_list_ddp(sample_func, num_imgs=50000, stdout=sys.stdout):
 
   ws = comm.get_world_size()
   num_imgs = num_imgs // ws
-  imgs_list = get_sample_imgs_list(sample_func=sample_func, num_imgs=num_imgs, stdout=stdout)
-  imgs = torch.cat(imgs_list, dim=0)
+  imgs = get_sample_imgs_list(sample_func=sample_func, num_imgs=num_imgs,
+                              as_numpy=as_numpy, stdout=stdout)
 
   imgs_list = comm.gather(imgs)
   if len(imgs_list) > 0:
-    imgs = torch.cat(imgs_list, dim=0)
+    if as_numpy:
+      imgs = np.concatenate(imgs_list, axis=0)
+    else:
+      imgs = torch.cat(imgs_list, dim=0)
   return imgs
 
 
