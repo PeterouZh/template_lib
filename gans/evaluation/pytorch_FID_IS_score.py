@@ -343,6 +343,7 @@ class PyTorchFIDISScore(object):
     elapsed_time = time.time() - start_time
     time_str = time.strftime('%H:%M:%S', time.gmtime(elapsed_time))
     self.logger.info('Elapsed time: %s' % (time_str))
+    del pool, logits
     comm.synchronize()
     return IS_mean_torch, IS_std_torch, FID_torch
 

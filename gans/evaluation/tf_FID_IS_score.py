@@ -363,6 +363,9 @@ class TFFIDISScore(object):
     self.logger = logging.getLogger('tl')
     self.logger.info('Load tf inception model in %s', self.tf_inception_model_dir)
     self.tf_graph_name = 'FID_IS_Inception_Net'
+    f = np.load(self.tf_fid_stat)
+    self.mu_data, self.sigma_data = f['mu'][:], f['sigma'][:]
+    f.close()
 
     self.tf_inception_model_dir = os.path.expanduser(self.tf_inception_model_dir)
     inception_path = self.check_or_download_inception(self.tf_inception_model_dir)
@@ -490,11 +493,7 @@ class TFFIDISScore(object):
       # calculate FID
       mu = np.mean(pred_FIDs, axis=0)
       sigma = np.cov(pred_FIDs, rowvar=False)
-
-      f = np.load(self.tf_fid_stat)
-      mu_data, sigma_data = f['mu'][:], f['sigma'][:]
-      f.close()
-      FID = calculate_frechet_distance(mu, sigma, mu_data, sigma_data)
+      FID = calculate_frechet_distance(mu, sigma, self.mu_data, self.sigma_data)
 
       # calculate IS
       scores = []
@@ -521,8 +520,12 @@ class TFFIDISScore(object):
 
       FID_tf, IS_mean_tf, IS_std_tf = self.calculate_FID_IS_given_image_list(
         img_list=img_list, batch_size=batch_size, IS_splits=self.IS_splits, stdout=stdout)
+      del img_list
     else:
       FID_tf = IS_mean_tf = IS_std_tf = 0
+
+    del imgs
+    comm.synchronize()
     return FID_tf, IS_mean_tf, IS_std_tf
 
   def get_activations_from_pytorch_dataloader(
