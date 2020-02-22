@@ -35,9 +35,9 @@ class CIFAR10DatasetMapper(object):
 
   def __init__(self, cfg, is_train=True):
 
-    img_size = cfg.dataset.img_size
+    self.img_size             = cfg.dataset.img_size
 
-    self.transform = self.build_transform(img_size=img_size)
+    self.transform = self.build_transform(img_size=self.img_size)
     self.is_train = is_train
 
   def __call__(self, dataset_dict):

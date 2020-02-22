@@ -353,7 +353,7 @@ def calculate_fid_given_paths(paths, inception_path, low_profile=False):
 
 @GAN_METRIC_REGISTRY.register()
 class TFFIDISScore(object):
-  def __init__(self, cfg, IS_splits=10, ):
+  def __init__(self, cfg):
 
     self.tf_inception_model_dir       = cfg.GAN_metric.tf_inception_model_dir
     self.tf_fid_stat                  = cfg.GAN_metric.tf_fid_stat
@@ -361,19 +361,21 @@ class TFFIDISScore(object):
     self.IS_splits                    = getattr(cfg.GAN_metric, 'IS_splits', 10)
 
     self.logger = logging.getLogger('tl')
-    self.logger.info('Load tf inception model in %s', self.tf_inception_model_dir)
     self.tf_graph_name = 'FID_IS_Inception_Net'
-    f = np.load(self.tf_fid_stat)
-    self.mu_data, self.sigma_data = f['mu'][:], f['sigma'][:]
-    f.close()
+    if os.path.isfile(self.tf_fid_stat):
+      f = np.load(self.tf_fid_stat)
+      self.mu_data, self.sigma_data = f['mu'][:], f['sigma'][:]
+      f.close()
+    else:
+      self.logger.warning(f"tf_fid_stat does not exist: {self.tf_fid_stat}")
 
     self.tf_inception_model_dir = os.path.expanduser(self.tf_inception_model_dir)
-    inception_path = self.check_or_download_inception(self.tf_inception_model_dir)
-    if comm.is_main_process():
-      self.create_inception_graph(inception_path, name=self.tf_graph_name)
-    pass
+    inception_path = self._check_or_download_inception(self.tf_inception_model_dir)
+    self.logger.info('Load tf inception model in %s', inception_path)
+    self._create_inception_graph(inception_path, name=self.tf_graph_name)
+    comm.synchronize()
 
-  def create_inception_graph(self, pth, name):
+  def _create_inception_graph(self, pth, name):
     """Creates a graph from saved GraphDef file."""
     # Creates graph from saved graph_def.pb.
     with tf.gfile.FastGFile(pth, 'rb') as f:
@@ -381,7 +383,7 @@ class TFFIDISScore(object):
       graph_def.ParseFromString(f.read())
       _ = tf.import_graph_def(graph_def, name=name)
 
-  def check_or_download_inception(self, tf_inception_model_dir):
+  def _check_or_download_inception(self, tf_inception_model_dir):
     MODEL_DIR = os.path.expanduser(tf_inception_model_dir)
     if not os.path.exists(MODEL_DIR):
       os.makedirs(MODEL_DIR)
@@ -430,156 +432,130 @@ class TFFIDISScore(object):
     IS_softmax = softmax
     return FID_pool3, IS_softmax
 
-  def get_activations_of_FID_IS(self, images, sess, batch_size=50, verbose=True,
-                                stdout=sys.stdout):
-    """Calculates the activations of the pool_3 layer for all images.
+  def __call__(self, sample_func, stdout=sys.stdout):
+    import torch
 
-    Params:
-    -- images      : Numpy array of dimension (n_images, hi, wi, 3). The values
-                     must lie between 0 and 256.
-    -- sess        : current session
-    -- batch_size  : the images numpy array is split into batches with batch size
-                     batch_size. A reasonable batch size depends on the disposable hardware.
-    -- verbose    : If set to True and parameter out_step is given, the number of calculated
-                     batches is reported.
-    Returns:
-    -- A numpy array of dimension (num images, 2048) that contains the
-       activations of the given tensor when feeding inception with the query tensor.
-    """
-    FID_pool3, IS_softmax = self._get_inception_layers(sess)
-    d0 = images.shape[0]
-    if batch_size > d0:
-      print(
-        "warning: batch size is bigger than the data size. setting batch size to data size")
-      batch_size = d0
-    n_batches = d0 // batch_size
-    n_used_imgs = n_batches * batch_size
+    class SampleClass(object):
+      def __init__(self, sample_func):
+        self.sample_func = sample_func
 
-    pred_FIDs = []
-    pred_ISs = []
-    for i in range(n_batches):
-      start = i * batch_size
-      end = start + batch_size
-      if verbose:
-        print('\r',
-              end='TF FID IS forwarding [%d/%d]' % (start, n_used_imgs),
-              file=stdout, flush=True)
-      batch = images[start:end]
-      pred_FID, pred_IS = sess.run([FID_pool3, IS_softmax], {f'{self.tf_graph_name}/ExpandDims:0': batch})
-      pred_FIDs.append(pred_FID)
-      pred_ISs.append(pred_IS)
-    pred_FIDs = np.concatenate(pred_FIDs, 0).squeeze()
-    pred_ISs = np.concatenate(pred_ISs, 0)
-    if verbose:
-      print('', file=stdout)
-    return pred_FIDs, pred_ISs
+      def __call__(self, *args, **kwargs):
+        images = self.sample_func()
+        images = images.mul_(127.5).add_(127.5).clamp_(0.0, 255.0).permute(0, 2, 3, 1).type(torch.uint8)
+        images = images.cpu().numpy()
+        return images
 
-  def calculate_FID_IS_given_image_list(self, img_list, batch_size=50, IS_splits=10, stdout=sys.stdout):
-    """
-    :param img_list: dir containing images or list of images
-                       images: (h, w, c), [0, 255]
-    :param fid_stat: *.npz
-    :param low_profile:
-    :return:
-    """
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    with tf.Session(config=config) as sess:
-      sess.run(tf.global_variables_initializer())
+    sample_func = SampleClass(sample_func)
 
-      imgs = np.array(img_list)
-      pred_FIDs, pred_ISs = self.get_activations_of_FID_IS(imgs, sess, batch_size=batch_size, verbose=True, stdout=stdout)
+    pred_FIDs, pred_ISs = self._get_activations_with_sample_func(
+      sample_func=sample_func, num_inception_images=self.num_inception_images, stdout=stdout)
 
-      # calculate FID
+    if comm.is_main_process():
+      IS_mean_tf, IS_std_tf = self._calculate_IS(pred_ISs=pred_ISs, IS_splits=self.IS_splits)
+
+      # calculate FID stat
       mu = np.mean(pred_FIDs, axis=0)
       sigma = np.cov(pred_FIDs, rowvar=False)
-      FID = calculate_frechet_distance(mu, sigma, self.mu_data, self.sigma_data)
+      FID_tf = calculate_frechet_distance(mu, sigma, self.mu_data, self.sigma_data)
 
-      # calculate IS
-      scores = []
-      for i in range(IS_splits):
-        part = pred_ISs[(i * pred_ISs.shape[0] // IS_splits) : ((i + 1) * pred_ISs.shape[0] // IS_splits), :]
-        kl = part * (np.log(part) - np.log(np.expand_dims(np.mean(part, 0), 0)))
-        kl = np.mean(np.sum(kl, 1))
-        scores.append(np.exp(kl))
-      IS_mean, IS_std = np.mean(scores), np.std(scores)
-
-    sess.close()
-
-    return FID, IS_mean, IS_std
-
-  def __call__(self, sample_func, batch_size=50, stdout=sys.stdout):
-
-    imgs = get_sample_imgs_list_ddp(
-      sample_func=sample_func, num_imgs=self.num_inception_images, stdout=stdout)
-    if comm.is_main_process():
-      # imgs = imgs.mul_(127.5).add_(127.5).clamp_(0.0, 255.0).permute(0, 2, 3, 1).type(torch.uint8)
-      imgs = (imgs * 127.5 + 127.5).clip(0, 255.)
-      imgs = imgs.transpose(0, 2, 3, 1).astype(np.uint8)
-      img_list = list(imgs)
-
-      FID_tf, IS_mean_tf, IS_std_tf = self.calculate_FID_IS_given_image_list(
-        img_list=img_list, batch_size=batch_size, IS_splits=self.IS_splits, stdout=stdout)
-      del img_list
     else:
       FID_tf = IS_mean_tf = IS_std_tf = 0
 
-    del imgs
+    del pred_FIDs, pred_ISs
     comm.synchronize()
     return FID_tf, IS_mean_tf, IS_std_tf
 
-  def get_activations_from_pytorch_dataloader(
-          self, dataloader, sess, transform_to_uint8=False, stdout=sys.stdout):
-    """Calculates the activations of the pool_3 layer for all images.
-    Returns:
-    -- A numpy array of dimension (num images, 2048) that contains the
-       activations of the given tensor when feeding inception with the query tensor.
-    """
+  def _gather_numpy_array(self, data):
+    data_list = comm.gather(data=data)
+    if len(data_list) > 0:
+      data = np.concatenate(data_list, axis=0)
+    return data
 
-    import tqdm
-    pbar = tqdm.tqdm(dataloader, file=stdout,
-                     desc='get_activations_from_pytorch_dataloader')
-
-    inception_layer = _get_inception_layer(sess)
-    pred_arr_list = []
-    for b_imgs, _ in pbar:
-      if transform_to_uint8:
-        batch = b_imgs.mul_(127.5).add_(127.5).clamp_(0.0, 255.0) \
-          .permute(0, 2, 3, 1).to('cpu').numpy().astype(np.uint8)
-      else:
-        batch = b_imgs.cpu().numpy()
-      try:
-        pred = sess.run(inception_layer,
-                        {'FID_Inception_Net/ExpandDims:0': batch})
-      except:
-        print('\nException when forwarding inception net')
-        continue
-      pred_arr = pred.reshape(pred.shape[0], -1)
-      pred_arr_list.append(pred_arr)
-      del batch  # clean up memory
-    pred_arr_list = np.concatenate(pred_arr_list)
-    print('Num of images: %d'%pred_arr_list.shape[0])
-    return pred_arr_list
-
-  def calculate_fid_stat_for_pytorch_dataset(
-          self, dataloader, fid_stat, transform_to_uint8=False, stdout=sys.stdout):
-    """Calculates the FID of two paths.
-
-    :param dataloader: images: uint8 [0, 255], (b, h, w, c)
-    :param fid_stat: *.npz
-    :return:
-    """
-    fid_stat = os.path.expanduser(fid_stat)
+  def _get_activations_with_sample_func(self, sample_func, num_inception_images, stdout=sys.stdout, verbose=True):
+    # create tf session and specify the gpu
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
-    with tf.Session(config=config) as sess:
-      sess.run(tf.global_variables_initializer())
-      act = self.get_activations_from_pytorch_dataloader(
-        dataloader=dataloader, sess=sess,
-        transform_to_uint8=transform_to_uint8, stdout=stdout)
+    config.gpu_options.visible_device_list = f'{comm.get_rank()}'
+    sess = tf.Session(config=config)
+    sess.run(tf.global_variables_initializer())
+    FID_pool3, IS_softmax = self._get_inception_layers(sess)
 
+    pred_FIDs = []
+    pred_ISs = []
+    count = 0
+
+    while (count) < num_inception_images:
+      if verbose:
+        print('\r', end=f'TF FID IS Score forwarding: [{count}/{num_inception_images}]',
+              file=stdout, flush=True)
+      try:
+        batch = sample_func()
+        count += len(batch)
+        # batch_list = comm.gather(data=batch)
+        # if len(batch_list) > 0:
+        #   batch = np.concatenate(batch_list, axis=0)
+      except StopIteration:
+        break
+
+      pred_FID, pred_IS = sess.run([FID_pool3, IS_softmax], {f'{self.tf_graph_name}/ExpandDims:0': batch})
+      pred_FIDs.append(pred_FID)
+      pred_ISs.append(pred_IS)
+    if verbose: print('', file=stdout)
+
+    pred_FIDs = np.concatenate(pred_FIDs, 0).squeeze()
+    pred_ISs = np.concatenate(pred_ISs, 0)
     sess.close()
-    mu = np.mean(act, axis=0)
-    sigma = np.cov(act, rowvar=False)
-    np.savez(fid_stat, mu=mu, sigma=sigma)
+
+    pred_FIDs = self._gather_numpy_array(pred_FIDs)
+    pred_ISs = self._gather_numpy_array(pred_ISs)
+    comm.synchronize()
+    return pred_FIDs, pred_ISs
+
+  def _calculate_IS(self, pred_ISs, IS_splits=10):
+    # calculate IS
+    scores = []
+    for i in range(IS_splits):
+      part = pred_ISs[(i * pred_ISs.shape[0] // IS_splits): ((i + 1) * pred_ISs.shape[0] // IS_splits), :]
+      kl = part * (np.log(part) - np.log(np.expand_dims(np.mean(part, 0), 0)))
+      kl = np.mean(np.sum(kl, 1))
+      scores.append(np.exp(kl))
+    IS_mean, IS_std = np.mean(scores), np.std(scores)
+    return IS_mean, IS_std
+
+  def calculate_fid_stat_of_dataloader(self, data_loader, sample_func=None, stdout=sys.stdout):
+    import torch
+
+    if sample_func is None:
+      class SampleClass(object):
+        def __init__(self, data_loader):
+          self.data_iter = iter(data_loader)
+
+        def __call__(self, *args, **kwargs):
+          inputs = next(self.data_iter)
+          images = [x["image"].to('cuda') for x in inputs]
+          images = torch.stack(images)
+          images = images.mul_(127.5).add_(127.5).clamp_(0.0, 255.0).permute(0, 2, 3, 1).type(torch.uint8)
+          images = images.cpu().numpy()
+          return images
+
+      sample_func = SampleClass(data_loader)
+
+    num_inception_images = len(next(iter(data_loader))) * len(data_loader)
+    pred_FIDs, pred_ISs = self._get_activations_with_sample_func(
+      sample_func=sample_func, num_inception_images=num_inception_images, stdout=stdout)
+
+    if comm.is_main_process():
+      self.logger.info(f"Num of images: {len(pred_FIDs)}")
+      IS_mean, IS_std = self._calculate_IS(pred_ISs=pred_ISs, IS_splits=self.IS_splits)
+      self.logger.info(f'dataset IS_mean: {IS_mean:.3f} +- {IS_std}')
+
+      # calculate FID stat
+      mu = np.mean(pred_FIDs, axis=0)
+      sigma = np.cov(pred_FIDs, rowvar=False)
+      self.logger.info(f'Saving tf_fid_stat to {self.tf_fid_stat}')
+      os.makedirs(os.path.dirname(self.tf_fid_stat), exist_ok=True)
+      np.savez(self.tf_fid_stat, **{'mu': mu, 'sigma': sigma})
+    comm.synchronize()
+
+
 

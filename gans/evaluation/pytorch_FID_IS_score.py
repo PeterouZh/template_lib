@@ -244,20 +244,6 @@ def calculate_inception_score(pred, num_splits=10):
   return np.mean(scores), np.std(scores)
 
 
-
-
-
-
-# Load and wrap the Inception model
-def load_inception_net(parallel=False):
-  inception_model = inception_v3(pretrained=True, transform_input=False)
-  inception_model = WrapInception(inception_model.eval()).cuda()
-  if parallel:
-    inception_model = nn.DataParallel(inception_model)
-  inception_model.eval()
-  return inception_model
-
-
 @GAN_METRIC_REGISTRY.register()
 class PyTorchFIDISScore(object):
 
@@ -268,75 +254,81 @@ class PyTorchFIDISScore(object):
     self.torch_fid_stat                   = cfg.GAN_metric.torch_fid_stat
     self.num_inception_images             = getattr(cfg.GAN_metric, 'num_inception_images', 50000)
     self.IS_splits                        = getattr(cfg.GAN_metric, 'IS_splits', 10)
-    self.torch_inception_net_ddp          = getattr(cfg.GAN_metric, 'torch_inception_net_ddp', False)
     self.calculate_FID_use_torch          = getattr(cfg.GAN_metric, 'calculate_FID_use_torch', False)
     self.no_FID                           = getattr(cfg.GAN_metric, 'no_FID', False)
 
     self.logger = logging.getLogger('tl')
-    self.data_mu = np.load(self.torch_fid_stat)['mu']
-    self.data_sigma = np.load(self.torch_fid_stat)['sigma']
+    if os.path.isfile(self.torch_fid_stat):
+      self.data_mu = np.load(self.torch_fid_stat)['mu']
+      self.data_sigma = np.load(self.torch_fid_stat)['sigma']
+    else:
+      self.logger.warning(f"torch_fid_stat does not exist: {self.torch_fid_stat}")
 
     # Load inception_v3 network
-    self.parallel = self.torch_inception_net_ddp
-    if self.parallel and comm.get_world_size() <= 1:
-      self.parallel = False
-    self.inception_net = self.load_inception_net(parallel=self.parallel)
+    self.inception_net = self._load_inception_net()
 
-    if self.parallel:
-      ws = comm.get_world_size()
-      self.num_inception_images = self.num_inception_images // ws
+    ws = comm.get_world_size()
+    self.num_inception_images = self.num_inception_images // ws
     pass
 
   @staticmethod
-  def load_inception_net(parallel, device='cuda'):
-    net = load_inception_net(parallel=False)
-    net = net.to(device)
-
-    if parallel:
-      if not comm.get_world_size() > 1:
-        return net
-      pg = torch.distributed.new_group(range(torch.distributed.get_world_size()))
-      net = DistributedDataParallel(
-        net, device_ids=[dist.get_rank()], broadcast_buffers=False,
-        process_group=pg, check_reduction=False
-      )
+  def _load_inception_net(device='cuda'):
+    inception_model = inception_v3(pretrained=True, transform_input=False)
+    inception_model = WrapInception(inception_model.eval()).cuda()
+    inception_model.eval()
+    net = inception_model.to(device)
     return net
 
-  def accumulate_inception_activations(self,
-                                       sample_func, net, num_inception_images,
-                                       show_process=True, stdout=sys.stdout):
+  def _accumulate_inception_activations(
+        self, sample_func, net, num_inception_images,
+        show_process=True, as_numpy=False, stdout=sys.stdout):
 
     pool, logits = [], []
     count = 0
     net.eval()
-    while (torch.cat(logits, 0).shape[0] if len(logits) else 0) < num_inception_images:
+    while (count) < num_inception_images:
       if show_process:
         print('\r',
-              end='PyTorch FID IS Score forwarding: [%d/%d]' % (count, num_inception_images),
+              end=f'PyTorch FID IS Score forwarding: [{count}/{num_inception_images}]',
               file=stdout, flush=True)
       with torch.no_grad():
-        images = sample_func()
+        try:
+          images = sample_func()
+        except StopIteration:
+          break
         pool_val, logits_val = net(images.float())
+        logits_val = F.softmax(logits_val, 1)
+
+        if as_numpy:
+          pool_val = pool_val.cpu().numpy()
+          logits_val = logits_val.cpu().numpy()
         pool += [pool_val]
-        logits += [F.softmax(logits_val, 1)]
+        logits += [logits_val]
+
         count += images.size(0)
     if show_process:
       print('', file=stdout)
-    return torch.cat(pool, 0), torch.cat(logits, 0)
+
+    if as_numpy:
+      pool, logits = np.concatenate(pool, 0), np.concatenate(logits, 0)
+    else:
+      pool, logits = torch.cat(pool, 0), torch.cat(logits, 0)
+    return pool, logits
 
   def __call__(self, sample_func, stdout=sys.stdout):
     start_time = time.time()
 
-    pool, logits = self.accumulate_inception_activations(
-      sample_func, net=self.inception_net, num_inception_images=self.num_inception_images, stdout=stdout)
+    pool, logits = self._accumulate_inception_activations(
+      sample_func, net=self.inception_net, num_inception_images=self.num_inception_images,
+      as_numpy=True, stdout=stdout)
 
-    if self.parallel:
-      pool, logits = self.gather_pool_logits(pool, logits)
+    pool = self._gather_data(pool, is_numpy=True)
+    logits = self._gather_data(logits, is_numpy=True)
 
     if comm.is_main_process():
-      IS_mean_torch, IS_std_torch, FID_torch = self.calculate_FID_IS(
-        logits=logits, pool=pool, num_splits=self.IS_splits,
-        no_fid=self.no_FID, use_torch=self.calculate_FID_use_torch)
+      IS_mean_torch, IS_std_torch = calculate_inception_score(logits.cpu().numpy(), num_splits=self.IS_splits)
+
+      FID_torch = self._calculate_FID(pool=pool, no_fid=self.no_FID, use_torch=self.calculate_FID_use_torch)
     else:
       IS_mean_torch = IS_std_torch = FID_torch = 0
 
@@ -347,46 +339,66 @@ class PyTorchFIDISScore(object):
     comm.synchronize()
     return IS_mean_torch, IS_std_torch, FID_torch
 
-  @staticmethod
-  def gather_pool_logits(pool, logits):
-    pool_list = comm.gather(data=pool)
-    logits_list = comm.gather(data=logits)
-    if len(pool_list) > 0:
-      pool = torch.cat(pool_list, dim=0).to('cuda')
-    if len(logits_list) > 0:
-      logits = torch.cat(logits_list, dim=0).to('cuda')
-    return pool, logits
+  def calculate_fid_stat_of_dataloader(self, data_loader, sample_func=None, stdout=sys.stdout):
+    if sample_func is None:
+      class SampleClass(object):
+        def __init__(self, data_loader):
+          self.data_iter = iter(data_loader)
+        def __call__(self, *args, **kwargs):
+          """
+          :return: images: [-1, 1]
+          """
+          inputs = next(self.data_iter)
+          images = [x["image"].to('cuda') for x in inputs]
+          images = torch.stack(images)
+          return images
+      sample_func = SampleClass(data_loader)
 
-  def calculate_FID_IS(self, logits, pool, num_splits=10, no_fid=False, use_torch=False,):
-    # if prints:
-    #   print('Calculating Inception Score...')
-    IS_mean, IS_std = calculate_inception_score(
-      logits.cpu().numpy(), num_splits)
+    num_inception_images = len(next(iter(data_loader))) * len(data_loader)
+    pool, logits = self._accumulate_inception_activations(
+      sample_func, net=self.inception_net, num_inception_images=num_inception_images,
+      as_numpy=True, stdout=stdout)
+
+    pool = self._gather_data(pool, is_numpy=True)
+    logits = self._gather_data(logits, is_numpy=True)
+
+    if comm.is_main_process():
+      self.logger.info(f"Num of images: {len(pool)}")
+      IS_mean, IS_std = calculate_inception_score(logits, self.IS_splits)
+      self.logger.info(f'dataset IS_mean: {IS_mean:.3f} +- {IS_std}')
+
+      mu, sigma = np.mean(pool, axis=0), np.cov(pool, rowvar=False)
+      self.logger.info(f'Saving torch_fid_stat to {self.torch_fid_stat}')
+      os.makedirs(os.path.dirname(self.torch_fid_stat), exist_ok=True)
+      np.savez(self.torch_fid_stat, **{'mu': mu, 'sigma': sigma})
+    comm.synchronize()
+
+  def _gather_data(self, data, is_numpy=False):
+    data_list = comm.gather(data=data)
+    if len(data_list) > 0:
+      if is_numpy:
+        data = np.concatenate(data_list, axis=0)
+      else:
+        data = torch.cat(data_list, dim=0).to('cuda')
+    return data
+
+  def _calculate_FID(self, pool, no_fid, use_torch=False,):
+
     if no_fid:
-      FID = 9999.0
+      FID = 0
     else:
-      # if prints:
-      #   print('Calculating means and covariances...')
       if use_torch:
         mu, sigma = torch.mean(pool, 0), torch_cov(pool, rowvar=False)
-      else:
-        mu, sigma = np.mean(pool.cpu().numpy(), axis=0), \
-                    np.cov(pool.cpu().numpy(), rowvar=False)
-      # if prints:
-      #   print('Covariances calculated, getting FID...')
-      if use_torch:
         FID = torch_calculate_frechet_distance(
           mu, sigma,
           torch.tensor(self.data_mu).float().cuda(),
           torch.tensor(self.data_sigma).float().cuda())
         FID = float(FID.cpu().numpy())
       else:
+        mu, sigma = np.mean(pool.cpu().numpy(), axis=0), np.cov(pool.cpu().numpy(), rowvar=False)
         FID = numpy_calculate_frechet_distance(
           mu, sigma, self.data_mu, self.data_sigma)
-    # Delete mu, sigma, pool, logits, and labels, just in case
-    del mu, sigma, pool, logits
-
-    return IS_mean, IS_std, FID
+    return FID
 
   @staticmethod
   def sample(G, z, parallel):
@@ -407,113 +419,3 @@ class PyTorchFIDISScore(object):
 
       G.train()
       return G_z
-
-
-class InceptionMetricsCond(object):
-  # This produces a function which takes in an iterator which returns a set number of samples
-  # and iterates until it accumulates config['num_inception_images'] images.
-  # The iterator can return samples with a different batch size than used in
-  # training, using the setting confg['inception_batchsize']
-  def __init__(self, saved_inception_moments, parallel=True, no_fid=False):
-    """
-    # Load metrics; this is intentionally not in a try-except loop so that
-    # the script will crash here if it cannot find the Inception moments.
-    # By default, remove the "hdf5" from dataset
-    :param saved_inception_moments:
-    :param parallel:
-    :param no_fid:
-    :param show_process:
-    """
-
-    self.no_fid = no_fid
-    saved_inception_moments = os.path.expanduser(saved_inception_moments)
-    self.data_mu = np.load(saved_inception_moments)['mu']
-    self.data_sigma = np.load(saved_inception_moments)['sigma']
-    # Load network
-    self.net = load_inception_net(parallel)
-
-  def __call__(self, G, z, y, num_inception_images, num_splits=10,
-               prints=True, show_process=False, use_torch=False,
-               parallel=False):
-    if prints:
-      print('Gathering activations...')
-
-    sample_func = functools.partial(self.sample, G=G, z=z, y=y,
-                                    parallel=parallel)
-    pool, logits, labels = self.accumulate_inception_activations(
-      sample_func, net=self.net,
-      num_inception_images=num_inception_images,
-      show_process=show_process)
-    if prints:
-      print('Calculating Inception Score...')
-    IS_mean, IS_std = calculate_inception_score(
-      logits.cpu().numpy(), num_splits)
-    if self.no_fid:
-      FID = 9999.0
-    else:
-      if prints:
-        print('Calculating means and covariances...')
-      if use_torch:
-        mu, sigma = torch.mean(pool, 0), torch_cov(pool, rowvar=False)
-      else:
-        mu, sigma = np.mean(pool.cpu().numpy(), axis=0), \
-                    np.cov(pool.cpu().numpy(), rowvar=False)
-      if prints:
-        print('Covariances calculated, getting FID...')
-      if use_torch:
-        FID = torch_calculate_frechet_distance(
-          mu, sigma,
-          torch.tensor(self.data_mu).float().cuda(),
-          torch.tensor(self.data_sigma).float().cuda())
-        FID = float(FID.cpu().numpy())
-      else:
-        FID = numpy_calculate_frechet_distance(
-          mu, sigma, self.data_mu, self.data_sigma)
-    # Delete mu, sigma, pool, logits, and labels, just in case
-    del mu, sigma, pool, logits, labels
-    return IS_mean, IS_std, FID
-
-  @staticmethod
-  def sample(G, z, y, parallel):
-    with torch.no_grad():
-      if isinstance(G, functools.partial):
-        G.func.eval()
-      else:
-        G.eval()
-      z.sample_()
-      y.sample_()
-      if parallel:
-        G_z = nn.parallel.data_parallel(G, (z, G.shared(y)))
-      else:
-        G_z = G(z, G.shared(y))
-      if isinstance(G, functools.partial):
-        G.func.train()
-      else:
-        G.train()
-      return G_z, y
-
-  @staticmethod
-  def accumulate_inception_activations(sample, net, num_inception_images=50000, show_process=False):
-    """
-    # Loop and run the sampler and the net until it accumulates num_inception_images
-    # activations. Return the pool, the logits, and the labels (if one wants
-    # Inception Accuracy the labels of the generated class will be needed)
-    :param sample:
-    :param net:
-    :param num_inception_images:
-    :param show_process:
-    :return:
-    """
-    pool, logits, labels = [], [], []
-    count = 0
-    while (torch.cat(logits, 0).shape[0] if len(logits) else 0) < num_inception_images:
-      if show_process:
-        print('accumulate_inception_activations: [%d/%d]' % (count, num_inception_images))
-      with torch.no_grad():
-        images, labels_val = sample()
-        pool_val, logits_val = net(images.float())
-        pool += [pool_val]
-        logits += [F.softmax(logits_val, 1)]
-        labels += [labels_val]
-        count += labels_val.size(0)
-    return torch.cat(pool, 0), torch.cat(logits, 0), torch.cat(labels, 0)

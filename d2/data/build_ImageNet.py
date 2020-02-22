@@ -62,10 +62,12 @@ class ImageNetDatasetMapper:
     ])
     return transform
 
-  def __init__(self, cfg, is_train=True):
-    img_size = cfg.dataset.img_size
-    self.transform = self.build_transform(img_size=img_size)
-    self.is_train = is_train
+  def __init__(self, cfg):
+
+    self.img_size               = cfg.dataset.img_size
+
+    self.transform = self.build_transform(img_size=self.img_size)
+
 
   def __call__(self, dataset_dict):
     """
@@ -136,11 +138,14 @@ def get_dict(name, data_path, images_per_class=np.inf, show_bar=False):
 
 
 registed_names = ['imagenet_train',
-                  'imagenet_train_100x1k']
+                  'imagenet_train_100x1k',
+                  'imagenet_train_5x1k']
 data_paths = ["datasets/imagenet/train",
+              "datasets/imagenet/train",
               "datasets/imagenet/train"]
 images_per_class_list = [np.inf,
-                         100]
+                         100,
+                         5]
 
 for name, data_path, images_per_class in zip(registed_names, data_paths, images_per_class_list):
   # warning : lambda must specify keyword arguments
