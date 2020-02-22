@@ -326,7 +326,7 @@ class PyTorchFIDISScore(object):
     logits = self._gather_data(logits, is_numpy=True)
 
     if comm.is_main_process():
-      IS_mean_torch, IS_std_torch = calculate_inception_score(logits.cpu().numpy(), num_splits=self.IS_splits)
+      IS_mean_torch, IS_std_torch = calculate_inception_score(logits, num_splits=self.IS_splits)
 
       FID_torch = self._calculate_FID(pool=pool, no_fid=self.no_FID, use_torch=self.calculate_FID_use_torch)
     else:
@@ -367,11 +367,15 @@ class PyTorchFIDISScore(object):
       IS_mean, IS_std = calculate_inception_score(logits, self.IS_splits)
       self.logger.info(f'dataset IS_mean: {IS_mean:.3f} +- {IS_std}')
 
-      mu, sigma = np.mean(pool, axis=0), np.cov(pool, rowvar=False)
+      mu, sigma = self._get_FID_stat(pool=pool)
       self.logger.info(f'Saving torch_fid_stat to {self.torch_fid_stat}')
       os.makedirs(os.path.dirname(self.torch_fid_stat), exist_ok=True)
       np.savez(self.torch_fid_stat, **{'mu': mu, 'sigma': sigma})
     comm.synchronize()
+
+  def _get_FID_stat(self, pool):
+    mu, sigma = np.mean(pool, axis=0), np.cov(pool, rowvar=False)
+    return mu, sigma
 
   def _gather_data(self, data, is_numpy=False):
     data_list = comm.gather(data=data)
@@ -395,9 +399,8 @@ class PyTorchFIDISScore(object):
           torch.tensor(self.data_sigma).float().cuda())
         FID = float(FID.cpu().numpy())
       else:
-        mu, sigma = np.mean(pool.cpu().numpy(), axis=0), np.cov(pool.cpu().numpy(), rowvar=False)
-        FID = numpy_calculate_frechet_distance(
-          mu, sigma, self.data_mu, self.data_sigma)
+        mu, sigma = self._get_FID_stat(pool=pool)
+        FID = numpy_calculate_frechet_distance(mu, sigma, self.data_mu, self.data_sigma)
     return FID
 
   @staticmethod

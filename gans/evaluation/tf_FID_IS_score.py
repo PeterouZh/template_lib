@@ -361,6 +361,8 @@ class TFFIDISScore(object):
     self.IS_splits                    = getattr(cfg.GAN_metric, 'IS_splits', 10)
 
     self.logger = logging.getLogger('tl')
+    ws = comm.get_world_size()
+    self.num_inception_images = self.num_inception_images // ws
     self.tf_graph_name = 'FID_IS_Inception_Net'
     if os.path.isfile(self.tf_fid_stat):
       f = np.load(self.tf_fid_stat)
@@ -440,6 +442,9 @@ class TFFIDISScore(object):
         self.sample_func = sample_func
 
       def __call__(self, *args, **kwargs):
+        """
+        :return: images: [0, 255]
+        """
         images = self.sample_func()
         images = images.mul_(127.5).add_(127.5).clamp_(0.0, 255.0).permute(0, 2, 3, 1).type(torch.uint8)
         images = images.cpu().numpy()
