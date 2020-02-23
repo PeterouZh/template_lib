@@ -2,7 +2,7 @@ import os
 import multiprocessing
 import random
 import time
-from .utils_func import is_debugging, get_prefix_abb
+from .utils_func import is_debugging, get_prefix_abb, get_eval_attr
 from . import config
 from . import args_parser
 

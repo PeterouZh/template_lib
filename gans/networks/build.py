@@ -27,5 +27,5 @@ def build_generator(cfg, **kwargs):
     Note that it does not load any weights from ``cfg``.
     """
     name = cfg.model.generator.name
-    return DISCRIMINATOR_REGISTRY.get(name)(cfg, **kwargs)
+    return GENERATOR_REGISTRY.get(name)(cfg, **kwargs)
 

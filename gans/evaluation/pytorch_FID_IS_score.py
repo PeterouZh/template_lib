@@ -326,6 +326,7 @@ class PyTorchFIDISScore(object):
     logits = self._gather_data(logits, is_numpy=True)
 
     if comm.is_main_process():
+      self.logger.info(f"Num of images: {len(pool)}")
       IS_mean_torch, IS_std_torch = calculate_inception_score(logits, num_splits=self.IS_splits)
 
       FID_torch = self._calculate_FID(pool=pool, no_fid=self.no_FID, use_torch=self.calculate_FID_use_torch)

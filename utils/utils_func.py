@@ -1,6 +1,13 @@
 import re
 
 
+def get_eval_attr(attr, context_dict):
+  if isinstance(attr, str):
+    return eval(attr, context_dict)
+  else:
+    return attr
+
+
 def is_debugging():
   import sys
   gettrace = getattr(sys, 'gettrace', None)

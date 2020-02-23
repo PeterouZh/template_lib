@@ -456,6 +456,7 @@ class TFFIDISScore(object):
       sample_func=sample_func, num_inception_images=self.num_inception_images, stdout=stdout)
 
     if comm.is_main_process():
+      self.logger.info(f"Num of images: {len(pred_FIDs)}")
       IS_mean_tf, IS_std_tf = self._calculate_IS(pred_ISs=pred_ISs, IS_splits=self.IS_splits)
 
       # calculate FID stat

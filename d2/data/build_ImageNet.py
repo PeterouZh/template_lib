@@ -13,9 +13,12 @@ import json
 from detectron2.utils.visualizer import Visualizer
 from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.utils import comm
+from detectron2.config import CfgNode
 
 from template_lib.d2.data.BigGAN import default_loader, find_classes, is_image_file
-from .build import DATASET_MAPPER_REGISTRY
+from template_lib.d2.data.build import DATASET_MAPPER_REGISTRY
+
+__all__ = ['ImageNetDatasetMapper']
 
 
 class CenterCropLongEdge(object):
@@ -65,6 +68,7 @@ class ImageNetDatasetMapper:
   def __init__(self, cfg):
 
     self.img_size               = cfg.dataset.img_size
+    self.load_in_memory         = getattr(cfg.dataset, "load_in_memory", False)
 
     self.transform = self.build_transform(img_size=self.img_size)
 
@@ -78,6 +82,8 @@ class ImageNetDatasetMapper:
         dict: a format that builtin models in detectron2 accept
     """
     dataset_dict = copy.deepcopy(dataset_dict)  # it will be modified by code below
+    if self.load_in_memory:
+      return dataset_dict
     # USER: Write your own image loading if it's not from a file
     image_path = dataset_dict['image_path']
     image = default_loader(image_path)
@@ -85,9 +91,10 @@ class ImageNetDatasetMapper:
     return dataset_dict
 
 
-def get_dict(name, data_path, images_per_class=np.inf, show_bar=False):
+def get_dict(name, data_path, images_per_class=np.inf, show_bar=False,
+             load_in_memory=False, img_size=None):
   rank = comm.get_rank()
-  index_filename = '%s_index_rank_%d.json'%(name, rank)
+  index_filename = f'{name}/{name}_index_rank_{rank}.json'
 
   if os.path.exists(index_filename):
     print('Loading pre-saved Index file %s...' % index_filename)
@@ -95,7 +102,7 @@ def get_dict(name, data_path, images_per_class=np.inf, show_bar=False):
       dataset_dicts = json.load(fp)
 
   else:
-    print('Saving Index file %s...' % index_filename)
+    print('Saving Index file %s...\n' % index_filename)
     dataset_dicts = []
     classes, class_to_idx = find_classes(data_path)
     data_path = os.path.expanduser(data_path)
@@ -126,41 +133,84 @@ def get_dict(name, data_path, images_per_class=np.inf, show_bar=False):
             record["label"] = class_to_idx[target]
 
             dataset_dicts.append(record)
+    os.makedirs(os.path.dirname(index_filename), exist_ok=True)
     with open(index_filename, 'w') as fp:
       json.dump(dataset_dicts, fp)
-    print('Save Index file %s.' % index_filename)
+    print('Saved Index file %s.' % index_filename)
 
   meta_dict = {}
   meta_dict['num_images'] = len(dataset_dicts)
   MetadataCatalog.get(name).set(**meta_dict)
+
+  if load_in_memory:
+    data_filename = f'{name}/{name}_data_dicts_rank_{rank}.pickle'
+    if os.path.exists(data_filename):
+      print(f'Loading dataset_dicts_with_images: {data_filename}')
+      with open(data_filename, 'rb') as f:
+        dataset_dicts_with_images = pickle.load(f)
+    else:
+      cfg = CfgNode()
+      assert img_size is not None
+      cfg.dataset = CfgNode()
+      cfg.dataset.img_size = img_size
+      mapper = ImageNetDatasetMapper(cfg)
+      dataset_dicts_with_images = []
+      print(f'Saving dataset_dicts_with_images to {data_filename}\n')
+      pbar = dataset_dicts
+      if show_bar:
+        pbar = tqdm.tqdm(pbar, desc='Saving dataset_dicts_with_images')
+      for dataset_dict in pbar:
+        dataset_dicts_with_images.append(mapper(dataset_dict))
+
+      os.makedirs(os.path.dirname(data_filename), exist_ok=True)
+      with open(data_filename, 'wb') as f:
+        pickle.dump(dataset_dicts_with_images, f, pickle.HIGHEST_PROTOCOL)
+        print(f'Saved dataset_dicts_with_images to {data_filename}')
+    return dataset_dicts_with_images
 
   return dataset_dicts
 
 
 registed_names = ['imagenet_train',
                   'imagenet_train_100x1k',
-                  'imagenet_train_5x1k']
+                  'imagenet_train_5x1k',
+                  'imagenet_train_2x1k_size_48_in_memory',
+                  'imagenet_train_100x1k_size_48_in_memory'
+                  ]
 data_paths = ["datasets/imagenet/train",
               "datasets/imagenet/train",
-              "datasets/imagenet/train"]
+              "datasets/imagenet/train",
+              "datasets/imagenet/train",
+              "datasets/imagenet/train",
+              ]
 images_per_class_list = [np.inf,
                          100,
-                         5]
+                         5,
+                         2,
+                         100,
+                         ]
+kwargs_list = [{},
+               {},
+               {},
+               {'load_in_memory': True, 'img_size': 48},
+               {'load_in_memory': True, 'img_size': 48},
+               ]
 
-for name, data_path, images_per_class in zip(registed_names, data_paths, images_per_class_list):
+for name, data_path, images_per_class, kwargs in zip(registed_names, data_paths, images_per_class_list, kwargs_list):
   # warning : lambda must specify keyword arguments
   DatasetCatalog.register(
-    name, (lambda name=name, data_path=data_path, images_per_class=images_per_class:
-           get_dict(name=name, data_path=data_path, images_per_class=images_per_class)))
+    name, (lambda name=name, data_path=data_path, images_per_class=images_per_class, kwargs=kwargs:
+           get_dict(name=name, data_path=data_path, images_per_class=images_per_class, **kwargs)))
   # Save index json file
   # get_dict(name=name, data_path=data_path, images_per_class=images_per_class, show_bar=True)
 
 
 if __name__ == '__main__':
   import matplotlib.pylab as plt
-  dataset_dicts = get_dict(name=registed_names[0], data_path=data_paths[0], show_bar=True)
+  dataset_dicts = get_dict(name=registed_names[-1], data_path=data_paths[-1],
+                           images_per_class=images_per_class_list[-1], show_bar=True, **(kwargs_list[-1]))
 
-  metadata = MetadataCatalog.get(registed_names[0])
+  metadata = MetadataCatalog.get(registed_names[-1])
   for d in random.sample(dataset_dicts, 3):
     image = default_loader(d['image_path'])
     img = np.asarray(image)
