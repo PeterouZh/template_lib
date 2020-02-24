@@ -249,7 +249,7 @@ def modelarts_copy_data(datapath_obs, datapath, overwrite=False):
     logger.disabled = False
 
 
-def prepare_dataset(dataset):
+def prepare_dataset(dataset, cfg=None):
   """
     dataset:
       dataset_root:
@@ -261,6 +261,7 @@ def prepare_dataset(dataset):
   """
   for k, v in dataset.items():
     if getattr(v, 'eval', False):
+      v.datapath = eval(v.datapath)
       v.datapath_obs = eval(v.datapath_obs, {'datapath': v.datapath})
       v.pop('eval')
     if isinstance(v, dict):
