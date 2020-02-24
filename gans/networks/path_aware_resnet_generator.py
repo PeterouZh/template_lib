@@ -43,6 +43,7 @@ class PathAwareResNetGen(nn.Module):
     self.bn_type                           = cfg.model.generator.bn_type
     self.ops                               = cfg.model.generator.ops
     self.init                              = cfg.model.generator.init
+    self.use_sync_bn                       = getattr(cfg.model.generator, 'use_sync_bn', False)
 
     self.arch = G_arch(self.ch, self.attention)[self.resolution]
 
@@ -127,12 +128,17 @@ class PathAwareResNetGen(nn.Module):
     self.output_type = getattr(self, 'output_type', 'snconv')
     self.output_sample_arc = False
     if self.output_type == 'snconv':
-      self.output_layer = nn.Sequential(
-        nn.BatchNorm2d(
-          self.arch['out_channels'][-1],
-          affine=True, track_running_stats=self.track_running_stats),
-        nn.ReLU(),
-        self.which_conv(self.arch['out_channels'][-1], 3))
+      if self.use_sync_bn:
+        from detectron2.layers import NaiveSyncBatchNorm
+        self.output_layer = nn.Sequential(
+          NaiveSyncBatchNorm(self.arch['out_channels'][-1], affine=True, track_running_stats=self.track_running_stats),
+          nn.ReLU(),
+          self.which_conv(self.arch['out_channels'][-1], 3))
+      else:
+        self.output_layer = nn.Sequential(
+          nn.BatchNorm2d(self.arch['out_channels'][-1], affine=True, track_running_stats=self.track_running_stats),
+          nn.ReLU(),
+          self.which_conv(self.arch['out_channels'][-1], 3))
     elif self.output_type == 'MixedLayer':
       self.output_sample_arc = True
       if getattr(self, 'share_conv_weights', False):
