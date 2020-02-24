@@ -237,13 +237,13 @@ def modelarts_copy_data(datapath_obs, datapath, overwrite=False):
     print('End [%s] \n to [%s]' % (datapath_obs, datapath))
   except ModuleNotFoundError:
     logger = logging.getLogger(__name__)
-    logger.info('\n\tIgnore datapath: %s' % datapath)
+    logger.info('\n\tIgnore datapath: %s' % datapath_obs)
     pass
   except:
     logger = logging.getLogger(__name__)
     import traceback
     logger.info('\n%s', traceback.format_exc())
-    logger.info('\n\tIgnore datapath: %s' % datapath)
+    logger.info('\n\tIgnore datapath: %s' % datapath_obs)
   finally:
     logger = logging.getLogger()
     logger.disabled = False
@@ -260,6 +260,9 @@ def prepare_dataset(dataset):
   :return:
   """
   for k, v in dataset.items():
+    if getattr(v, 'eval', False):
+      v.datapath_obs = eval(v.datapath_obs, {'datapath': v.datapath})
+      v.pop('eval')
     if isinstance(v, dict):
       modelarts_copy_data(**v)
 

@@ -7,15 +7,12 @@ from collections import defaultdict
 import logging
 
 # from ..utils import modelarts_utils
-from template_lib.utils import (modelarts_utils, get_prefix_abb, )
+from template_lib.utils import (modelarts_utils, get_prefix_abb, print_number_params)
 from template_lib.d2.utils import comm
+from template_lib.utils import get_ddp_attr
 
 __all__ = ['Trainer', 'get_ddp_attr', 'summary_defaultdict2txtfig', 'summary_dict2txtfig',
            'print_number_params']
-
-
-def get_ddp_attr(obj, attr, default=None):
-  return getattr(getattr(obj, 'module', obj), attr, default)
 
 
 def write_scalars_to_text(summary, prefix, step, textlogger,
@@ -73,14 +70,6 @@ class Trainer(object):
 
   def model_create(self):
     pass
-
-  @staticmethod
-  def print_number_params(models):
-    logger = logging.getLogger('tl')
-    for label, model in models.items():
-      logger.info('Number of params in {}:\t {}M'.format(
-        label, sum([p.data.nelement() for p in model.parameters()])/1e6
-      ))
 
   def save_checkpoint(self, filename='ckpt.tar'):
     self.myargs.checkpoint.save_checkpoint(
@@ -277,10 +266,13 @@ class Trainer(object):
     modelarts_utils.modelarts_sync_results(self.args, self.myargs,
                                            join=join, end=end)
 
+  @staticmethod
+  def print_number_params(models):
+    print_number_params(models)
+
 
 summary_defaultdict2txtfig = Trainer.summary_defaultdict2txtfig
 summary_dict2txtfig = Trainer.summary_dict2txtfig
-print_number_params = Trainer.print_number_params
 
 
 from template_lib import utils

@@ -29,7 +29,7 @@ class PathAwareResNetGen(nn.Module):
   def __init__(self, cfg):
     super(PathAwareResNetGen, self).__init__()
 
-    self.resolution                        = get_eval_attr(cfg.model.generator.resolution, {"cfg": cfg})
+    self.resolution                        = get_eval_attr(cfg.model.generator, 'resolution', {"cfg": cfg})
     self.ch                                = cfg.model.generator.ch
     self.attention                         = cfg.model.generator.attention
     self.use_sn                            = cfg.model.generator.use_sn
@@ -157,7 +157,7 @@ class PathAwareResNetGen(nn.Module):
     self.init_weights()
     pass
 
-  def forward(self, x, sample_arcs):
+  def forward(self, x, sample_arcs, *args, **kwargs):
     """
 
     :param x:

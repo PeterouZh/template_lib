@@ -1,11 +1,26 @@
 import re
+import logging
 
 
-def get_eval_attr(attr, context_dict):
-  if isinstance(attr, str):
-    return eval(attr, context_dict)
+def print_number_params(models_dict):
+  logger = logging.getLogger('tl')
+  for label, model in models_dict.items():
+    logger.info('Number of params in {}:\t {}M'.format(
+      label, sum([p.data.nelement() for p in model.parameters()])/1e6
+    ))
+
+
+def get_ddp_attr(obj, attr, default=None):
+  return getattr(getattr(obj, 'module', obj), attr, default)
+
+
+def get_eval_attr(obj, name, context_dict, default=None):
+  if hasattr(obj, name):
+    value = getattr(obj, name)
+    value = eval(value, context_dict)
   else:
-    return attr
+    value = default
+  return value
 
 
 def is_debugging():
