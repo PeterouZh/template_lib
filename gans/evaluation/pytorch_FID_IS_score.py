@@ -340,7 +340,7 @@ class PyTorchFIDISScore(object):
     comm.synchronize()
     return IS_mean_torch, IS_std_torch, FID_torch
 
-  def calculate_fid_stat_of_dataloader(self, data_loader, sample_func=None, stdout=sys.stdout):
+  def calculate_fid_stat_of_dataloader(self, data_loader, sample_func=None, return_fid_stat=False, stdout=sys.stdout):
     if sample_func is None:
       class SampleClass(object):
         def __init__(self, data_loader):
@@ -362,6 +362,14 @@ class PyTorchFIDISScore(object):
 
     pool = self._gather_data(pool, is_numpy=True)
     logits = self._gather_data(logits, is_numpy=True)
+
+    if return_fid_stat:
+      if comm.is_main_process():
+        self.logger.info(f"Num of images: {len(pool)}")
+        mu, sigma = self._get_FID_stat(pool=pool)
+      else:
+        mu, sigma = 0, 0
+      return mu, sigma
 
     if comm.is_main_process():
       self.logger.info(f"Num of images: {len(pool)}")

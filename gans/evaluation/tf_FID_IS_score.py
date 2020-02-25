@@ -528,7 +528,7 @@ class TFFIDISScore(object):
     IS_mean, IS_std = np.mean(scores), np.std(scores)
     return IS_mean, IS_std
 
-  def calculate_fid_stat_of_dataloader(self, data_loader, sample_func=None, stdout=sys.stdout):
+  def calculate_fid_stat_of_dataloader(self, data_loader, sample_func=None, return_fid_stat=False, stdout=sys.stdout):
     import torch
 
     if sample_func is None:
@@ -550,18 +550,28 @@ class TFFIDISScore(object):
     pred_FIDs, pred_ISs = self._get_activations_with_sample_func(
       sample_func=sample_func, num_inception_images=num_inception_images, stdout=stdout)
 
+    if return_fid_stat:
+      if comm.is_main_process():
+        self.logger.info(f"Num of images: {len(pred_FIDs)}")
+        mu, sigma = self._calculate_fid_stat(pred_FIDs=pred_FIDs)
+      else:
+        mu, sigma = 0, 0
+      return mu, sigma
+
     if comm.is_main_process():
       self.logger.info(f"Num of images: {len(pred_FIDs)}")
       IS_mean, IS_std = self._calculate_IS(pred_ISs=pred_ISs, IS_splits=self.IS_splits)
       self.logger.info(f'dataset IS_mean: {IS_mean:.3f} +- {IS_std}')
 
       # calculate FID stat
-      mu = np.mean(pred_FIDs, axis=0)
-      sigma = np.cov(pred_FIDs, rowvar=False)
+      mu, sigma = self._calculate_fid_stat(pred_FIDs=pred_FIDs)
       self.logger.info(f'Saving tf_fid_stat to {self.tf_fid_stat}')
       os.makedirs(os.path.dirname(self.tf_fid_stat), exist_ok=True)
       np.savez(self.tf_fid_stat, **{'mu': mu, 'sigma': sigma})
     comm.synchronize()
 
-
+  def _calculate_fid_stat(self, pred_FIDs):
+    mu = np.mean(pred_FIDs, axis=0)
+    sigma = np.cov(pred_FIDs, rowvar=False)
+    return mu, sigma
 
