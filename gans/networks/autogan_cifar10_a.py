@@ -1,5 +1,10 @@
 import functools
+import torch
 from torch import nn
+
+from template_lib.utils import get_eval_attr
+
+from .pagan.layers import SNEmbedding
 
 from .building_blocks import Cell, DisBlock, OptimizedDisBlock
 from .build import DISCRIMINATOR_REGISTRY, GENERATOR_REGISTRY
@@ -79,6 +84,79 @@ class AutoGANCIFAR10ADiscriminator(nn.Module):
         output = self.l5(h)
 
         return output
+
+    @staticmethod
+    def weights_init(m, init_type='orth'):
+        classname = m.__class__.__name__
+        if classname.find('Conv2d') != -1:
+            if init_type == 'normal':
+                nn.init.normal_(m.weight.data, 0.0, 0.02)
+            elif init_type == 'orth':
+                nn.init.orthogonal_(m.weight.data)
+            elif init_type == 'xavier_uniform':
+                nn.init.xavier_uniform(m.weight.data, 1.)
+            else:
+                raise NotImplementedError(
+                    '{} unknown inital type'.format(init_type))
+        elif classname.find('BatchNorm2d') != -1:
+            nn.init.normal_(m.weight.data, 1.0, 0.02)
+            nn.init.constant_(m.bias.data, 0.0)
+
+
+@DISCRIMINATOR_REGISTRY.register()
+class AutoGANCIFAR10ADiscriminatorCProj(nn.Module):
+    def __init__(self, cfg, activation=nn.ReLU()):
+        super(AutoGANCIFAR10ADiscriminatorCProj, self).__init__()
+
+        self.ch                    = cfg.model.discriminator.ch * 4
+        self.d_spectral_norm       = cfg.model.discriminator.d_spectral_norm
+        self.init_type             = getattr(cfg.model.discriminator, 'init_type', 'xavier_uniform')
+        self.n_classes             = get_eval_attr(cfg.model.discriminator, 'n_classes', dict(cfg=cfg))
+        self.num_D_SVs             = getattr(cfg.model.discriminator, 'num_D_SVs', 1)
+        self.num_D_SV_itrs         = getattr(cfg.model.discriminator, 'num_D_SV_itrs', 1)
+        self.SN_eps                = getattr(cfg.model.discriminator, 'SN_eps', 1e-6)
+
+        self.activation = activation
+
+        self.which_embedding = functools.partial(SNEmbedding,
+                                                 num_svs=self.num_D_SVs, num_itrs=self.num_D_SV_itrs,
+                                                 eps=self.SN_eps)
+        self.embed = self.which_embedding(self.n_classes, self.ch)
+
+        self.block1 = OptimizedDisBlock(d_spectral_norm=self.d_spectral_norm,
+                                        in_channels=3, out_channels=self.ch)
+        self.block2 = DisBlock(d_spectral_norm=self.d_spectral_norm,
+                               in_channels=self.ch, out_channels=self.ch,
+                               activation=activation, downsample=True)
+        self.block3 = DisBlock(d_spectral_norm=self.d_spectral_norm,
+                               in_channels=self.ch, out_channels=self.ch,
+                               activation=activation, downsample=False)
+        self.block4 = DisBlock(d_spectral_norm=self.d_spectral_norm,
+                               in_channels=self.ch, out_channels=self.ch,
+                               activation=activation, downsample=False)
+        layers = [self.block1, self.block2, self.block3]
+        model = nn.Sequential(*layers)
+        self.model = model
+        self.l5 = nn.Linear(self.ch, 1, bias=False)
+        if self.d_spectral_norm:
+            self.l5 = nn.utils.spectral_norm(self.l5)
+
+        weights_init_func = functools.partial(
+            self.weights_init, init_type=self.init_type)
+        self.apply(weights_init_func)
+
+    def forward(self, x, y, *args):
+        h = x
+
+        h = self.model(h)
+        h = self.block4(h)
+        h = self.activation(h)
+        # Global average pooling
+        h = h.sum(2).sum(2)
+        out = self.l5(h)
+
+        out = out + torch.sum(self.embed(y) * h, 1, keepdim=True)
+        return out
 
     @staticmethod
     def weights_init(m, init_type='orth'):
