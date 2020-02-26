@@ -315,15 +315,25 @@ class PyTorchFIDISScore(object):
       pool, logits = torch.cat(pool, 0), torch.cat(logits, 0)
     return pool, logits
 
-  def __call__(self, sample_func, stdout=sys.stdout):
+  def __call__(self, sample_func, return_fid_stat=False, num_inception_images=None, stdout=sys.stdout):
     start_time = time.time()
 
+    if num_inception_images is None:
+      num_inception_images = self.num_inception_images
     pool, logits = self._accumulate_inception_activations(
-      sample_func, net=self.inception_net, num_inception_images=self.num_inception_images,
+      sample_func, net=self.inception_net, num_inception_images=num_inception_images,
       as_numpy=True, stdout=stdout)
 
     pool = self._gather_data(pool, is_numpy=True)
     logits = self._gather_data(logits, is_numpy=True)
+
+    if return_fid_stat:
+      if comm.is_main_process():
+        self.logger.info(f"Num of images: {len(pool)}")
+        mu, sigma = self._get_FID_stat(pool=pool)
+      else:
+        mu, sigma = 0, 0
+      return mu, sigma
 
     if comm.is_main_process():
       self.logger.info(f"Num of images: {len(pool)}")
@@ -411,6 +421,9 @@ class PyTorchFIDISScore(object):
         mu, sigma = self._get_FID_stat(pool=pool)
         FID = numpy_calculate_frechet_distance(mu, sigma, self.data_mu, self.data_sigma)
     return FID
+
+  def _calculate_frechet_distance(self, mu1, sigma1, mu2, sigma2, eps=1e-6):
+    return numpy_calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=eps)
 
   @staticmethod
   def sample(G, z, parallel):
