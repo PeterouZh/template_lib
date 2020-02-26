@@ -14,6 +14,8 @@ from torchvision.datasets.utils import download_url, check_integrity
 import torch.utils.data as data
 from torch.utils.data import DataLoader
 
+from template_lib.d2.utils import comm
+
 
 __all__ = ['ImageFolder', 'default_loader', 'find_classes', 'is_image_file']
 
@@ -35,10 +37,20 @@ def is_image_file(filename):
 
 
 def find_classes(dir):
+  cached = os.path.join(dir.replace('/', '_'), f'class_to_idx_rank_{comm.get_rank()}.pickle')
+  if os.path.isfile(cached):
+    with open(cached, 'rb') as f:
+      pickle_file = pickle.load(f)
+      classes = pickle_file['classes']
+      class_to_idx = pickle_file['class_to_idx']
+  else:
     classes = [d for d in os.listdir(dir) if os.path.isdir(os.path.join(dir, d))]
     classes.sort()
     class_to_idx = {classes[i]: i for i in range(len(classes))}
-    return classes, class_to_idx
+    os.makedirs(os.path.dirname(cached), exist_ok=True)
+    with open(cached, 'wb') as f:
+      pickle.dump(dict(classes=classes, class_to_idx=class_to_idx), f)
+  return classes, class_to_idx
 
 
 def make_dataset(dir, class_to_idx, stdout=sys.stdout):

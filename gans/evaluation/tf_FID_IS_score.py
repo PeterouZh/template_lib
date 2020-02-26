@@ -434,7 +434,7 @@ class TFFIDISScore(object):
     IS_softmax = softmax
     return FID_pool3, IS_softmax
 
-  def __call__(self, sample_func, stdout=sys.stdout):
+  def __call__(self, sample_func, return_fid_stat=False, num_inception_images=None, stdout=sys.stdout):
     import torch
 
     class SampleClass(object):
@@ -452,8 +452,18 @@ class TFFIDISScore(object):
 
     sample_func = SampleClass(sample_func)
 
+    if num_inception_images is None:
+      num_inception_images = self.num_inception_images
     pred_FIDs, pred_ISs = self._get_activations_with_sample_func(
-      sample_func=sample_func, num_inception_images=self.num_inception_images, stdout=stdout)
+      sample_func=sample_func, num_inception_images=num_inception_images, stdout=stdout)
+
+    if return_fid_stat:
+      if comm.is_main_process():
+        self.logger.info(f"Num of images: {len(pred_FIDs)}")
+        mu, sigma = self._calculate_fid_stat(pred_FIDs=pred_FIDs)
+      else:
+        mu, sigma = 0, 0
+      return mu, sigma
 
     if comm.is_main_process():
       self.logger.info(f"Num of images: {len(pred_FIDs)}")
@@ -470,6 +480,9 @@ class TFFIDISScore(object):
     del pred_FIDs, pred_ISs
     comm.synchronize()
     return FID_tf, IS_mean_tf, IS_std_tf
+
+  def _calculate_frechet_distance(self, mu1, sigma1, mu2, sigma2, eps=1e-6):
+    return calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps)
 
   def _gather_numpy_array(self, data):
     data_list = comm.gather(data=data)
