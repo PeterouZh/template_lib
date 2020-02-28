@@ -240,16 +240,17 @@ class TestingUnit(unittest.TestCase):
 
     """
     from multiprocessing import Queue
+    from template_lib.utils.test_resnet import TorchResnetWorker
     determine_bs = True
     q = Queue()
     # determine max bs
-    p = utils.TorchResnetWorker(name='Command worker', args=(0, gpu, determine_bs, q))
+    p = TorchResnetWorker(name='Command worker', args=(0, gpu, determine_bs, q))
     p.start()
     p.join()
     bs = q.get()
     determine_bs = False
     while True:
-      p = utils.TorchResnetWorker(name='Command worker', args=(bs, gpu, determine_bs, q))
+      p = TorchResnetWorker(name='Command worker', args=(bs, gpu, determine_bs, q))
       p.start()
       p.join()
       bs -= 1

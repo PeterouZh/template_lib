@@ -58,5 +58,12 @@ def run(argv_str=None):
   myargs.args = args1
   myargs.config = getattr(myargs.config, args1.command)
 
-  prepare_dataset(myargs.config.dataset)
+  if hasattr(myargs.config, 'datasets'):
+    prepare_dataset(myargs.config.datasets, cfg=myargs.config)
+
   main(myargs)
+
+if __name__ == '__main__':
+  run()
+  from template_lib.examples import test_bash
+  test_bash.TestingUnit().test_resnet(gpu=os.environ['CUDA_VISIBLE_DEVICES'])
