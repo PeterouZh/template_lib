@@ -23,6 +23,18 @@ def get_eval_attr(obj, name, context_dict, default=None):
   return value
 
 
+def get_attr_kwargs(obj, name, kwargs={}, default=None):
+  if hasattr(obj, name):
+    value = getattr(obj, name)
+    if isinstance(value, str) and value.startswith('kwargs['):
+      value = eval(value)
+  else:
+    if default is None:
+      raise AttributeError
+    value = default
+  return value
+
+
 def is_debugging():
   import sys
   gettrace = getattr(sys, 'gettrace', None)
