@@ -83,7 +83,7 @@ class PlotResults(object):
                     itr_val_str = self.get_itr_val_str(data, show_max[idx])
                     label_str = f'{itr_val_str}' + f'-{modi_minutes:03d}m---' + label
                     
-                    axes[idx].plot(data[:, 0], data[:, 1], label=label_str, marker='.', linewidth='5', markersize='15', alpha=0.5)
+                    axes[idx].plot(data[:, 0], data[:, 1], label=label_str, marker='.', linewidth='5', markersize='10', alpha=0.5)
                     label2datas[label] = data
             axes[idx].legend(prop={'size': legend_size})
             axes[idx].set(**default_dict['properties'])
