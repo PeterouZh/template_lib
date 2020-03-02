@@ -29,7 +29,7 @@ def get_world_size() -> int:
 def get_rank() -> int:
     if not dist.is_available():
         return 0
-    if not dist.is_initialized():
+    if not hasattr(dist, 'is_initialized') or not dist.is_initialized():
         return 0
     return dist.get_rank()
 
