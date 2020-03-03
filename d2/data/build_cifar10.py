@@ -7,6 +7,7 @@ import torch
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 
+from template_lib.utils import get_attr_kwargs
 from .build import DATASET_MAPPER_REGISTRY
 
 
@@ -33,12 +34,11 @@ class CIFAR10DatasetMapper(object):
     ])
     return transform
 
-  def __init__(self, cfg, is_train=True):
+  def __init__(self, cfg, **kwargs):
 
-    self.img_size             = cfg.dataset.img_size
+    self.img_size             = get_attr_kwargs(cfg.dataset, 'img_size', kwargs=kwargs)
 
     self.transform = self.build_transform(img_size=self.img_size)
-    self.is_train = is_train
 
   def __call__(self, dataset_dict):
     """
