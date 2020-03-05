@@ -46,7 +46,12 @@ class TestingGenerator(unittest.TestCase):
             update_cfg: true
         """
     cfg = EasyDict(yaml.safe_load(cfg_str))
-    G = build_generator(cfg.generator)
+    G = build_generator(cfg.generator, n_classes=10, img_size=32).cuda()
+    out = G.test_case()
+
+    import torchviz
+    g = torchviz.make_dot(out)
+    g.view()
 
     pass
 

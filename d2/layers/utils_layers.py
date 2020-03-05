@@ -23,3 +23,12 @@ class UpSample(nn.Module):
   def forward(self, x):
     x = F.interpolate(x, scale_factor=self.scale_factor, mode=self.mode, align_corners=self.align_corners)
     return x
+
+
+@D2LAYER_REGISTRY.register()
+class Identity(nn.Module):
+  def __init__(self, cfg, **kwargs):
+    super().__init__()
+
+  def forward(self, x):
+    return x

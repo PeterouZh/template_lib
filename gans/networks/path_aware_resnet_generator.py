@@ -240,12 +240,13 @@ class PathAwareResNetGenCBN(nn.Module):
     self.cfg_first_fc              = cfg.cfg_first_fc
     self.cfg_bn                    = cfg.cfg_bn
     self.cfg_act                   = cfg.cfg_act
-    self.cfg_mix_layer = cfg.cfg_mix_layer
+    self.cfg_mix_layer             = cfg.cfg_mix_layer
     self.cfg_upsample              = cfg.cfg_upsample
     self.cfg_conv_1x1              = cfg.cfg_conv_1x1
     self.cfg_out_bn                = cfg.cfg_out_bn
     self.cfg_out_conv              = cfg.cfg_out_conv
 
+    self.cfg = cfg
     self.arch = G_arch(self.ch, self.attention)[self.img_size]
 
     if self.hier:
@@ -269,7 +270,11 @@ class PathAwareResNetGenCBN(nn.Module):
     self.num_layers = len(self.arch['in_channels']) * self.num_conv_in_block
     self.upsample_layer_idx = [self.num_conv_in_block * l for l in range(0, self.num_layers//self.num_conv_in_block)]
 
-    self.layers = nn.ModuleList([])
+    self.bns = nn.ModuleList()
+    self.acts = nn.ModuleList()
+    self.mix_layers = nn.ModuleList([])
+    self.upsamples = nn.ModuleList()
+
     self.skip_layers = nn.ModuleList([])
 
     for layer_id in range(self.num_layers):
@@ -283,23 +288,20 @@ class PathAwareResNetGenCBN(nn.Module):
         out_channels = block_out
 
       # bn relu mix_layer upsample
-      layer = []
-
       bn = build_d2layer(self.cfg_bn, in_features=self.cbn_in_features, out_features=in_channels)
-      layer.append([f'bn_{layer_id}', bn])
+      self.bns.append(bn)
 
       act = build_d2layer(self.cfg_act)
-      layer.append([f'act_{layer_id}', act])
+      self.acts.append(act)
 
       mix_layer = build_d2layer(self.cfg_mix_layer, in_channels=in_channels, out_channels=out_channels, cfg_ops=cfg.cfg_ops)
-      layer.append([f'mix_layer_{layer_id}', mix_layer])
+      self.mix_layers.append(mix_layer)
 
       if layer_id in self.upsample_layer_idx:
         upsample = build_d2layer(self.cfg_upsample)
-        layer.append([f'upsample_{layer_id}', upsample])
-
-      layer = nn.Sequential(OrderedDict(layer))
-      self.layers.append(layer)
+      else:
+        upsample = build_d2layer(EasyDict(name="Identity"))
+      self.upsamples.append(upsample)
 
       # skip branch
       if layer_id in self.upsample_layer_idx:
@@ -329,7 +331,7 @@ class PathAwareResNetGenCBN(nn.Module):
   @staticmethod
   def update_cfg(cfg):
     if not getattr(cfg, 'update_cfg', False):
-      return
+      return cfg
 
     cfg_str = """
         name: "PathAwareResNetGenCBN"
@@ -386,11 +388,20 @@ class PathAwareResNetGenCBN(nn.Module):
           name: "Conv2d"
           in_channels: "kwargs['in_channels']"
           out_channels: 3
-          kernel_size: 1
+          kernel_size: 3
+          padding: 1
     """
     default_cfg = EasyDict(yaml.safe_load(cfg_str))
     cfg = update_config(default_cfg, cfg)
     return cfg
+
+  def test_case(self):
+    bs = num_ops = len(self.cfg.cfg_ops)
+    z = torch.randn(bs, self.cfg.dim_z).cuda()
+    y = torch.arange(num_ops).cuda()
+    sample_arcs = torch.arange(bs).view(-1, 1).repeat(1, self.num_layers).cuda()
+    out = self(z, y, sample_arcs)
+    return out
 
   def forward(self, z, y, sample_arcs):
     """
@@ -414,8 +425,11 @@ class PathAwareResNetGenCBN(nn.Module):
       if layer_id == 0:
         prev_layer = x
       sample_arc = sample_arcs[:, layer_id]
-      x = self.layers[layer_id](
-        x=x, y=ys[layer_id // self.num_conv_in_block], sample_arc=sample_arc)
+
+      x = self.bns[layer_id](x, ys[layer_id // self.num_conv_in_block])
+      x = self.acts[layer_id](x)
+      x = self.mix_layers[layer_id](x=x, y=ys[layer_id // self.num_conv_in_block], sample_arc=sample_arc)
+      x = self.upsamples[layer_id](x)
 
       if layer_id - 1 in self.upsample_layer_idx:
         x_up = self.skip_layers[upsample_layer](prev_layer)
