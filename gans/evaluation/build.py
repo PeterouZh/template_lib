@@ -7,7 +7,7 @@ GAN_METRIC_REGISTRY.__doc__ = """
 """
 
 
-def build_GAN_metric_dict(cfg):
+def build_GAN_metric_dict(cfg, **kwargs):
     """
     Build the whole model architecture, defined by ``cfg.MODEL.META_ARCHITECTURE``.
     Note that it does not load any weights from ``cfg``.
@@ -16,5 +16,5 @@ def build_GAN_metric_dict(cfg):
         return {}
     ret_dict = {}
     for name in cfg.GAN_metric.names:
-        ret_dict.update({name: GAN_METRIC_REGISTRY.get(name)(cfg)})
+        ret_dict.update({name: GAN_METRIC_REGISTRY.get(name)(cfg=cfg, **kwargs)})
     return ret_dict

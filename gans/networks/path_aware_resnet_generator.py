@@ -10,12 +10,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import init
 
-from template_lib.utils import get_eval_attr
+from template_lib.utils import get_attr_kwargs, update_config
+from template_lib.d2.layers import build_d2layer
 
-from .pagan import layers
+from .pagan import layers, build_layer
 from .pagan.BigGAN import G_arch, D_arch
 from .pagan.ops import \
-  (MixedLayer, MixedLayerCond, UpSample, DownSample, Identity,
+  (MixedLayer, UpSample, DownSample, Identity,
    MixedLayerSharedWeights, MixedLayerCondSharedWeights,
    SinglePathLayer)
 
@@ -26,10 +27,10 @@ __all__ = ['PathAwareResNetGen']
 
 @GENERATOR_REGISTRY.register()
 class PathAwareResNetGen(nn.Module):
-  def __init__(self, cfg):
+  def __init__(self, cfg, **kwargs):
     super(PathAwareResNetGen, self).__init__()
 
-    self.resolution                        = get_eval_attr(cfg.model.generator, 'resolution', {"cfg": cfg})
+    self.img_size                          = get_attr_kwargs(cfg.model.generator, 'img_size', kwargs=kwargs)
     self.ch                                = cfg.model.generator.ch
     self.attention                         = cfg.model.generator.attention
     self.use_sn                            = cfg.model.generator.use_sn
@@ -45,7 +46,7 @@ class PathAwareResNetGen(nn.Module):
     self.init                              = cfg.model.generator.init
     self.use_sync_bn                       = getattr(cfg.model.generator, 'use_sync_bn', False)
 
-    self.arch = G_arch(self.ch, self.attention)[self.resolution]
+    self.arch = G_arch(self.ch, self.attention)[self.img_size]
 
     if self.use_sn:
       self.which_linear = functools.partial(
@@ -222,150 +223,174 @@ class PathAwareResNetGen(nn.Module):
 @GENERATOR_REGISTRY.register()
 class PathAwareResNetGenCBN(nn.Module):
 
-  def __init__(self, cfg):
+  def __init__(self, cfg, **kwargs):
     super(PathAwareResNetGenCBN, self).__init__()
 
-    self.n_classes                        = get_eval_attr(cfg.model.generator, 'n_classes', dict(cfg=cfg))
-    self.resolution                       = get_eval_attr(cfg.model.generator, 'resolution', {"cfg": cfg})
-    self.ch                               = cfg.model.generator.ch
-    self.attention                        = cfg.model.generator.attention
-    self.use_sn                           = cfg.model.generator.use_sn
-    self.dim_z                            = cfg.model.generator.dim_z
-    self.hier                             = cfg.model.generator.hier
-    self.shared_dim                       = cfg.model.generator.shared_dim
-    self.G_shared                         = cfg.model.generator.G_shared
-    self.norm_style                       = cfg.model.generator.norm_style
-    self.BN_eps                           = cfg.model.generator.BN_eps
-    self.bottom_width                     = cfg.model.generator.bottom_width
-    self.track_running_stats              = cfg.model.generator.track_running_stats
-    self.share_conv_weights               = cfg.model.generator.share_conv_weights
-    self.single_path_layer                = cfg.model.generator.single_path_layer
-    self.share_bias                       = cfg.model.generator.share_bias
-    self.output_type                      = cfg.model.generator.output_type
-    self.bn_type                          = cfg.model.generator.bn_type
-    self.ops                              = cfg.model.generator.ops
-    self.init                             = cfg.model.generator.init
+    cfg = self.update_cfg(cfg)
 
-    self.arch = G_arch(self.ch, self.attention)[self.resolution]
+    self.n_classes                 = get_attr_kwargs(cfg, 'n_classes', **kwargs)
+    self.img_size                  = get_attr_kwargs(cfg, 'img_size', **kwargs)
+    self.ch                        = get_attr_kwargs(cfg, 'ch', default=8, **kwargs)
+    self.attention                 = get_attr_kwargs(cfg, 'attention', default='0', **kwargs)
+    self.dim_z                     = get_attr_kwargs(cfg, 'dim_z', default=256, **kwargs)
+    self.hier                      = get_attr_kwargs(cfg, 'hier', default=True, **kwargs)
+    self.embedding_dim             = get_attr_kwargs(cfg, 'embedding_dim', default=128, **kwargs)
+    self.bottom_width              = get_attr_kwargs(cfg, 'bottom_width', **kwargs)
+    self.init                      = get_attr_kwargs(cfg, 'init', default='ortho', **kwargs)
+    self.cfg_first_fc              = cfg.cfg_first_fc
+    self.cfg_bn                    = cfg.cfg_bn
+    self.cfg_act                   = cfg.cfg_act
+    self.cfg_mix_layer = cfg.cfg_mix_layer
+    self.cfg_upsample              = cfg.cfg_upsample
+    self.cfg_conv_1x1              = cfg.cfg_conv_1x1
+    self.cfg_out_bn                = cfg.cfg_out_bn
+    self.cfg_out_conv              = cfg.cfg_out_conv
+
+    self.arch = G_arch(self.ch, self.attention)[self.img_size]
 
     if self.hier:
-      # Number of places z slots into
       self.num_slots = len(self.arch['in_channels']) + 1
       self.z_chunk_size = (self.dim_z // self.num_slots)
-      # Recalculate latent dimensionality for even splitting into chunks
-      self.dim_z = self.z_chunk_size * self.num_slots
+      self.dim_z = self.z_chunk_size
+      self.cbn_in_features = self.embedding_dim + self.z_chunk_size
     else:
       self.num_slots = 1
       self.z_chunk_size = 0
+      self.cbn_in_features = self.embedding_dim
 
-    if self.use_sn:
-      self.which_linear = functools.partial(
-        layers.SNLinear, num_svs=1, num_itrs=1, eps=1e-6)
-      self.which_conv = functools.partial(
-        layers.SNConv2d, kernel_size=3, padding=1,
-        num_svs=1, num_itrs=1, eps=1e-6)
-      self.which_conv_1x1 = functools.partial(
-        layers.SNConv2d, kernel_size=1, padding=0,
-        num_svs=1, num_itrs=1, eps=1e-6)
-    else:
-      self.which_linear = nn.Linear
-      self.which_conv = functools.partial(
-        nn.Conv2d, kernel_size=3, padding=1)
-      self.which_conv_1x1 = functools.partial(
-        nn.Conv2d, kernel_size=1, padding=0)
-
-    self.which_embedding = nn.Embedding
-    bn_linear = (
-      functools.partial(self.which_linear, bias=False) if self.G_shared
-      else self.which_embedding)
-    self.which_bn = functools.partial(
-      layers.ccbn,
-      which_linear=bn_linear,
-      cross_replica=False,
-      mybn=False,
-      input_size=(self.shared_dim + self.z_chunk_size if self.G_shared
-                  else self.n_classes),
-      norm_style=self.norm_style,
-      eps=self.BN_eps)
-
-    # Prepare model
-    # If not using shared embeddings, self.shared is just a passthrough
-    self.shared = (self.which_embedding(self.n_classes, self.shared_dim) \
-                     if self.G_shared else layers.identity())
+    # Prepare class embedding
+    self.class_embedding = nn.Embedding(self.n_classes, self.embedding_dim)
 
     # First linear layer
-    self.linear = self.which_linear(
-      self.dim_z // self.num_slots, self.arch['in_channels'][0] * (self.bottom_width ** 2))
+    self.linear = build_d2layer(cfg.cfg_first_fc, in_features=self.dim_z,
+                                out_features=self.arch['in_channels'][0] * (self.bottom_width ** 2))
 
-    num_conv_in_block = 2
-    self.num_conv_in_block = num_conv_in_block
-    self.num_layers = len(self.arch['in_channels']) * num_conv_in_block
-    self.upsample_layer_idx = \
-      [num_conv_in_block * l
-        for l in range(0, self.num_layers//num_conv_in_block)]
+    self.num_conv_in_block = 2
+    self.num_layers = len(self.arch['in_channels']) * self.num_conv_in_block
+    self.upsample_layer_idx = [self.num_conv_in_block * l for l in range(0, self.num_layers//self.num_conv_in_block)]
 
     self.layers = nn.ModuleList([])
-    self.layers_para_list = []
     self.skip_layers = nn.ModuleList([])
 
     for layer_id in range(self.num_layers):
-      block_in = self.arch['in_channels'][layer_id//num_conv_in_block]
-      block_out = self.arch['out_channels'][layer_id//num_conv_in_block]
-      if layer_id % num_conv_in_block == 0:
+      block_in = self.arch['in_channels'][layer_id//self.num_conv_in_block]
+      block_out = self.arch['out_channels'][layer_id//self.num_conv_in_block]
+      if layer_id % self.num_conv_in_block == 0:
         in_channels = block_in
         out_channels = block_out
       else:
         in_channels = block_out
         out_channels = block_out
-      upsample = (UpSample()
-                  if (self.arch['upsample'][layer_id//num_conv_in_block] and
-                      layer_id in self.upsample_layer_idx)
-                  else None)
-      if getattr(self, 'share_conv_weights', False):
-        layer = MixedLayerCondSharedWeights(
-          layer_id, in_channels, out_channels, ops=self.ops,
-          track_running_stats=self.track_running_stats,
-          scalesample=upsample, which_bn=self.which_bn)
-      else:
-        layer = MixedLayerCond(
-          layer_id, in_channels, out_channels, ops=self.ops,
-          track_running_stats=self.track_running_stats,
-          scalesample=upsample, which_bn=self.which_bn)
+
+      # bn relu mix_layer upsample
+      layer = []
+
+      bn = build_d2layer(self.cfg_bn, in_features=self.cbn_in_features, out_features=in_channels)
+      layer.append([f'bn_{layer_id}', bn])
+
+      act = build_d2layer(self.cfg_act)
+      layer.append([f'act_{layer_id}', act])
+
+      mix_layer = build_d2layer(self.cfg_mix_layer, in_channels=in_channels, out_channels=out_channels, cfg_ops=cfg.cfg_ops)
+      layer.append([f'mix_layer_{layer_id}', mix_layer])
+
+      if layer_id in self.upsample_layer_idx:
+        upsample = build_d2layer(self.cfg_upsample)
+        layer.append([f'upsample_{layer_id}', upsample])
+
+      layer = nn.Sequential(OrderedDict(layer))
       self.layers.append(layer)
-      self.layers_para_list.append(layer.num_para_list)
+
+      # skip branch
       if layer_id in self.upsample_layer_idx:
         skip_layers = []
-        if self.arch['upsample'][layer_id//num_conv_in_block]:
-          skip_layers.append(('upsample_%d'%layer_id, UpSample()))
-        # if in_channels != out_channels:
-          conv_1x1 = self.which_conv_1x1(in_channels, out_channels,
-                                         kernel_size=1, padding=0)
-          skip_layers.append(('upsample_%d_conv_1x1'%layer_id, conv_1x1))
-        else:
-          identity = Identity()
-          skip_layers.append(('skip_%d_identity' % layer_id, identity))
+
+        skip_conv_1x1 = build_d2layer(self.cfg_conv_1x1, in_channels=in_channels, out_channels=out_channels)
+        skip_layers.append((f'skip_conv_1x1_{layer_id}', skip_conv_1x1))
+
+        skip_upsample = build_d2layer(self.cfg_upsample)
+        skip_layers.append((f'skip_upsample_{layer_id}', skip_upsample))
+
         skip_layers = nn.Sequential(OrderedDict(skip_layers))
         self.skip_layers.append(skip_layers)
 
-    self.layers_para_matrix = np.array(self.layers_para_list).T
-    self.output_type = getattr(self, 'output_type', 'snconv')
-    self.output_sample_arc = False
-    if self.output_type == 'snconv':
-      self.output_layer = nn.Sequential(
-        nn.BatchNorm2d(
-          self.arch['out_channels'][-1],
-          affine=True, track_running_stats=self.track_running_stats),
-        nn.ReLU(),
-        self.which_conv(self.arch['out_channels'][-1], 3))
-    elif self.output_type == 'MixedLayer':
-      self.output_sample_arc = True
-      self.output_conv = MixedLayer(
-        layer_id + 1, self.arch['out_channels'][-1], 3, ops=self.ops,
-        track_running_stats=self.track_running_stats, scalesample=None)
-    else:
-      assert 0
+    out_bn = build_d2layer(self.cfg_out_bn, num_features=self.arch['out_channels'][-1])
+    out_act = build_d2layer(self.cfg_act)
+    out_conv = build_d2layer(self.cfg_out_conv, in_channels=self.arch['out_channels'][-1])
+    self.output_layer = nn.Sequential(OrderedDict([
+      ('out_bn', out_bn),
+      ('out_act', out_act),
+      ('out_conv', out_conv)
+    ]))
+
     self.init_weights()
     pass
+
+  @staticmethod
+  def update_cfg(cfg):
+    if not getattr(cfg, 'update_cfg', False):
+      return
+
+    cfg_str = """
+        name: "PathAwareResNetGenCBN"
+        n_classes: "kwargs['n_classes']"
+        img_size: "kwargs['img_size']"
+        ch: 8
+        dim_z: 256
+        bottom_width: 4
+        init: 'ortho'
+        cfg_first_fc:
+          name: "Linear"
+          in_features: "kwargs['in_features']"
+          out_features: "kwargs['out_features']"
+        cfg_bn:
+          name: "CondBatchNorm2d"
+          in_features: "kwargs['in_features']"
+          out_features: "kwargs['out_features']"
+          cfg_fc:
+            name: "Linear"
+            in_features: "kwargs['in_features']"
+            out_features: "kwargs['out_features']"
+        cfg_act:
+          name: "ReLU"
+        cfg_mix_layer:
+          name: "MixedLayerCond"
+          in_channels: "kwargs['in_channels']"
+          out_channels: "kwargs['out_channels']"
+          cfg_ops: "kwargs['cfg_ops']"
+        cfg_upsample:
+          name: "UpSample"
+          mode: "bilinear"
+        cfg_conv_1x1:
+          name: "Conv2d"
+          in_channels: "kwargs['in_channels']"
+          out_channels: "kwargs['out_channels']"
+          kernel_size: 1
+        cfg_ops:
+          SNConv2d_3x3:
+            name: "SNConv2d"
+            in_channels: "kwargs['in_channels']"
+            out_channels: "kwargs['out_channels']"
+            kernel_size: 3
+            padding: 1
+          Conv2d_3x3:
+            name: "Conv2d"
+            in_channels: "kwargs['in_channels']"
+            out_channels: "kwargs['out_channels']"
+            kernel_size: 3
+            padding: 1
+        cfg_out_bn:
+          name: "BatchNorm2d"
+          num_features: "kwargs['num_features']"
+        cfg_out_conv:
+          name: "Conv2d"
+          in_channels: "kwargs['in_channels']"
+          out_channels: 3
+          kernel_size: 1
+    """
+    default_cfg = EasyDict(yaml.safe_load(cfg_str))
+    cfg = update_config(default_cfg, cfg)
+    return cfg
 
   def forward(self, z, y, sample_arcs):
     """
@@ -373,7 +398,7 @@ class PathAwareResNetGenCBN(nn.Module):
     :param sample_arcs: (b, num_layers)
     :return:
     """
-    y = self.shared(y)
+    y = self.class_embedding(y)
     if self.hier:
       zs = torch.split(z, self.z_chunk_size, 1)
       z = zs[0]
@@ -398,13 +423,8 @@ class PathAwareResNetGenCBN(nn.Module):
         x = x + x_up
         prev_layer = x
 
-    if self.output_type == 'snconv':
-      x = self.output_layer(x)
-    elif self.output_type == 'MixedLayer':
-      sample_arc = sample_arcs[:, -1]
-      x = self.output_conv(x, sample_arc)
-    else:
-      assert 0
+    x = self.output_layer(x)
+
     x = torch.tanh(x)
     return x
 

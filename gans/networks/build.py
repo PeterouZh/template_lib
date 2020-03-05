@@ -17,8 +17,8 @@ def build_discriminator(cfg, **kwargs):
     Build the whole model architecture, defined by ``cfg.MODEL.META_ARCHITECTURE``.
     Note that it does not load any weights from ``cfg``.
     """
-    name = cfg.model.discriminator.name
-    return DISCRIMINATOR_REGISTRY.get(name)(cfg, **kwargs)
+    name = cfg.name
+    return DISCRIMINATOR_REGISTRY.get(name)(cfg=cfg, **kwargs)
 
 
 def build_generator(cfg, **kwargs):
@@ -26,6 +26,6 @@ def build_generator(cfg, **kwargs):
     Build the whole model architecture, defined by ``cfg.MODEL.META_ARCHITECTURE``.
     Note that it does not load any weights from ``cfg``.
     """
-    name = cfg.model.generator.name
-    return GENERATOR_REGISTRY.get(name)(cfg, **kwargs)
+    name = cfg.name
+    return GENERATOR_REGISTRY.get(name)(cfg=cfg, **kwargs)
 

@@ -14,20 +14,39 @@ def get_ddp_attr(obj, attr, default=None):
   return getattr(getattr(obj, 'module', obj), attr, default)
 
 
-def get_eval_attr(obj, name, context_dict, default=None):
+def get_eval_attr(obj, name, default=None, **kwargs):
   if hasattr(obj, name):
     value = getattr(obj, name)
-    value = eval(value, context_dict)
+    value = eval(value, kwargs)
   else:
     value = default
   return value
 
 
-def get_attr_kwargs(obj, name, kwargs={}, default=None):
+def get_attr_eval(obj, name, default=None, **kwargs):
+  if hasattr(obj, name):
+    value = getattr(obj, name)
+    value = eval(value, kwargs)
+  else:
+    value = default
+  return value
+
+
+def get_attr_kwargs(obj, name, **kwargs):
   if hasattr(obj, name):
     value = getattr(obj, name)
     if isinstance(value, str) and value.startswith('kwargs['):
       value = eval(value)
+  else:
+    value = kwargs['default']
+  return value
+
+
+def get_attr_format(obj, name, default=None, **kwargs):
+  if hasattr(obj, name):
+    value = getattr(obj, name)
+    if isinstance(value, str):
+      value = value.format(**kwargs)
   else:
     if default is None:
       raise AttributeError

@@ -6,82 +6,64 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from template_lib.utils import get_attr_kwargs
+from template_lib.d2.layers import build_d2layer
+
+from .build import LAYER_REGISTRY, OPS_REGISTRY, build_ops
 from . import layers
-# import genotypes as gt
 
 
-OPS = {
-  'none': lambda C, stride, affine: Zero(stride),
-  # 'avg_pool_3x3': lambda C, stride, affine: PoolBN('avg', C, 3, stride, 1,
-  #                                                  affine=affine),
-  # 'max_pool_3x3': lambda C, stride, affine: PoolBN('max', C, 3, stride, 1,
-  #                                                  affine=affine),
-  # 'sep_conv_3x3': lambda C, stride, affine: SepConv(C, C, 3, stride, 1,
-  #                                                   affine=affine),
-  # 'sep_conv_5x5': lambda C, stride, affine: SepConv(C, C, 5, stride, 2,
-  #                                                   affine=affine),
-  # 'sep_conv_7x7': lambda C, stride, affine: SepConv(C, C, 7, stride, 3,
-  #                                                   affine=affine),
-  # 'dil_conv_3x3': lambda C, stride, affine: DilConv(C, C, 3, stride, 2, 2,
-  #                                                   affine=affine),  # 5x5
-  # 'dil_conv_5x5': lambda C, stride, affine: DilConv(C, C, 5, stride, 4, 2,
-  #                                                   affine=affine),  # 9x9
-  # 'conv_7x1_1x7': lambda C, stride, affine: FacConv(C, C, 7, stride, 3,
-  #                                                   affine=affine),
-  'snconv_3x3': lambda **kwargs: \
-    SNConv(kernel_size=3, stride=1, padding=1, **kwargs),
-  'snconv_5x5': lambda **kwargs: \
-    SNConv(kernel_size=5, stride=1, padding=2, **kwargs),
-  'conv_3x3': lambda **kwargs: \
-    Conv(kernel_size=3, stride=1, padding=1, **kwargs),
-  'conv_5x5': lambda **kwargs: \
-    Conv(kernel_size=5, stride=1, padding=2, **kwargs),
-  'snconv_dil_3x3': lambda **kwargs: \
-    SNConv(kernel_size=3, stride=1, padding=2, dilation=2, **kwargs),# 5x5
-  'conv_dil_3x3': lambda **kwargs: \
-    Conv(kernel_size=3, stride=1, padding=2, dilation=2, **kwargs),# 5x5
-  'snconv_dil_5x5': lambda **kwargs: \
-    SNConv(kernel_size=5, stride=1, padding=4, dilation=2, **kwargs),# 9x9
-  'conv_dil_5x5': lambda **kwargs: \
-    Conv(kernel_size=5, stride=1, padding=4, dilation=2, **kwargs),# 9x9
-  'snconv_dil2_3x3': lambda **kwargs: \
-    SNConv(kernel_size=3, stride=1, padding=2, dilation=2, **kwargs),# 5x5
-  'conv_dil2_3x3': lambda **kwargs: \
-    Conv(kernel_size=3, stride=1, padding=2, dilation=2, **kwargs),# 5x5
-  'snconv_dil3_3x3': lambda **kwargs: \
-    SNConv(kernel_size=3, stride=1, padding=3, dilation=3, **kwargs),# 7x7
-  'conv_dil3_3x3': lambda **kwargs: \
-    Conv(kernel_size=3, stride=1, padding=3, dilation=3, **kwargs),# 7x7
-  'snconv_dil4_3x3': lambda **kwargs: \
-    SNConv(kernel_size=3, stride=1, padding=4, dilation=4, **kwargs),# 9x9
-  'conv_dil4_3x3': lambda **kwargs: \
-    Conv(kernel_size=3, stride=1, padding=4, dilation=4, **kwargs),# 9x9
-  'skip_connect': lambda C_in, C_out, **kwargs: \
-    Identity(**kwargs) if C_in == C_out else \
-      Conv(kernel_size=1, stride=1, padding=0, **kwargs),
-
-  'max_pool_sn': lambda C_in, C_out, stride, affine, track_running_stats: \
-    PoolBranch(C_in, C_out, 'max', use_sn=True,
-               track_running_stats=track_running_stats),
-  'max_pool': lambda C_in, C_out, stride, affine, track_running_stats: \
-    PoolBranch(C_in, C_out, 'max', use_sn=False,
-               track_running_stats=track_running_stats),
-  'avg_pool_sn': lambda C_in, C_out, stride, affine, track_running_stats: \
-    PoolBranch(C_in, C_out, 'avg', use_sn=True,
-               track_running_stats=track_running_stats),
-  'avg_pool': lambda C_in, C_out, stride, affine, track_running_stats: \
-    PoolBranch(C_in, C_out, 'avg', use_sn=False,
-               track_running_stats=track_running_stats),
-  'skip_connect_sn': lambda C_in, C_out, stride, affine, track_running_stats: \
-    Identity() if C_in == C_out else \
-      SNConv(C_in, C_out, 1, stride, 0, affine=affine,
-             track_running_stats=track_running_stats),
-  # 'skip_connect': lambda C_in, C_out, stride, affine, track_running_stats: \
-  #   Identity() if C_in == C_out else \
-  #     Conv(C_in, C_out, 1, stride, 0, affine=affine,
-  #            track_running_stats=track_running_stats),
-
-}
+# OPS = {
+#   'none': lambda C, stride, affine: Zero(stride),
+#   'snconv_3x3': lambda **kwargs: \
+#     SNConv(kernel_size=3, stride=1, padding=1, **kwargs),
+#   'snconv_5x5': lambda **kwargs: \
+#     SNConv(kernel_size=5, stride=1, padding=2, **kwargs),
+#   'conv_3x3': lambda **kwargs: \
+#     Conv(kernel_size=3, stride=1, padding=1, **kwargs),
+#   'conv_5x5': lambda **kwargs: \
+#     Conv(kernel_size=5, stride=1, padding=2, **kwargs),
+#   'snconv_dil_3x3': lambda **kwargs: \
+#     SNConv(kernel_size=3, stride=1, padding=2, dilation=2, **kwargs),# 5x5
+#   'conv_dil_3x3': lambda **kwargs: \
+#     Conv(kernel_size=3, stride=1, padding=2, dilation=2, **kwargs),# 5x5
+#   'snconv_dil_5x5': lambda **kwargs: \
+#     SNConv(kernel_size=5, stride=1, padding=4, dilation=2, **kwargs),# 9x9
+#   'conv_dil_5x5': lambda **kwargs: \
+#     Conv(kernel_size=5, stride=1, padding=4, dilation=2, **kwargs),# 9x9
+#   'snconv_dil2_3x3': lambda **kwargs: \
+#     SNConv(kernel_size=3, stride=1, padding=2, dilation=2, **kwargs),# 5x5
+#   'conv_dil2_3x3': lambda **kwargs: \
+#     Conv(kernel_size=3, stride=1, padding=2, dilation=2, **kwargs),# 5x5
+#   'snconv_dil3_3x3': lambda **kwargs: \
+#     SNConv(kernel_size=3, stride=1, padding=3, dilation=3, **kwargs),# 7x7
+#   'conv_dil3_3x3': lambda **kwargs: \
+#     Conv(kernel_size=3, stride=1, padding=3, dilation=3, **kwargs),# 7x7
+#   'snconv_dil4_3x3': lambda **kwargs: \
+#     SNConv(kernel_size=3, stride=1, padding=4, dilation=4, **kwargs),# 9x9
+#   'conv_dil4_3x3': lambda **kwargs: \
+#     Conv(kernel_size=3, stride=1, padding=4, dilation=4, **kwargs),# 9x9
+#   'skip_connect': lambda C_in, C_out, **kwargs: \
+#     Identity(**kwargs) if C_in == C_out else \
+#       Conv(kernel_size=1, stride=1, padding=0, **kwargs),
+#
+#   'max_pool_sn': lambda C_in, C_out, stride, affine, track_running_stats: \
+#     PoolBranch(C_in, C_out, 'max', use_sn=True,
+#                track_running_stats=track_running_stats),
+#   'max_pool': lambda C_in, C_out, stride, affine, track_running_stats: \
+#     PoolBranch(C_in, C_out, 'max', use_sn=False,
+#                track_running_stats=track_running_stats),
+#   'avg_pool_sn': lambda C_in, C_out, stride, affine, track_running_stats: \
+#     PoolBranch(C_in, C_out, 'avg', use_sn=True,
+#                track_running_stats=track_running_stats),
+#   'avg_pool': lambda C_in, C_out, stride, affine, track_running_stats: \
+#     PoolBranch(C_in, C_out, 'avg', use_sn=False,
+#                track_running_stats=track_running_stats),
+#   'skip_connect_sn': lambda C_in, C_out, stride, affine, track_running_stats: \
+#     Identity() if C_in == C_out else \
+#       SNConv(C_in, C_out, 1, stride, 0, affine=affine,
+#              track_running_stats=track_running_stats),
+# }
 
 
 class UpSample(nn.Module):
@@ -169,121 +151,6 @@ class Identity(nn.Module):
 
   def forward(self, x):
     return x
-
-
-class SNConv(nn.Module):
-  def __init__(self, C_in, C_out, kernel_size, stride,
-               padding, dilation=1, affine=True,
-               track_running_stats=False,
-               which_bn=None,
-               weight=None, bias=None, bn_type='none',
-               which_act=nn.ReLU):
-    super(SNConv, self).__init__()
-    self.kernel_size = kernel_size
-    self.y = False
-    if which_bn is not None:
-      BN = which_bn
-      self.y = True
-    else:
-      if bn_type == 'bn':
-        BN = functools.partial(
-          nn.BatchNorm2d,
-          affine=affine, track_running_stats=track_running_stats)
-      elif bn_type == 'in':
-        BN = functools.partial(
-          nn.InstanceNorm2d,
-          affine=affine, track_running_stats=False)
-      elif bn_type == 'none':
-        BN = Identity
-      else:
-        assert 0
-
-    self.bn = BN(C_in)
-    if which_act is not None:
-      self.act = which_act()
-    else:
-      self.act = Identity()
-    if weight is not None:
-      self.conv = layers.SNConv2dFunc(
-        weight=weight, bias=bias, kernel_size=kernel_size,
-        num_svs=1, num_itrs=1, eps=1e-6,
-        stride=stride, padding=padding, dilation=dilation)
-    else:
-      snconv = functools.partial(
-        layers.SNConv2d, num_svs=1, num_itrs=1, eps=1e-6)
-      self.conv = snconv(
-        C_in, C_out, kernel_size, stride, padding, dilation=dilation)
-
-  def forward(self, *inputs):
-    if self.y:
-      x, y = inputs
-      x = self.bn(x, y)
-    else:
-      x = inputs[0]
-      x = self.bn(x)
-    x = self.act(x)
-    x = self.conv(x)
-    return x
-
-
-class Conv(nn.Module):
-  def __init__(self, C_in, C_out, kernel_size, stride,
-               padding, dilation=1, affine=True,
-               track_running_stats=False, which_bn=None,
-               weight=None, bias=None, bn_type='none',
-               which_act=nn.ReLU):
-    super(Conv, self).__init__()
-    self.kernel_size = kernel_size
-    self.y = False
-    if which_bn is not None:
-      BN = which_bn
-      self.y = True
-    else:
-      if bn_type == 'bn':
-        BN = functools.partial(
-          nn.BatchNorm2d,
-          affine=affine, track_running_stats=track_running_stats)
-      elif bn_type == 'in':
-        BN = functools.partial(
-          nn.InstanceNorm2d,
-          affine=affine, track_running_stats=False)
-      elif bn_type == 'none':
-        BN = Identity
-      else:
-        assert 0
-
-    self.bn = BN(C_in)
-    if which_act is not None:
-      self.act = which_act()
-    else:
-      self.act = Identity()
-    if weight is not None:
-      self.weight = weight
-      self.bias = bias
-      self.conv = functools.partial(
-        F.conv2d, stride=stride, padding=padding, dilation=dilation, groups=1)
-    else:
-      self.conv = nn.Conv2d(
-        C_in, C_out, kernel_size, stride,padding, dilation=dilation)
-
-  def forward(self, *inputs):
-    if self.y:
-      x, y = inputs
-      x = self.bn(x, y)
-    else:
-      x = inputs[0]
-      x = self.bn(x)
-    x = self.act(x)
-    if hasattr(self, 'weight'):
-      max_ks = self.weight.size(-1)
-      start = (max_ks - self.kernel_size) // 2
-      end = -start + max_ks
-      weight = self.weight[:, :, start:end, start:end]
-      x = self.conv(x, weight=weight, bias=self.bias)
-    else:
-      x = self.conv(x)
-    return x
-
 
 def drop_path_(x, drop_prob, training):
   if training and drop_prob > 0.:
@@ -527,58 +394,6 @@ class MixedLayer(nn.Module):
             .cuda().requires_grad_(False).unsqueeze(1)) \
          for idx, branch in enumerate(self.branches)]
     # x = [branch(x).unsqueeze(1) for branch in self.branches]
-    x = torch.cat(x, 1)
-    x = sample_arc_onehot * x
-    x = x.sum(dim=1)
-
-    if self.scalesample:
-      x = self.scalesample(x)
-    return x
-
-
-
-class MixedLayerCond(nn.Module):
-
-  def __init__(self, layer_id, in_planes, out_planes, ops,
-               track_running_stats=False, scalesample=None,
-               which_bn=None):
-    super(MixedLayerCond, self).__init__()
-
-    self.layer_id = layer_id
-    self.out_planes = out_planes
-    self.ops = ops
-    self.scalesample = scalesample
-
-    self.branches = nn.ModuleList()
-    self.num_para_list = []
-    self.bn = which_bn(in_planes)
-    self.act = nn.ReLU()
-    for op in ops:
-      branch = OPS[op](C_in=in_planes, C_out=out_planes,
-                       track_running_stats=track_running_stats,
-                       which_act=None)
-      self.branches.append(branch)
-      self.num_para_list.append(
-        sum([p.data.nelement() for p in branch.parameters()]))
-
-    # self.bn = nn.BatchNorm2d(
-    #   out_planes, track_running_stats=track_running_stats)
-
-  def forward(self, x, y, sample_arc):
-    bs = len(sample_arc)
-    sample_arc = sample_arc.type(torch.int64)
-    num_branch = len(self.ops)
-    sample_arc_onehot = torch.zeros(bs, num_branch).cuda()
-    sample_arc_onehot[torch.arange(bs), sample_arc] = 1
-    sample_arc_onehot = sample_arc_onehot.view(bs, num_branch, 1, 1, 1)
-
-    x = self.bn(x, y)
-    x = self.act(x)
-    x = [branch(x, y).unsqueeze(1) if idx in sample_arc else \
-           (torch.zeros(bs, self.out_planes, x.size(-1), x.size(-1))
-            .cuda().requires_grad_(False).unsqueeze(1)) \
-         for idx, branch in enumerate(self.branches)]
-    # x = [branch(x, y).unsqueeze(1) for branch in self.branches]
     x = torch.cat(x, 1)
     x = sample_arc_onehot * x
     x = x.sum(dim=1)

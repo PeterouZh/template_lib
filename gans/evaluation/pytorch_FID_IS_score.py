@@ -259,6 +259,7 @@ class PyTorchFIDISScore(object):
 
     self.logger = logging.getLogger('tl')
     if os.path.isfile(self.torch_fid_stat):
+      self.logger.info(f"Loading torch_fid_stat : {self.torch_fid_stat}")
       self.data_mu = np.load(self.torch_fid_stat)['mu']
       self.data_sigma = np.load(self.torch_fid_stat)['sigma']
     else:
