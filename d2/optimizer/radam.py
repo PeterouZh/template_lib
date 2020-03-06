@@ -2,6 +2,8 @@ import math
 import torch
 from torch.optim.optimizer import Optimizer, required
 
+from template_lib.utils import get_attr_kwargs
+
 from .build import OPTIMIZER_REGISTRY
 
 
@@ -86,17 +88,17 @@ class RAdam(Optimizer):
 
 
 @OPTIMIZER_REGISTRY.register()
-class RAdamRegister(RAdam):
+class RAdamReg(RAdam):
 
-  def __init__(self, cfg, params):
+  def __init__(self, cfg, **kwargs):
 
-    self.lr                = getattr(cfg.optimizer, 'lr', 1e-3)
-    self.betas             = getattr(cfg.optimizer, 'betas', (0.9, 0.999))
-    self.eps               = getattr(cfg.optimizer, 'eps', 1e-8)
-    self.weight_decay      = getattr(cfg.optimizer, 'weight_decay', 0)
+    params            = get_attr_kwargs(cfg, 'params', **kwargs)
+    lr                = get_attr_kwargs(cfg, 'lr', default=1e-3, **kwargs)
+    betas             = get_attr_kwargs(cfg, 'betas', default=(0.9, 0.999), **kwargs)
+    eps               = get_attr_kwargs(cfg, 'eps', default=1e-8, **kwargs)
+    weight_decay      = get_attr_kwargs(cfg, 'weight_decay', default=0, **kwargs)
 
-    super(RAdamRegister, self).__init__(
-      params, lr=self.lr, betas=self.betas, eps=self.eps, weight_decay=self.weight_decay)
+    super(RAdamReg, self).__init__(params, lr=lr, betas=betas, eps=eps, weight_decay=weight_decay)
     pass
 
 
