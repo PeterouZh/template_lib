@@ -12,6 +12,7 @@ import torch.nn.functional as F
 from torch.nn import init
 
 from template_lib.utils import get_attr_kwargs, update_config, get_ddp_attr
+from template_lib.d2.utils import comm
 from template_lib.d2.layers import build_d2layer
 from template_lib.d2.models.build import D2MODEL_REGISTRY
 
@@ -252,11 +253,12 @@ class PathAwareResNetGenCBN(nn.Module):
     self.cfg = cfg
     self.arch = G_arch(self.ch, self.attention)[self.img_size]
     self.num_branches = len(self.cfg_ops)
+    self.device = torch.device(f'cuda:{comm.get_rank()}')
 
     if self.hier:
       self.num_slots = len(self.arch['in_channels']) + 1
       self.z_chunk_size = (self.dim_z // self.num_slots)
-      self.dim_z = self.z_chunk_size
+      self.dim_z_input = self.z_chunk_size
       self.cbn_in_features = self.embedding_dim + self.z_chunk_size
     else:
       self.num_slots = 1
@@ -267,7 +269,7 @@ class PathAwareResNetGenCBN(nn.Module):
     self.class_embedding = nn.Embedding(self.n_classes, self.embedding_dim)
 
     # First linear layer
-    self.linear = build_d2layer(cfg.cfg_first_fc, in_features=self.dim_z,
+    self.linear = build_d2layer(cfg.cfg_first_fc, in_features=self.dim_z_input,
                                 out_features=self.arch['in_channels'][0] * (self.bottom_width ** 2))
 
     self.num_conv_in_block = 2
@@ -407,12 +409,16 @@ class PathAwareResNetGenCBN(nn.Module):
     out = self(z, y, sample_arcs)
     return out
 
-  def forward(self, z, y, sample_arcs):
+  def forward(self, z, y, sample_arc):
     """
 
     :param sample_arcs: (b, num_layers)
     :return:
     """
+    z = z.to(self.device)
+    y = y.to(self.device)
+    sample_arc = sample_arc.to(self.device)
+    batched_arcs = sample_arc[y]
     y = self.class_embedding(y)
     if self.hier:
       zs = torch.split(z, self.z_chunk_size, 1)
@@ -428,7 +434,7 @@ class PathAwareResNetGenCBN(nn.Module):
     for layer_id in range(self.num_layers):
       if layer_id == 0:
         prev_layer = x
-      sample_arc = sample_arcs[:, layer_id]
+      sample_arc = batched_arcs[:, layer_id]
 
       x = self.bns[layer_id](x, ys[layer_id // self.num_conv_in_block])
       x = self.acts[layer_id](x)
@@ -602,6 +608,7 @@ class PAGANRLController(nn.Module):
 
     self.sample_log_prob = torch.stack(log_probs, dim=1)
     self.sample_prob = self.sample_log_prob.exp()
+    return self.sample_arc
 
   def forward_G(self, G, z, gy, train_C=False, train_G=True,
               fixed_arc=None, same_in_batch=True,

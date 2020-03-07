@@ -3,6 +3,7 @@ from template_lib.d2.utils import comm
 import collections
 
 from template_lib.trainer.base_trainer import Trainer
+from template_lib.utils import get_attr_kwargs
 
 from .build import GAN_MODEL_REGISTRY
 
@@ -11,19 +12,20 @@ from .build import GAN_MODEL_REGISTRY
 @GAN_MODEL_REGISTRY.register()
 class WGANGPCond(object):
 
-  def __init__(self, cfg, myargs, D, G, D_optim, G_optim, **kwargs):
+  def __init__(self, cfg, **kwargs):
 
-    self.n_critic               = cfg.GAN_model.n_critic
-    self.gp_lambda              = getattr(cfg.GAN_model, 'gp_lambda', 10.)
-    self.child_grad_bound       = getattr(cfg.GAN_model, 'child_grad_bound', -1)
-    self.log_every              = cfg.GAN_model.log_every
-    self.dummy                  = getattr(cfg.GAN_model, 'dummy', False)
+    self.myargs                 = kwargs['myargs']
+    self.D                      = kwargs['D']
+    self.G                      = kwargs['G']
+    self.D_optim                = kwargs['D_optim']
+    self.G_optim                = kwargs['G_optim']
+    self.n_critic               = cfg.n_critic
+    self.gp_lambda              = getattr(cfg, 'gp_lambda', 10.)
+    self.child_grad_bound       = getattr(cfg, 'child_grad_bound', -1)
+    self.log_every              = getattr(cfg, 'log_every', 50)
+    self.dummy                  = getattr(cfg, 'dummy', False)
 
-    self.textlogger = myargs.textlogger
-    self.D = D
-    self.G = G
-    self.D_optim = D_optim
-    self.G_optim = G_optim
+    self.device = torch.device(f'cuda:{comm.get_rank()}')
     pass
 
   def __call__(self, images, labels, z, iteration, **kwargs):
@@ -31,7 +33,7 @@ class WGANGPCond(object):
 
     :param images:
     :param labels:
-    :param z: z.sample_()
+    :param z: z.sample()
     :param iteration:
     :param kwargs:
     :return:
@@ -54,8 +56,9 @@ class WGANGPCond(object):
     d_real_mean = d_real.mean()
     summary_d['d_logit_mean']['d_real_mean'] = d_real_mean.item()
 
-    z.sample_()
-    fake = self.G(z, y=gy, **kwargs)
+    z_sample = z.sample()
+    z_sample = z_sample.to(self.device)
+    fake = self.G(z_sample, y=gy, **kwargs)
     d_fake = self.D(fake.detach(), gy)
     d_fake_mean = d_fake.mean()
     summary_d['d_logit_mean']['d_fake_mean'] = d_fake_mean.item()
@@ -77,10 +80,11 @@ class WGANGPCond(object):
     ###########################
     if iteration % self.n_critic == 0:
       self.G.zero_grad()
-      z.sample_()
+      z_sample = z.sample()
+      z_sample = z_sample.to(self.device)
       gy = dy
 
-      fake = self.G(z, y=gy, **kwargs)
+      fake = self.G(z_sample, y=gy, **kwargs)
       d_fake_g = self.D(fake, gy)
       d_fake_g_mean = d_fake_g.mean()
 
@@ -99,7 +103,7 @@ class WGANGPCond(object):
       Trainer.summary_defaultdict2txtfig(default_dict=summary_d,
                                          prefix='WGANGPCond',
                                          step=iteration,
-                                         textlogger=self.textlogger)
+                                         textlogger=self.myargs.textlogger)
 
     comm.synchronize()
     return

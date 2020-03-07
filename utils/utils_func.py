@@ -23,12 +23,12 @@ def get_eval_attr(obj, name, default=None, **kwargs):
   return value
 
 
-def get_attr_eval(obj, name, default=None, **kwargs):
+def get_attr_eval(obj, name, **kwargs):
   if hasattr(obj, name):
     value = getattr(obj, name)
     value = eval(value, kwargs)
   else:
-    value = default
+    value = kwargs['default']
   return value
 
 
