@@ -109,3 +109,31 @@ class TestingController(unittest.TestCase):
 
     pass
 
+  def test_PAGANFairController(self):
+    """
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'PORT' not in os.environ:
+      os.environ['PORT'] = '6006'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
+    # func name
+    assert sys._getframe().f_code.co_name.startswith('test_')
+    command = sys._getframe().f_code.co_name[5:]
+    class_name = self.__class__.__name__[7:] \
+      if self.__class__.__name__.startswith('Testing') \
+      else self.__class__.__name__
+    outdir = f'results/{class_name}/{command}'
+
+    from template_lib.d2.models import build_d2model
+    cfg_str = """
+            name: "PAGANFairController"
+            update_cfg: true
+        """
+    cfg = EasyDict(yaml.safe_load(cfg_str))
+    controller = build_d2model(cfg, n_classes=10, num_layers=6, num_branches=8).cuda()
+    out = controller.test_case()
+
+    pass
+

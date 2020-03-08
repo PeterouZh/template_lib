@@ -409,7 +409,7 @@ class PathAwareResNetGenCBN(nn.Module):
     out = self(z, y, sample_arcs)
     return out
 
-  def forward(self, z, y, sample_arc):
+  def forward(self, z, y, batched_arcs):
     """
 
     :param sample_arcs: (b, num_layers)
@@ -417,8 +417,8 @@ class PathAwareResNetGenCBN(nn.Module):
     """
     z = z.to(self.device)
     y = y.to(self.device)
-    sample_arc = sample_arc.to(self.device)
-    batched_arcs = sample_arc[y]
+    batched_arcs = batched_arcs.to(self.device)
+
     y = self.class_embedding(y)
     if self.hier:
       zs = torch.split(z, self.z_chunk_size, 1)
@@ -652,3 +652,53 @@ class PAGANRLController(nn.Module):
     if len(ret_out) == 1:
       return ret_out[0]
     return ret_out
+
+
+@D2MODEL_REGISTRY.register()
+class PAGANFairController(nn.Module):
+  '''
+  '''
+  def __init__(self, cfg, **kwargs):
+    super(PAGANFairController, self).__init__()
+
+    cfg = self.update_cfg(cfg)
+
+    self.num_layers              = get_attr_kwargs(cfg, 'num_layers', **kwargs)
+    self.num_branches            = get_attr_kwargs(cfg, 'num_branches', **kwargs)
+
+    pass
+
+  def update_cfg(self, cfg):
+    if not getattr(cfg, 'update_cfg', False):
+      return cfg
+
+    cfg_str = """
+      name: "PAGANRLController"
+      n_classes: "kwargs['n_classes']"
+      num_layers: "kwargs['num_layers']"
+      num_branches: "kwargs['num_branches']"
+    """
+    default_cfg = EasyDict(yaml.safe_load(cfg_str))
+    cfg = update_config(default_cfg, cfg)
+    return cfg
+
+  def test_case(self):
+    bs = 4
+    out = self(bs)
+    return out
+
+  def forward(self, bs):
+    """
+
+    :param batch_imgs:
+    :return: (bs x num_branches, num_layers)
+    """
+    arcs = []
+    for l in range(self.num_layers):
+      layer_arcs = torch.randperm(self.num_branches).view(-1, 1)
+      arcs.append(layer_arcs)
+    arcs = torch.cat(arcs, dim=1)
+    batched_arcs = arcs.repeat(bs, 1)
+    return batched_arcs
+
+
