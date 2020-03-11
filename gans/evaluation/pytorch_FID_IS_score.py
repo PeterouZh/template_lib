@@ -426,6 +426,25 @@ class PyTorchFIDISScore(object):
   def _calculate_frechet_distance(self, mu1, sigma1, mu2, sigma2, eps=1e-6):
     return numpy_calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=eps)
 
+  def get_pool_and_logits(self, images):
+    self.inception_net.eval()
+    with torch.no_grad():
+      pool, logits = self.inception_net(images.float())
+      logits = F.softmax(logits, 1)
+
+    pool = pool.cpu().numpy()
+    logits = logits.cpu().numpy()
+    return pool, logits
+
+  def calculate_IS(self, logits, num_splits=10):
+    scores = []
+    for index in range(num_splits):
+      pred_chunk = logits[index * (logits.shape[0] // num_splits): (index + 1) * (logits.shape[0] // num_splits), :]
+      kl_inception = pred_chunk * (np.log(pred_chunk) - np.log(np.expand_dims(np.mean(pred_chunk, 0), 0)))
+      kl_inception = np.mean(np.sum(kl_inception, 1))
+      scores.append(np.exp(kl_inception))
+    return np.mean(scores), np.std(scores)
+
   @staticmethod
   def sample(G, z, parallel):
     """

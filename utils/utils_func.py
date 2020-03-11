@@ -1,6 +1,29 @@
 import re
 import logging
 
+from torch.nn.parallel import DistributedDataParallel
+
+
+class AverageMeter():
+  """ Computes and stores the average and current value """
+
+  def __init__(self):
+    self.reset()
+
+  def reset(self):
+    """ Reset all statistics """
+    self.val = 0
+    self.avg = 0
+    self.sum = 0
+    self.count = 0
+
+  def update(self, val, n=1):
+    """ Update statistics """
+    self.val = val
+    self.sum += val * n
+    self.count += n
+    self.avg = self.sum / self.count
+
 
 def print_number_params(models_dict):
   logger = logging.getLogger('tl')
@@ -12,6 +35,13 @@ def print_number_params(models_dict):
 
 def get_ddp_attr(obj, attr, default=None):
   return getattr(getattr(obj, 'module', obj), attr, default)
+
+
+def get_ddp_module(model):
+  if isinstance(model, DistributedDataParallel):
+    model = model.module
+  return model
+
 
 
 def get_eval_attr(obj, name, default=None, **kwargs):
