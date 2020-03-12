@@ -1,3 +1,5 @@
+import logging
+
 import tqdm
 import collections
 from collections import OrderedDict
@@ -5,6 +7,7 @@ from easydict import EasyDict
 import yaml
 import functools
 import numpy as np
+import statistics
 
 import torch
 from torch.distributions.categorical import Categorical
@@ -708,7 +711,6 @@ class PAGANRLController(nn.Module):
       baseline = torch.tensor(reward_g)
     else:
       baseline = self.baseline - (1 - self.bl_dec) * (self.baseline - reward)
-
       # detach to make sure that gradients are not backpropped through the baseline
       baseline = baseline.detach()
 
@@ -967,3 +969,251 @@ class PAGANRLCondController(nn.Module):
     if len(ret_out) == 1:
       return ret_out[0]
     return ret_out
+
+
+@D2MODEL_REGISTRY.register()
+class PAGANFairControllerFC(nn.Module):
+
+  def __init__(self, cfg, **kwargs):
+    super(PAGANFairControllerFC, self).__init__()
+
+    cfg = self.update_cfg(cfg)
+
+    self.FID_IS                  = kwargs['FID_IS']
+    self.myargs                  = kwargs['myargs']
+    self.episode                 = get_attr_kwargs(cfg, 'episode', **kwargs)
+    self.in_dim                  = get_attr_kwargs(cfg, 'in_dim', **kwargs)
+    self.out_dim                 = get_attr_kwargs(cfg, 'out_dim', **kwargs)
+    self.hidden_dim              = get_attr_kwargs(cfg, 'hidden_dim', default=64, **kwargs)
+    self.num_hidden_layer        = get_attr_kwargs(cfg, 'num_hidden_layer', default=2, **kwargs)
+    self.tanh_constant           = get_attr_kwargs(cfg, 'tanh_constant', default=1.5, **kwargs)
+    self.temperature             = get_attr_kwargs(cfg, 'temperature', default=-1, **kwargs)
+    self.num_aggregate           = get_attr_kwargs(cfg, 'num_aggregate', default=20, **kwargs)
+    self.entropy_weight          = get_attr_kwargs(cfg, 'entropy_weight', default=0.0001, **kwargs)
+    self.bl_dec                  = get_attr_kwargs(cfg, 'bl_dec', default=0.99, **kwargs)
+    self.child_grad_bound        = get_attr_kwargs(cfg, 'child_grad_bound', default=5.0, **kwargs)
+    self.log_every_iter          = get_attr_kwargs(cfg, 'log_every_iter', default=50, **kwargs)
+
+    self.device = torch.device(f'cuda:{comm.get_rank()}')
+    self.logger = logging.getLogger('tl')
+    self.baseline = None
+    self._create_params()
+    self._reset_params()
+    pass
+
+  def update_cfg(self, cfg):
+    if not getattr(cfg, 'update_cfg', False):
+      return cfg
+
+    cfg_str = """
+      name: "PAGANRLController"
+      num_layers: "kwargs['num_layers']"
+      num_branches: "kwargs['num_branches']"
+      lstm_size: 64
+      lstm_num_layers: 2
+      temperature: -1
+      num_aggregate: 10
+      entropy_weight: 0.0001
+      bl_dec: 0.99
+      child_grad_bound: 5.0
+    """
+    default_cfg = EasyDict(yaml.safe_load(cfg_str))
+    cfg = update_config(default_cfg, cfg)
+    return cfg
+
+  def test_case(self):
+    out = self()
+    return out
+
+
+  def _create_params(self):
+
+    layers = []
+    in_fc = nn.Linear(self.in_dim, self.hidden_dim, bias=True)
+    layers.append((f'in_fc', in_fc))
+    layers.append((f'in_fc_act', nn.ReLU()))
+    for i in range(self.num_hidden_layer):
+      hidden_layer = nn.Linear(self.hidden_dim, self.hidden_dim, bias=True)
+      layers.append((f'hidden_{i}', hidden_layer))
+      layers.append((f'act_{i}', nn.ReLU()))
+    out_fc = nn.Linear(self.hidden_dim, self.out_dim, bias=True)
+    layers.append((f'out_fc', out_fc))
+    self.net = nn.Sequential(OrderedDict(layers))
+
+    self.w_emb = nn.Embedding(self.episode, self.in_dim)
+    # self.w_soft = nn.Linear(self.lstm_size, self.num_branches, bias=True)
+
+    # self.w_attn_1 = nn.Linear(self.lstm_size, self.lstm_size, bias=False)
+    # self.w_attn_2 = nn.Linear(self.lstm_size, self.lstm_size, bias=False)
+    # self.v_attn = nn.Linear(self.lstm_size, 1, bias=False)
+
+  def _reset_params(self):
+    for m in self.modules():
+      if isinstance(m, nn.Linear) or isinstance(m, nn.Embedding):
+        nn.init.uniform_(m.weight, -0.1, 0.1)
+
+  def get_fair_path(self, bs):
+    """
+
+    :param batch_imgs:
+    :return: (bs x num_branches, num_layers)
+    """
+    arcs = []
+    for l in range(self.episode):
+      layer_arcs = torch.randperm(self.out_dim).view(-1, 1)
+      arcs.append(layer_arcs)
+    arcs = torch.cat(arcs, dim=1)
+    batched_arcs = arcs.repeat(bs, 1)
+
+    fair_arcs = arcs
+    return batched_arcs, fair_arcs
+
+  def fairnas_repeat_tensor(self, sample):
+    repeat_arg = [1] * (sample.dim() + 1)
+    repeat_arg[1] = self.out_dim
+    sample = sample.unsqueeze(1).repeat(repeat_arg)
+    sample = sample.view(-1, *sample.shape[2:])
+    return sample
+
+  def forward(self, fair_arcs):
+
+    arc_seq = []
+    entropys = []
+    log_probs = []
+
+    inputs = self.w_emb.weight
+    logits = self.net(inputs)
+
+    if self.temperature > 0:
+      logits /= self.temperature
+    if self.tanh_constant is not None:
+      logits = self.tanh_constant * torch.tanh(logits)
+
+    batched_dist = Categorical(logits=logits)
+
+    for arc in fair_arcs:
+      log_prob = batched_dist.log_prob(arc)
+      log_probs.append(log_prob.view(-1))
+
+    entropy = batched_dist.entropy()
+    entropys.append(entropy.view(-1))
+
+    self.sample_entropy = torch.stack(entropys, dim=0)
+
+    self.sample_log_prob = torch.stack(log_probs, dim=0)
+    self.sample_prob = self.sample_log_prob.exp()
+
+    return self.sample_log_prob
+
+  def train_controller(self, G, z, y, controller, controller_optim, fair_arcs, iteration):
+    """
+
+    :param controller: for ddp training
+    :return:
+    """
+    meter_dict = {}
+
+    G.eval()
+    controller.train()
+
+    controller.zero_grad()
+
+    controller(fair_arcs=fair_arcs)
+    sample_entropy = get_ddp_attr(controller, 'sample_entropy')
+    sample_log_prob = get_ddp_attr(controller, 'sample_log_prob')
+
+    z_samples = z.sample()
+    repeat_times = len(z_samples) // len(fair_arcs)
+    batched_arcs = fair_arcs.repeat(repeat_times, 1)
+
+    pool_list, logits_list = [], []
+    for i in range(self.num_aggregate):
+      z_samples = z.sample().to(self.device)
+      y_samples = y.sample().to(self.device)
+      with torch.set_grad_enabled(False):
+        x = G(z=z_samples, y=y_samples, batched_arcs=batched_arcs)
+
+      _, logits = self.FID_IS.get_pool_and_logits(x)
+
+      # pool_list.append(pool)
+      logits_list.append(logits)
+
+      # pool = np.concatenate(pool_list, 0)
+      logits = np.concatenate(logits_list, 0)
+
+    rewards_g = []
+    num_arcs = len(fair_arcs)
+    for i in range(num_arcs):
+      logits_i = logits[i::num_arcs]
+      reward_g, _ = self.FID_IS.calculate_IS(logits_i)
+      rewards_g.append(reward_g)
+
+    meter_dict['reward_g_mean'] = sum(rewards_g)/num_arcs
+
+    # detach to make sure that gradients aren't backpropped through the reward
+    reward = torch.tensor(rewards_g).cuda().view(-1, 1)
+
+    sample_entropy_mean = sample_entropy.mean()
+    meter_dict['sample_entropy'] = sample_entropy_mean.item()
+    reward += self.entropy_weight * sample_entropy_mean.view(1, 1)
+
+    if self.baseline is None:
+      baseline = torch.tensor(rewards_g).mean().view(-1, 1).to(self.device)
+    else:
+      baseline = self.baseline - (1 - self.bl_dec) * (self.baseline - reward)
+      # detach to make sure that gradients are not backpropped through the baseline
+      baseline = baseline.mean().view(-1, 1).detach()
+
+    sample_log_prob_mean = sample_log_prob.mean(dim=1, keepdim=True)
+    meter_dict['sample_log_prob_mean'] = sample_log_prob_mean.mean().item()
+    losses = -1 * sample_log_prob_mean * (reward - baseline)
+    loss = losses.mean()
+
+    meter_dict['reward'] = reward.mean().item()
+    meter_dict['baseline'] = baseline.item()
+    meter_dict['loss'] = loss.item()
+
+    loss.backward(retain_graph=False)
+
+    grad_norm = torch.nn.utils.clip_grad_norm_(controller.parameters(), self.child_grad_bound)
+    meter_dict['grad_norm'] = grad_norm
+
+    controller_optim.step()
+
+    baseline_list = comm.all_gather(baseline)
+    baseline_mean = sum(map(lambda v: v.item(), baseline_list)) / len(baseline_list)
+    baseline.fill_(baseline_mean)
+    self.baseline = baseline
+
+    if iteration % self.log_every_iter == 0:
+      default_dicts = collections.defaultdict(dict)
+      for meter_k, meter in meter_dict.items():
+        if meter_k in ['reward', 'baseline']:
+          default_dicts['reward_baseline'][meter_k] = meter
+        else:
+          default_dicts[meter_k][meter_k] = meter
+      summary_defaultdict2txtfig(default_dict=default_dicts,
+                                 prefix='train_controller',
+                                 step=iteration,
+                                 textlogger=self.myargs.textlogger)
+    comm.synchronize()
+    return
+
+  def print_distribution(self, ):
+    # remove formats
+    org_formatters = []
+    for handler in self.logger.handlers:
+      org_formatters.append(handler.formatter)
+      handler.setFormatter(logging.Formatter("%(message)s"))
+
+    self.logger.info("####### distribution #######")
+    with torch.no_grad():
+      inputs = self.w_emb.weight
+      logits = self.net(inputs)
+      self.logger.info(F.softmax(logits, dim=-1))
+
+    self.logger.info("#####################")
+
+    # restore formats
+    for handler, formatter in zip(self.logger.handlers, org_formatters):
+      handler.setFormatter(formatter)

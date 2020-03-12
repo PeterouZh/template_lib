@@ -375,6 +375,7 @@ class TFFIDISScore(object):
     inception_path = self._check_or_download_inception(self.tf_inception_model_dir)
     self.logger.info('Load tf inception model in %s', inception_path)
     self._create_inception_graph(inception_path, name=self.tf_graph_name)
+    self._create_inception_net()
     comm.synchronize()
 
   def _create_inception_graph(self, pth, name):
@@ -490,14 +491,16 @@ class TFFIDISScore(object):
       data = np.concatenate(data_list, axis=0)
     return data
 
-  def _get_activations_with_sample_func(self, sample_func, num_inception_images, stdout=sys.stdout, verbose=True):
+  def _create_inception_net(self):
     # create tf session and specify the gpu
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     config.gpu_options.visible_device_list = f'{comm.get_rank()}'
-    sess = tf.Session(config=config)
-    sess.run(tf.global_variables_initializer())
-    FID_pool3, IS_softmax = self._get_inception_layers(sess)
+    self.sess = tf.Session(config=config)
+    self.sess.run(tf.global_variables_initializer())
+    self.FID_pool3, self.IS_softmax = self._get_inception_layers(self.sess)
+
+  def _get_activations_with_sample_func(self, sample_func, num_inception_images, stdout=sys.stdout, verbose=True):
 
     pred_FIDs = []
     pred_ISs = []
@@ -516,19 +519,33 @@ class TFFIDISScore(object):
       except StopIteration:
         break
 
-      pred_FID, pred_IS = sess.run([FID_pool3, IS_softmax], {f'{self.tf_graph_name}/ExpandDims:0': batch})
+      pred_FID, pred_IS = self.sess.run([self.FID_pool3, self.IS_softmax],
+                                        {f'{self.tf_graph_name}/ExpandDims:0': batch})
       pred_FIDs.append(pred_FID)
       pred_ISs.append(pred_IS)
     if verbose: print('', file=stdout)
 
     pred_FIDs = np.concatenate(pred_FIDs, 0).squeeze()
     pred_ISs = np.concatenate(pred_ISs, 0)
-    sess.close()
+    # sess.close()
 
     pred_FIDs = self._gather_numpy_array(pred_FIDs)
     pred_ISs = self._gather_numpy_array(pred_ISs)
     comm.synchronize()
     return pred_FIDs, pred_ISs
+
+  def get_pool_and_logits(self, images):
+    images = images.mul_(127.5).add_(127.5).clamp_(0.0, 255.0).permute(0, 2, 3, 1)
+    images = images.cpu().numpy()
+    images = images.astype(np.uint8)
+
+    pool, logits = self.sess.run([self.FID_pool3, self.IS_softmax],
+                                 {f'{self.tf_graph_name}/ExpandDims:0': images})
+    return pool, logits
+
+  def calculate_IS(self, logits, num_splits=10):
+    IS_mean, IS_std = self._calculate_IS(pred_ISs=logits, IS_splits=num_splits)
+    return IS_mean, IS_std
 
   def _calculate_IS(self, pred_ISs, IS_splits=10):
     # calculate IS
