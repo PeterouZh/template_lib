@@ -30,5 +30,5 @@ class Identity(nn.Module):
   def __init__(self, cfg, **kwargs):
     super().__init__()
 
-  def forward(self, x):
+  def forward(self, x, *args):
     return x

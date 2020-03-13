@@ -139,7 +139,7 @@ class PlotDefaultdict2figure(multiprocessing.Process):
 
   def _plot_figure(self, label2datas_list, filepaths, in_one_figure=False):
     import matplotlib
-    matplotlib.use(arg='Agg', warn=False)
+    # matplotlib.use(arg='Agg', warn=False)
     import matplotlib.pyplot as plt
     plt.switch_backend('agg')
     if in_one_figure:

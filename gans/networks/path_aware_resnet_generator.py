@@ -346,62 +346,88 @@ class PathAwareResNetGenCBN(nn.Module):
       return cfg
 
     cfg_str = """
-        name: "PathAwareResNetGenCBN"
-        n_classes: "kwargs['n_classes']"
-        img_size: "kwargs['img_size']"
-        ch: 8
-        dim_z: 256
-        bottom_width: 4
-        init: 'ortho'
-        cfg_first_fc:
+      name: "PathAwareResNetGenCBN"
+      n_classes: "kwargs['n_classes']"
+      img_size: "kwargs['img_size']"
+      ch: 64
+      dim_z: 256
+      bottom_width: 4
+      init: 'ortho'
+      cfg_first_fc:
+        name: "Linear"
+        in_features: "kwargs['in_features']"
+        out_features: "kwargs['out_features']"
+      cfg_bn:
+        name: "CondBatchNorm2d"
+        in_features: "kwargs['in_features']"
+        out_features: "kwargs['out_features']"
+        cfg_fc:
           name: "Linear"
           in_features: "kwargs['in_features']"
           out_features: "kwargs['out_features']"
-        cfg_bn:
-          name: "CondBatchNorm2d"
-          in_features: "kwargs['in_features']"
-          out_features: "kwargs['out_features']"
-          cfg_fc:
-            name: "Linear"
-            in_features: "kwargs['in_features']"
-            out_features: "kwargs['out_features']"
-        cfg_act:
-          name: "ReLU"
-        cfg_mix_layer:
-          name: "MixedLayerCond"
+      cfg_act:
+        name: "ReLU"
+      cfg_mix_layer:
+        name: "MixedLayerCond"
+        in_channels: "kwargs['in_channels']"
+        out_channels: "kwargs['out_channels']"
+        cfg_ops: "kwargs['cfg_ops']"
+      cfg_upsample:
+        name: "UpSample"
+        mode: "bilinear"
+      cfg_conv_1x1:
+        name: "Conv2d"
+        in_channels: "kwargs['in_channels']"
+        out_channels: "kwargs['out_channels']"
+        kernel_size: 1
+      cfg_ops:
+        Identity:
+          name: "Identity"
+        DepthwiseSeparableConv2d_3x3:
+          name: "DepthwiseSeparableConv2d"
           in_channels: "kwargs['in_channels']"
           out_channels: "kwargs['out_channels']"
-          cfg_ops: "kwargs['cfg_ops']"
-        cfg_upsample:
-          name: "UpSample"
-          mode: "bilinear"
-        cfg_conv_1x1:
-          name: "Conv2d"
-          in_channels: "kwargs['in_channels']"
-          out_channels: "kwargs['out_channels']"
-          kernel_size: 1
-        cfg_ops:
-          SNConv2d_3x3:
-            name: "SNConv2d"
-            in_channels: "kwargs['in_channels']"
-            out_channels: "kwargs['out_channels']"
-            kernel_size: 3
-            padding: 1
-          Conv2d_3x3:
-            name: "Conv2d"
-            in_channels: "kwargs['in_channels']"
-            out_channels: "kwargs['out_channels']"
-            kernel_size: 3
-            padding: 1
-        cfg_out_bn:
-          name: "BatchNorm2d"
-          num_features: "kwargs['num_features']"
-        cfg_out_conv:
-          name: "Conv2d"
-          in_channels: "kwargs['in_channels']"
-          out_channels: 3
           kernel_size: 3
           padding: 1
+        DepthwiseSeparableConv2d_5x5:
+          name: "DepthwiseSeparableConv2d"
+          in_channels: "kwargs['in_channels']"
+          out_channels: "kwargs['out_channels']"
+          kernel_size: 5
+          padding: 2
+        DepthwiseSeparableConv2d_7x7:
+          name: "DepthwiseSeparableConv2d"
+          in_channels: "kwargs['in_channels']"
+          out_channels: "kwargs['out_channels']"
+          kernel_size: 7
+          padding: 3
+        Conv2d_3x3:
+          name: "Conv2d"
+          in_channels: "kwargs['in_channels']"
+          out_channels: "kwargs['out_channels']"
+          kernel_size: 3
+          padding: 1
+        Conv2d_5x5:
+          name: "Conv2d"
+          in_channels: "kwargs['in_channels']"
+          out_channels: "kwargs['out_channels']"
+          kernel_size: 5
+          padding: 2
+        Conv2d_7x7:
+          name: "Conv2d"
+          in_channels: "kwargs['in_channels']"
+          out_channels: "kwargs['out_channels']"
+          kernel_size: 7
+          padding: 3
+      cfg_out_bn:
+        name: "BatchNorm2d"
+        num_features: "kwargs['num_features']"
+      cfg_out_conv:
+        name: "Conv2d"
+        in_channels: "kwargs['in_channels']"
+        out_channels: 3
+        kernel_size: 3
+        padding: 1
     """
     default_cfg = EasyDict(yaml.safe_load(cfg_str))
     cfg = update_config(default_cfg, cfg)
@@ -530,6 +556,13 @@ class PAGANFairController(nn.Module):
     arcs = torch.cat(arcs, dim=1)
     batched_arcs = arcs.repeat(bs, 1)
     return batched_arcs
+
+  def fairnas_repeat_tensor(self, sample):
+    repeat_arg = [1] * (sample.dim() + 1)
+    repeat_arg[1] = self.num_branches
+    sample = sample.unsqueeze(1).repeat(repeat_arg)
+    sample = sample.view(-1, *sample.shape[2:])
+    return sample
 
 @D2MODEL_REGISTRY.register()
 class PAGANRLController(nn.Module):

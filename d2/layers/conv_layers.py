@@ -1,3 +1,5 @@
+from easydict import EasyDict
+import copy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -43,21 +45,21 @@ class Conv2d(nn.Conv2d):
   """
   def __init__(self, cfg, **kwargs):
 
-    self.in_channels                   = get_attr_kwargs(cfg, 'in_channels', **kwargs)
-    self.out_channels                  = get_attr_kwargs(cfg, 'out_channels', **kwargs)
-    self.kernel_size                   = get_attr_kwargs(cfg, 'kernel_size', **kwargs)
-    self.stride                        = get_attr_kwargs(cfg, 'stride', default=1, **kwargs)
-    self.padding                       = get_attr_kwargs(cfg, 'padding', default=0, **kwargs)
-    self.dilation                      = get_attr_kwargs(cfg, 'dilation', default=1, **kwargs)
-    self.groups                        = get_attr_kwargs(cfg, 'groups', default=1, **kwargs)
-    self.bias                          = get_attr_kwargs(cfg, 'bias', default=True, **kwargs)
-    self.padding_mode                  = get_attr_kwargs(cfg, 'padding_mode', default='zeros', **kwargs)
+    in_channels                   = get_attr_kwargs(cfg, 'in_channels', **kwargs)
+    out_channels                  = get_attr_kwargs(cfg, 'out_channels', **kwargs)
+    kernel_size                   = get_attr_kwargs(cfg, 'kernel_size', **kwargs)
+    stride                        = get_attr_kwargs(cfg, 'stride', default=1, **kwargs)
+    padding                       = get_attr_kwargs(cfg, 'padding', default=0, **kwargs)
+    dilation                      = get_attr_kwargs(cfg, 'dilation', default=1, **kwargs)
+    groups                        = get_attr_kwargs(cfg, 'groups', default=1, **kwargs)
+    bias                          = get_attr_kwargs(cfg, 'bias', default=True, **kwargs)
+    padding_mode                  = get_attr_kwargs(cfg, 'padding_mode', default='zeros', **kwargs)
 
 
-    super(Conv2d, self).__init__(in_channels=self.in_channels, out_channels=self.out_channels,
-                                 kernel_size=self.kernel_size, stride=self.stride, padding=self.padding,
-                                 dilation=self.dilation, groups=self.groups, bias=self.bias,
-                                 padding_mode=self.padding_mode)
+    super(Conv2d, self).__init__(in_channels=in_channels, out_channels=out_channels,
+                                 kernel_size=kernel_size, stride=stride, padding=padding,
+                                 dilation=dilation, groups=groups, bias=bias,
+                                 padding_mode=padding_mode)
 
   def forward(self, input, *args):
     x = super(Conv2d, self).forward(input)
@@ -77,3 +79,36 @@ class Linear(nn.Linear):
 
     super(Linear, self).__init__(in_features=in_features, out_features=out_features, bias=bias)
 
+
+@D2LAYER_REGISTRY.register()
+class DepthwiseSeparableConv2d(nn.Module):
+
+  def __init__(self, cfg, **kwargs):
+    super().__init__()
+
+    in_channels                     = get_attr_kwargs(cfg, 'in_channels', **kwargs)
+    out_channels                    = get_attr_kwargs(cfg, 'out_channels', **kwargs)
+    kernel_size                     = get_attr_kwargs(cfg, 'kernel_size', **kwargs)
+    stride                          = get_attr_kwargs(cfg, 'stride', default=1, **kwargs)
+    padding                         = get_attr_kwargs(cfg, 'padding', default=0, **kwargs)
+    dilation                        = get_attr_kwargs(cfg, 'dilation', default=1, **kwargs)
+    bias                            = get_attr_kwargs(cfg, 'bias', default=True, **kwargs)
+    padding_mode                    = get_attr_kwargs(cfg, 'padding_mode', default='zeros', **kwargs)
+
+    depthwise_conv_cfg = EasyDict(
+      in_channels=in_channels, out_channels=in_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+    dilation=dilation, groups=in_channels, bias=bias, padding_mode=padding_mode)
+    depthwise_conv = Conv2d(depthwise_conv_cfg)
+
+    pointwise_conv_cfg = EasyDict(
+      in_channels=in_channels, out_channels=out_channels, kernel_size=1, stride=1, padding=0,
+      dilation=1, groups=1, bias=bias, padding_mode=padding_mode)
+    pointwise_conv = Conv2d(pointwise_conv_cfg)
+
+    self.net = nn.Sequential(
+      depthwise_conv,
+      pointwise_conv
+    )
+
+  def forward(self, x, *args):
+    return self.net(x)

@@ -529,8 +529,8 @@ class TFFIDISScore(object):
     pred_ISs = np.concatenate(pred_ISs, 0)
     # sess.close()
 
-    pred_FIDs = self._gather_numpy_array(pred_FIDs)
-    pred_ISs = self._gather_numpy_array(pred_ISs)
+    pred_FIDs = self._gather_numpy_array(pred_FIDs[:num_inception_images])
+    pred_ISs = self._gather_numpy_array(pred_ISs[:num_inception_images])
     comm.synchronize()
     return pred_FIDs, pred_ISs
 

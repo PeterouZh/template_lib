@@ -92,7 +92,7 @@ class RAdamReg(RAdam):
 
   def __init__(self, cfg, **kwargs):
 
-    params            = get_attr_kwargs(cfg, 'params', **kwargs)
+    params            = kwargs['params']
     lr                = get_attr_kwargs(cfg, 'lr', default=1e-3, **kwargs)
     betas             = get_attr_kwargs(cfg, 'betas', default=(0.9, 0.999), **kwargs)
     eps               = get_attr_kwargs(cfg, 'eps', default=1e-8, **kwargs)
