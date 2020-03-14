@@ -16,7 +16,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import init
 
-from template_lib.utils import get_attr_kwargs, update_config, get_ddp_attr, AverageMeter
+from template_lib.utils import get_attr_kwargs, update_config, get_ddp_attr, AverageMeter, get_prefix_abb
 from template_lib.d2.utils import comm
 from template_lib.d2.layers import build_d2layer
 from template_lib.d2.models.build import D2MODEL_REGISTRY
@@ -565,13 +565,13 @@ class PAGANFairController(nn.Module):
     return sample
 
 @D2MODEL_REGISTRY.register()
-class PAGANRLController(nn.Module):
+class PAGANRLControllerLSTM(nn.Module):
   '''
   https://github.com/melodyguan/enas/blob/master/src/cifar10/general_controller.py
   '''
 
   def __init__(self, cfg, **kwargs):
-    super(PAGANRLController, self).__init__()
+    super(PAGANRLControllerLSTM, self).__init__()
 
     cfg = self.update_cfg(cfg)
 
@@ -589,9 +589,11 @@ class PAGANRLController(nn.Module):
     self.bl_dec                  = get_attr_kwargs(cfg, 'bl_dec', **kwargs)
     self.child_grad_bound        = get_attr_kwargs(cfg, 'child_grad_bound', **kwargs)
     self.log_every_iter          = get_attr_kwargs(cfg, 'log_every_iter', default=50, **kwargs)
+    self.cfg_ops                 = get_attr_kwargs(cfg, 'cfg_ops', **kwargs)
 
     self.device = torch.device(f'cuda:{comm.get_rank()}')
     self.baseline = None
+    self.logger = logging.getLogger('tl')
     self._create_params()
     self._reset_params()
 
@@ -655,6 +657,7 @@ class PAGANRLController(nn.Module):
     entropys = []
     log_probs = []
 
+    self.op_dist = []
     for layer_id in range(self.num_layers):
       if self.search_whole_channels:
         inputs = self.w_emb.weight[[layer_id]]
@@ -670,6 +673,8 @@ class PAGANRLController(nn.Module):
           logit = self.tanh_constant * torch.tanh(logit)
 
         branch_id_dist = Categorical(logits=logit)
+        self.op_dist.append(branch_id_dist)
+
         if determine_sample:
           branch_id = logit.argmax(dim=1)
         else:
@@ -717,7 +722,7 @@ class PAGANRLController(nn.Module):
     sample_log_prob = get_ddp_attr(controller, 'sample_log_prob')
 
     pool_list, logits_list = [], []
-    for i in range(get_ddp_attr(controller, 'num_aggregate')):
+    for i in range(self.num_aggregate):
       z_samples = z.sample().to(self.device)
       y_samples = y.sample().to(self.device)
       with torch.set_grad_enabled(False):
@@ -781,48 +786,29 @@ class PAGANRLController(nn.Module):
     comm.synchronize()
     return
 
-  def train_(self, G, z, gy, train_C=False, train_G=True,
-                 fixed_arc=None, same_in_batch=True,
-                 return_sample_entropy=False,
-                 return_sample_log_prob=False,
-                 determine_sample=False,
-                 return_sample_arc=False,
-                 cbn=False):
+  def print_distribution(self, iteration):
+    # remove formats
+    org_formatters = []
+    for handler in self.logger.handlers:
+      org_formatters.append(handler.formatter)
+      handler.setFormatter(logging.Formatter("%(message)s"))
 
-    if fixed_arc is not None:
-      fixed_arc = torch.from_numpy(fixed_arc).cuda()
-      self.sample_arc = fixed_arc[gy]
-    else:
-      with torch.set_grad_enabled(train_C):
-        if same_in_batch:
-          y_range = torch.arange(
-            0, get_ddp_attr(self, 'n_classes'), dtype=torch.int64)
-          self(y_range, determine_sample=determine_sample)
-          self.sample_arc = get_ddp_attr(self, 'sample_arc')[gy]
-        else:
-          self(gy, determine_sample=determine_sample)
-          self.sample_arc = get_ddp_attr(self, 'sample_arc')
+    default_dict = collections.defaultdict(dict)
+    self.logger.info("####### distribution #######")
+    for layer_id, op_dist in enumerate(self.op_dist):
+      prob = op_dist.probs
+      for op_id, op_name in enumerate(self.cfg_ops.keys()):
+        op_prob = prob[0][op_id]
+        default_dict[f'L{layer_id}'][get_prefix_abb(op_name)] = op_prob.item()
 
-    with torch.set_grad_enabled(train_G):
-      if cbn:
-        x = G(z, gy, self.sample_arc)
-      else:
-        # x = nn.parallel.data_parallel(G, (z, self.sample_arc))
-        x = G(z, self.sample_arc)
+      self.logger.info(prob)
+    summary_defaultdict2txtfig(default_dict=default_dict, prefix='', step=iteration,
+                               textlogger=self.myargs.textlogger)
+    self.logger.info("#####################")
 
-    out = x
-    ret_out = (out,)
-    if return_sample_entropy:
-      sample_entropy = get_ddp_attr(self, 'sample_entropy')
-      ret_out = ret_out + (sample_entropy,)
-    if return_sample_log_prob:
-      sample_log_prob = get_ddp_attr(self, 'sample_log_prob')
-      ret_out = ret_out + (sample_log_prob,)
-    if return_sample_arc:
-      ret_out = ret_out + (self.sample_arc,)
-    if len(ret_out) == 1:
-      return ret_out[0]
-    return ret_out
+    # restore formats
+    for handler, formatter in zip(self.logger.handlers, org_formatters):
+      handler.setFormatter(formatter)
 
 
 
