@@ -13,6 +13,10 @@ class MatPlot(object):
     import matplotlib.pyplot as plt
     # R style
     plt.style.use(style)
+    plt.rcParams['axes.prop_cycle'] = plt.cycler(
+      color=['blue', 'green', 'red', 'cyan', 'magenta', 'black', 'orange', 'lime', 'tan', 'salmon', 'gold', 'darkred',
+             'darkblue'])
+
     pass
 
   def get_fig_and_ax(self, nrows=1, ncols=1, ravel=False, fig_w_h=(6.4, 4.8)):
