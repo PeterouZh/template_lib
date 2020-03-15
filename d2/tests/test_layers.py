@@ -216,3 +216,48 @@ class TestingLayers(unittest.TestCase):
     g = torchviz.make_dot(y)
     g.view()
     pass
+
+  def test_CondInstanceNorm2d(self):
+    """
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'PORT' not in os.environ:
+      os.environ['PORT'] = '6006'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
+    # func name
+    assert sys._getframe().f_code.co_name.startswith('test_')
+    command = sys._getframe().f_code.co_name[5:]
+    class_name = self.__class__.__name__[7:] \
+      if self.__class__.__name__.startswith('Testing') \
+      else self.__class__.__name__
+    outdir = f'results/{class_name}/{command}'
+    import yaml
+    from template_lib.d2.layers import build_d2layer
+
+    cfg_str = """
+          name: "CondInstanceNorm2d"
+          in_features: "kwargs['in_features']"
+          out_features: "kwargs['out_features']"
+          cfg_fc:
+            name: "Linear"
+            in_features: "kwargs['in_features']"
+            out_features: "kwargs['out_features']"
+    """
+    cfg = EasyDict(yaml.safe_load(cfg_str))
+
+    bs = 2
+    in_features = out_features = 8
+
+    op = build_d2layer(cfg, in_features=in_features, out_features=out_features)
+    op.cuda()
+    x = torch.randn(bs, in_features, 32, 32).cuda()
+    y = torch.randn(bs, in_features).cuda()
+
+    x = op(x, y)
+
+    import torchviz
+    g = torchviz.make_dot(x)
+    g.view()
+    pass

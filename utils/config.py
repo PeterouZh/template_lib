@@ -257,7 +257,11 @@ def update_config(super_config, config, overwrite_opts=True):
       ret_config[k] = update_opts(super_config[k], config[k])
     # merge dict element-wise
     elif isinstance(config[k], dict) and hasattr(super_config, k):
-      sub_config = update_config(super_config[k], config[k])
+      if getattr(config[k], 'overwrite', False):
+        sub_config = copy.deepcopy(config[k])
+        sub_config.pop('overwrite')
+      else:
+        sub_config = update_config(super_config[k], config[k])
       setattr(ret_config, k, sub_config)
     else:
       setattr(ret_config, k, config[k])
