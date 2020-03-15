@@ -707,12 +707,15 @@ class PAGANRLControllerLSTM(nn.Module):
     sampled_arc = self.sample_arc.detach()
     return sampled_arc
 
-  def train_controller(self, G, z, y, controller, controller_optim, iteration):
+  def train_controller(self, G, z, y, controller, controller_optim, iteration, pbar):
     """
 
     :param controller: for ddp training
     :return:
     """
+    if comm.is_main_process() and iteration % 1000 == 0:
+      pbar.set_postfix_str("PAGANRLCondControllerLSTM")
+
     meter_dict = {}
 
     G.eval()
@@ -801,13 +804,21 @@ class PAGANRLControllerLSTM(nn.Module):
 
     default_dict = collections.defaultdict(dict)
     self.logger.info("####### distribution #######")
+    searched_arc = []
     for layer_id, op_dist in enumerate(self.op_dist):
       prob = op_dist.probs
+      max_op_id = prob.argmax().item()
+      searched_arc.append(max_op_id)
       for op_id, op_name in enumerate(self.cfg_ops.keys()):
         op_prob = prob[0][op_id]
         default_dict[f'L{layer_id}'][get_prefix_abb(op_name)] = op_prob.item()
 
       self.logger.info(prob)
+    searched_arc = np.array(searched_arc)
+    self.logger.info('\nsearched arcs: \n%s' % searched_arc)
+    self.myargs.textlogger.logstr(iteration,
+                                  searched_arc='\n' + np.array2string(searched_arc, threshold=np.inf))
+
     summary_defaultdict2txtfig(default_dict=default_dict, prefix='', step=iteration,
                                textlogger=self.myargs.textlogger)
     self.logger.info("#####################")
@@ -882,12 +893,14 @@ class PAGANRLCondControllerLSTMFair(PAGANRLControllerLSTM):
     _, sampled_arc = self.get_fair_path(bs=1)
     return sampled_arc
 
-  def train_controller(self, G, z, y, controller, controller_optim, iteration):
+  def train_controller(self, G, z, y, controller, controller_optim, iteration, pbar):
     """
 
     :param controller: for ddp training
     :return:
     """
+    if comm.is_main_process() and iteration % 1000 == 0:
+      pbar.set_postfix_str("PAGANRLCondControllerLSTMFair")
     meter_dict = {}
 
     G.eval()
