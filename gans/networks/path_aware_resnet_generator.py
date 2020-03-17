@@ -1070,7 +1070,12 @@ class PAGANRLControllerAlphaFair(nn.Module):
     return batched_arcs, fair_arcs
 
   def get_sampled_arc(self):
-    _, sampled_arc = self.get_fair_path(bs=1)
+    sampled_arc = []
+    for layer_id, op_dist in enumerate(self.op_dist):
+      sampled_op = op_dist.sample().view(-1, 1)
+      sampled_arc.append(sampled_op)
+
+    sampled_arc = torch.cat(sampled_arc, dim=1)
     return sampled_arc
 
   def train_controller(self, G, z, y, controller, controller_optim, iteration, pbar):
@@ -1201,6 +1206,94 @@ class PAGANRLControllerAlphaFair(nn.Module):
     # restore formats
     for handler, formatter in zip(self.logger.handlers, org_formatters):
       handler.setFormatter(formatter)
+
+
+@D2MODEL_REGISTRY.register()
+class PAGANRLNoBaselineControllerAlphaFair(PAGANRLControllerAlphaFair):
+
+  def train_controller(self, G, z, y, controller, controller_optim, iteration, pbar):
+    """
+
+    :param controller: for ddp training
+    :return:
+    """
+    if comm.is_main_process() and iteration % 1000 == 0:
+      pbar.set_postfix_str("PAGANRLNoBaselineControllerAlphaFair")
+    meter_dict = {}
+
+    G.eval()
+    controller.train()
+
+    controller.zero_grad()
+
+    z_samples = z.sample()
+    bs = len(z_samples) // self.num_branches
+
+    batched_arcs, fair_arcs = self.get_fair_path(bs=bs)
+
+    controller(fair_arcs=fair_arcs)
+    sample_entropy = get_ddp_attr(controller, 'sample_entropy')
+    sample_log_prob = get_ddp_attr(controller, 'sample_log_prob')
+
+    pool_list, logits_list = [], []
+    for i in range(self.num_aggregate):
+      z_samples = z.sample().to(self.device)
+      y_samples = y.sample().to(self.device)
+      with torch.set_grad_enabled(False):
+        x = G(z=z_samples, y=y_samples, batched_arcs=batched_arcs)
+
+      pool, logits = self.FID_IS.get_pool_and_logits(x)
+
+      # pool_list.append(pool)
+      logits_list.append(logits)
+
+    # pool = np.concatenate(pool_list, 0)
+    logits = np.concatenate(logits_list, 0)
+
+    fair_reward_g = []
+    num_arcs = len(fair_arcs)
+    for i in range(num_arcs):
+      logits_i = logits[i::num_arcs]
+      reward_g, _ = self.FID_IS.calculate_IS(logits_i)
+      fair_reward_g.append(reward_g)
+
+    meter_dict['fair_reward_g_mean'] = sum(fair_reward_g) / num_arcs
+
+    # detach to make sure that gradients aren't backpropped through the reward
+    fair_reward = torch.tensor(fair_reward_g).cuda().view(-1, 1)
+
+    sample_entropy_mean = sample_entropy.mean()
+    meter_dict['sample_entropy'] = sample_entropy_mean.item()
+    fair_reward += self.entropy_weight * sample_entropy_mean.view(1, 1)
+
+    sample_log_prob_mean = sample_log_prob.mean(dim=1, keepdim=True)
+    meter_dict['sample_log_prob'] = sample_log_prob_mean.mean().item()
+    loss = -1 * sample_log_prob_mean * (fair_reward)
+    loss = loss.mean()
+
+    meter_dict['reward'] = fair_reward.mean().item()
+    meter_dict['loss'] = loss.item()
+
+    loss.backward(retain_graph=False)
+
+    grad_norm = torch.nn.utils.clip_grad_norm_(controller.parameters(), self.child_grad_bound)
+    meter_dict['grad_norm'] = grad_norm
+
+    controller_optim.step()
+
+    if iteration % self.log_every_iter == 0:
+      default_dicts = collections.defaultdict(dict)
+      for meter_k, meter in meter_dict.items():
+        if meter_k in ['reward', 'baseline']:
+          default_dicts['reward_baseline'][meter_k] = meter
+        else:
+          default_dicts[meter_k][meter_k] = meter
+      summary_defaultdict2txtfig(default_dict=default_dicts,
+                                 prefix='train_controller',
+                                 step=iteration,
+                                 textlogger=self.myargs.textlogger)
+    comm.synchronize()
+    return
 
 
 @D2MODEL_REGISTRY.register()
