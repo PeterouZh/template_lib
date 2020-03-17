@@ -33,8 +33,8 @@ def print_number_params(models_dict):
     ))
 
 
-def get_ddp_attr(obj, attr, default=None):
-  return getattr(getattr(obj, 'module', obj), attr, default)
+def get_ddp_attr(obj, attr, **kwargs):
+  return getattr(getattr(obj, 'module', obj), attr, **kwargs)
 
 
 def get_ddp_module(model):
@@ -67,6 +67,8 @@ def get_attr_kwargs(obj, name, **kwargs):
     value = getattr(obj, name)
     if isinstance(value, str) and value.startswith('kwargs['):
       value = eval(value)
+  elif name in kwargs:
+    value = kwargs[name]
   else:
     value = kwargs['default']
   return value

@@ -1,15 +1,17 @@
+from easydict import EasyDict
 import functools
 import torch
 from torch import nn
 
-from template_lib.utils import get_eval_attr
+from template_lib.utils import get_eval_attr, get_attr_kwargs
+from template_lib.d2.layers import build_d2layer
+from template_lib.d2.utils import comm
 
 from .pagan.layers import SNEmbedding
 
 from .building_blocks import Cell, DisBlock, OptimizedDisBlock
 from .build import DISCRIMINATOR_REGISTRY, GENERATOR_REGISTRY
-
-__all__ = ['AutoGANCIFAR10AGenerator', 'AutoGANCIFAR10ADiscriminator']
+from .autogan_cifar10_utils import MixedCell
 
 
 @GENERATOR_REGISTRY.register()
@@ -42,26 +44,27 @@ class AutoGANCIFAR10AGenerator(nn.Module):
 
 @DISCRIMINATOR_REGISTRY.register()
 class AutoGANCIFAR10ADiscriminator(nn.Module):
-    def __init__(self, cfg, activation=nn.ReLU()):
+    def __init__(self, cfg, **kwargs):
         super(AutoGANCIFAR10ADiscriminator, self).__init__()
 
-        self.ch                    = cfg.model.discriminator.ch * 4
-        self.d_spectral_norm       = cfg.model.discriminator.d_spectral_norm
-        self.init_type             = getattr(cfg.model.discriminator, 'init_type', 'xavier_uniform')
+        self.ch                    = get_attr_kwargs(cfg, 'ch', default=128, **kwargs)
+        self.d_spectral_norm       = get_attr_kwargs(cfg, 'd_spectral_norm', default=True, **kwargs)
+        self.init_type             = get_attr_kwargs(cfg, 'init_type', default='xavier_uniform', **kwargs)
+        self.cfg_act               = get_attr_kwargs(cfg, 'cfg_act', default=EasyDict(name='ReLU'), **kwargs)
 
-        self.activation = activation
+        self.activation            = build_d2layer(cfg=self.cfg_act)
 
         self.block1 = OptimizedDisBlock(d_spectral_norm=self.d_spectral_norm,
                                         in_channels=3, out_channels=self.ch)
         self.block2 = DisBlock(d_spectral_norm=self.d_spectral_norm,
                                in_channels=self.ch, out_channels=self.ch,
-                               activation=activation, downsample=True)
+                               activation=self.activation, downsample=True)
         self.block3 = DisBlock(d_spectral_norm=self.d_spectral_norm,
                                in_channels=self.ch, out_channels=self.ch,
-                               activation=activation, downsample=False)
+                               activation=self.activation, downsample=False)
         self.block4 = DisBlock(d_spectral_norm=self.d_spectral_norm,
                                in_channels=self.ch, out_channels=self.ch,
-                               activation=activation, downsample=False)
+                               activation=self.activation, downsample=False)
         layers = [self.block1, self.block2, self.block3]
         model = nn.Sequential(*layers)
         self.model = model
@@ -176,42 +179,72 @@ class AutoGANCIFAR10ADiscriminatorCProj(nn.Module):
             nn.init.constant_(m.bias.data, 0.0)
 
 
-def test_autogan_cifar10_a_Generator(args1, myargs):
-    import cfg, os, torch
-    import numpy as np
-    myargs.config = getattr(myargs.config, 'train_autogan_cifar10_a')
-    myargs.args = args1
-    args = cfg.parse_args()
-    for k, v in myargs.config.items():
-        setattr(args, k, v)
+@GENERATOR_REGISTRY.register()
+class PathAwareAutoGANCIFAR10AGenerator(nn.Module):
+    def __init__(self, cfg, **kwargs):
+        super(PathAwareAutoGANCIFAR10AGenerator, self).__init__()
 
-    args.tf_inception_model_dir = os.path.expanduser(
-        args.tf_inception_model_dir)
-    args.fid_stat = os.path.expanduser(args.fid_stat)
-    args.data_path = os.path.expanduser(args.data_path)
+        self.ch                 = get_attr_kwargs(cfg, 'ch', default=256, **kwargs)
+        self.bottom_width       = get_attr_kwargs(cfg, 'bottom_width', default=4, **kwargs)
+        self.latent_dim         = get_attr_kwargs(cfg, 'latent_dim', default=128, **kwargs)
+        self.init_type          = get_attr_kwargs(cfg, 'init_type', default='xavier_uniform', **kwargs)
 
-    gen_net = Generator(args=args).cuda()
-    z = torch.cuda.FloatTensor(
-        np.random.normal(0, 1, (16, args.latent_dim)))
-    x = gen_net(z)
+        self.num_branches = len(cfg.cfg_ops)
+        self.num_layers = 6
+        self.dim_z = self.latent_dim
+        self.device = torch.device(f'cuda:{comm.get_rank()}')
 
-    import torchviz
-    g = torchviz.make_dot(x)
-    g.view()
-    pass
+        self.l1 = nn.Linear(self.latent_dim, (self.bottom_width ** 2) * self.ch)
+        self.cell1 = MixedCell(cfg=cfg.cfg_mixedcell, in_channels=self.ch, out_channels=self.ch,
+                               up_mode='nearest', num_skip_in=0, short_cut=True, cfg_ops=cfg.cfg_ops)
+        self.cell2 = MixedCell(cfg=cfg.cfg_mixedcell, in_channels=self.ch, out_channels=self.ch,
+                               up_mode='bilinear', num_skip_in=1, short_cut=True, cfg_ops=cfg.cfg_ops)
+        self.cell3 = MixedCell(cfg=cfg.cfg_mixedcell, in_channels=self.ch, out_channels=self.ch,
+                               up_mode='nearest', num_skip_in=2, short_cut=False, cfg_ops=cfg.cfg_ops)
+        self.to_rgb = nn.Sequential(
+            nn.BatchNorm2d(self.ch),
+            nn.ReLU(),
+            nn.Conv2d(self.ch, 3, 3, 1, 1),
+            nn.Tanh()
+        )
 
+        weights_init_func = functools.partial(self.weights_init, init_type=self.init_type)
+        self.apply(weights_init_func)
 
-def test_autogan_cifar10_a_Discriminator(args1, myargs):
-    import cfg, os, torch
-    import numpy as np
-    args = getattr(myargs.config, 'test_autogan_cifar10_a_Discriminator')
+    def forward(self, z, batched_arcs, *args, **kwargs):
+        batched_arcs = batched_arcs.to(self.device)
+        z = z.to(self.device)
 
-    dis_net = Discriminator(args=args).cuda()
-    x = torch.cuda.FloatTensor(np.random.normal(0, 1, (16, 3, 32, 32)))
-    x = dis_net(x)
+        h = self.l1(z).view(-1, self.ch, self.bottom_width, self.bottom_width)
+        sample_arc1 = batched_arcs[:, 0]
+        sample_arc2 = batched_arcs[:, 1]
+        h1_skip_out, h1 = self.cell1(h, sample_arc1=sample_arc1, sample_arc2=sample_arc2)
 
-    import torchviz
-    g = torchviz.make_dot(x)
-    g.view()
-    pass
+        sample_arc1 = batched_arcs[:, 2]
+        sample_arc2 = batched_arcs[:, 3]
+        h2_skip_out, h2 = self.cell2(h1, sample_arc1=sample_arc1, sample_arc2=sample_arc2, skip_ft=(h1_skip_out, ))
+
+        sample_arc1 = batched_arcs[:, 4]
+        sample_arc2 = batched_arcs[:, 5]
+        _, h3 = self.cell3(h2, sample_arc1=sample_arc1, sample_arc2=sample_arc2, skip_ft=(h1_skip_out, h2_skip_out))
+        output = self.to_rgb(h3)
+
+        return output
+
+    @staticmethod
+    def weights_init(m, init_type='orth'):
+
+        if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear) or isinstance(m, nn.Embedding):
+            if init_type == 'normal':
+                nn.init.normal_(m.weight.data, 0.0, 0.02)
+            elif init_type == 'orth':
+                nn.init.orthogonal_(m.weight.data)
+            elif init_type == 'xavier_uniform':
+                nn.init.xavier_uniform(m.weight.data, 1.)
+            else:
+                raise NotImplementedError(
+                    '{} unknown inital type'.format(init_type))
+        elif (isinstance(m, nn.BatchNorm2d)):
+            nn.init.normal_(m.weight.data, 1.0, 0.02)
+            nn.init.constant_(m.bias.data, 0.0)
 
