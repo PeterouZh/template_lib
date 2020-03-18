@@ -11,7 +11,7 @@ from .pagan.layers import SNEmbedding
 
 from .building_blocks import Cell, DisBlock, OptimizedDisBlock
 from .build import DISCRIMINATOR_REGISTRY, GENERATOR_REGISTRY
-from .autogan_cifar10_utils import MixedCell
+from .autogan_cifar10_utils import MixedCell, MixedActCell
 
 
 @GENERATOR_REGISTRY.register()
@@ -248,3 +248,76 @@ class PathAwareAutoGANCIFAR10AGenerator(nn.Module):
             nn.init.normal_(m.weight.data, 1.0, 0.02)
             nn.init.constant_(m.bias.data, 0.0)
 
+
+@GENERATOR_REGISTRY.register()
+class SearchActAutoGANCIFAR10AGenerator(nn.Module):
+    def __init__(self, cfg, **kwargs):
+        super(SearchActAutoGANCIFAR10AGenerator, self).__init__()
+
+        self.ch                 = get_attr_kwargs(cfg, 'ch', default=256, **kwargs)
+        self.bottom_width       = get_attr_kwargs(cfg, 'bottom_width', default=4, **kwargs)
+        self.latent_dim         = get_attr_kwargs(cfg, 'latent_dim', default=128, **kwargs)
+        self.init_type          = get_attr_kwargs(cfg, 'init_type', default='xavier_uniform', **kwargs)
+        self.cfg_ops            = get_attr_kwargs(cfg, 'cfg_ops', **kwargs)
+
+        self.num_branches = len(cfg.cfg_ops)
+        self.num_layers = 6
+        self.dim_z = self.latent_dim
+        self.device = torch.device(f'cuda:{comm.get_rank()}')
+
+        self.l1 = nn.Linear(self.latent_dim, (self.bottom_width ** 2) * self.ch)
+        self.cell1 = MixedActCell(cfg=cfg.cfg_mixedcell, in_channels=self.ch, out_channels=self.ch,
+                                  up_mode='nearest', num_skip_in=0, short_cut=True,
+                                  cfg_ops=self.cfg_ops)
+        self.cell2 = MixedActCell(cfg=cfg.cfg_mixedcell, in_channels=self.ch, out_channels=self.ch,
+                                  up_mode='bilinear', num_skip_in=1, short_cut=True,
+                                  cfg_ops=self.cfg_ops)
+        self.cell3 = MixedActCell(cfg=cfg.cfg_mixedcell, in_channels=self.ch, out_channels=self.ch,
+                                  up_mode='nearest', num_skip_in=2, short_cut=False,
+                                  cfg_ops=self.cfg_ops)
+        self.to_rgb = nn.Sequential(
+            nn.BatchNorm2d(self.ch),
+            nn.ReLU(),
+            nn.Conv2d(self.ch, 3, 3, 1, 1),
+            nn.Tanh()
+        )
+
+        weights_init_func = functools.partial(self.weights_init, init_type=self.init_type)
+        self.apply(weights_init_func)
+
+    def forward(self, z, batched_arcs, *args, **kwargs):
+        batched_arcs = batched_arcs.to(self.device)
+        z = z.to(self.device)
+
+        h = self.l1(z).view(-1, self.ch, self.bottom_width, self.bottom_width)
+        sample_arc1 = batched_arcs[:, 0]
+        sample_arc2 = batched_arcs[:, 1]
+        h1_skip_out, h1 = self.cell1(h, sample_arc1=sample_arc1, sample_arc2=sample_arc2)
+
+        sample_arc1 = batched_arcs[:, 2]
+        sample_arc2 = batched_arcs[:, 3]
+        h2_skip_out, h2 = self.cell2(h1, sample_arc1=sample_arc1, sample_arc2=sample_arc2, skip_ft=(h1_skip_out, ))
+
+        sample_arc1 = batched_arcs[:, 4]
+        sample_arc2 = batched_arcs[:, 5]
+        _, h3 = self.cell3(h2, sample_arc1=sample_arc1, sample_arc2=sample_arc2, skip_ft=(h1_skip_out, h2_skip_out))
+        output = self.to_rgb(h3)
+
+        return output
+
+    @staticmethod
+    def weights_init(m, init_type='orth'):
+
+        if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear) or isinstance(m, nn.Embedding):
+            if init_type == 'normal':
+                nn.init.normal_(m.weight.data, 0.0, 0.02)
+            elif init_type == 'orth':
+                nn.init.orthogonal_(m.weight.data)
+            elif init_type == 'xavier_uniform':
+                nn.init.xavier_uniform(m.weight.data, 1.)
+            else:
+                raise NotImplementedError(
+                    '{} unknown inital type'.format(init_type))
+        elif (isinstance(m, nn.BatchNorm2d)):
+            nn.init.normal_(m.weight.data, 1.0, 0.02)
+            nn.init.constant_(m.bias.data, 0.0)

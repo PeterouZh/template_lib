@@ -83,6 +83,42 @@ class MixedLayer(nn.Module):
 
 
 @D2LAYER_REGISTRY.register()
+class MixedActLayer(nn.Module):
+
+  def __init__(self, cfg, **kwargs):
+    super(MixedActLayer, self).__init__()
+
+    self.out_channels                = get_attr_kwargs(cfg, 'out_channels', **kwargs)
+    self.cfg_ops                     = get_attr_kwargs(cfg, 'cfg_ops', **kwargs)
+
+    self.num_branch = len(self.cfg_ops)
+
+    self.branches = nn.ModuleList()
+    for name, cfg_op in self.cfg_ops.items():
+      branch = build_d2layer(cfg_op, **kwargs)
+      self.branches.append(branch)
+    pass
+
+  def forward(self, x, sample_arc):
+    bs = len(sample_arc)
+    sample_arc = sample_arc.type(torch.int64)
+
+    sample_arc_onehot = torch.zeros(bs, self.num_branch).cuda()
+    sample_arc_onehot[torch.arange(bs), sample_arc] = 1
+    sample_arc_onehot = sample_arc_onehot.view(bs, self.num_branch, 1, 1, 1)
+
+    x = [branch(x).unsqueeze(1) if idx in sample_arc else \
+           (torch.zeros(bs, self.out_channels, x.size(-1), x.size(-1)).cuda().requires_grad_(False).unsqueeze(1)) \
+         for idx, branch in enumerate(self.branches)]
+    # x = [branch(x, y).unsqueeze(1) for branch in self.branches]
+    x = torch.cat(x, 1)
+    x = sample_arc_onehot * x
+    x = x.sum(dim=1)
+
+    return x
+
+
+@D2LAYER_REGISTRY.register()
 class NormActConv(nn.Module):
   def __init__(self, cfg, **kwargs):
     super(NormActConv, self).__init__()
