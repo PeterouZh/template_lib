@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from template_lib.d2.layers.build import D2LAYER_REGISTRY
+from template_lib.d2.layers.build import D2LAYER_REGISTRY, build_d2layer
 from template_lib.utils import get_attr_kwargs
 
 from .pagan_layers_utils import SN
@@ -112,3 +112,44 @@ class DepthwiseSeparableConv2d(nn.Module):
 
   def forward(self, x, *args):
     return self.net(x)
+
+
+@D2LAYER_REGISTRY.register()
+class ActConv2d(nn.Module):
+
+  def __init__(self, cfg, **kwargs):
+    super(ActConv2d, self).__init__()
+
+    cfg_act                   = get_attr_kwargs(cfg, 'cfg_act', **kwargs)
+    cfg_conv                  = get_attr_kwargs(cfg, 'cfg_conv', **kwargs)
+
+    self.act = build_d2layer(cfg_act, **kwargs)
+    self.conv = build_d2layer(cfg_conv, **kwargs)
+
+
+  def forward(self, x):
+    x = self.act(x)
+    x = self.conv(x)
+    return x
+
+
+@D2LAYER_REGISTRY.register()
+class BNActConv2d(nn.Module):
+
+  def __init__(self, cfg, **kwargs):
+    super(BNActConv2d, self).__init__()
+
+    cfg_bn                    = get_attr_kwargs(cfg, 'cfg_bn', **kwargs)
+    cfg_act                   = get_attr_kwargs(cfg, 'cfg_act', **kwargs)
+    cfg_conv                  = get_attr_kwargs(cfg, 'cfg_conv', **kwargs)
+
+    self.bn = build_d2layer(cfg_bn, num_features=kwargs['in_channels'], **kwargs)
+    self.act = build_d2layer(cfg_act, **kwargs)
+    self.conv = build_d2layer(cfg_conv, **kwargs)
+
+
+  def forward(self, x):
+    x = self.bn(x)
+    x = self.act(x)
+    x = self.conv(x)
+    return x

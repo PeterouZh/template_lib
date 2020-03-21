@@ -27,7 +27,7 @@ class HingeLossCond(object):
     self.device = torch.device(f'cuda:{comm.get_rank()}')
     pass
 
-  def __call__(self, images, labels, z, iteration, **kwargs):
+  def __call__(self, images, labels, z, iteration, ema=None, **kwargs):
     """
 
     :param images:
@@ -84,6 +84,9 @@ class HingeLossCond(object):
 
       g_loss.backward()
       self.G_optim.step()
+
+      if ema is not None:
+        ema.update(iteration)
 
     if iteration % self.log_every == 0:
       Trainer.summary_defaultdict2txtfig(default_dict=summary_d,

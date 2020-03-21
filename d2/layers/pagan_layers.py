@@ -1,9 +1,10 @@
+import yaml
+from easydict import EasyDict
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
-from template_lib.utils import get_attr_kwargs
+from template_lib.utils import get_attr_kwargs, update_config
 
 from .build import D2LAYER_REGISTRY, build_d2layer
 
@@ -14,9 +15,9 @@ class MixedLayerCond(nn.Module):
   def __init__(self, cfg, **kwargs):
     super(MixedLayerCond, self).__init__()
 
-    self.in_channels                 = get_attr_kwargs(cfg, 'in_channels', **kwargs)
-    self.out_channels                = get_attr_kwargs(cfg, 'out_channels', **kwargs)
-    self.cfg_ops                     = get_attr_kwargs(cfg, 'cfg_ops', **kwargs)
+    self.in_channels = get_attr_kwargs(cfg, 'in_channels', **kwargs)
+    self.out_channels = get_attr_kwargs(cfg, 'out_channels', **kwargs)
+    self.cfg_ops = get_attr_kwargs(cfg, 'cfg_ops', **kwargs)
 
     self.num_branch = len(self.cfg_ops)
 
@@ -51,9 +52,9 @@ class MixedLayer(nn.Module):
   def __init__(self, cfg, **kwargs):
     super(MixedLayer, self).__init__()
 
-    self.in_channels                 = get_attr_kwargs(cfg, 'in_channels', **kwargs)
-    self.out_channels                = get_attr_kwargs(cfg, 'out_channels', **kwargs)
-    self.cfg_ops                     = get_attr_kwargs(cfg, 'cfg_ops', **kwargs)
+    self.in_channels = get_attr_kwargs(cfg, 'in_channels', **kwargs)
+    self.out_channels = get_attr_kwargs(cfg, 'out_channels', **kwargs)
+    self.cfg_ops = get_attr_kwargs(cfg, 'cfg_ops', **kwargs)
 
     self.num_branch = len(self.cfg_ops)
 
@@ -88,8 +89,8 @@ class MixedActLayer(nn.Module):
   def __init__(self, cfg, **kwargs):
     super(MixedActLayer, self).__init__()
 
-    self.out_channels                = get_attr_kwargs(cfg, 'out_channels', **kwargs)
-    self.cfg_ops                     = get_attr_kwargs(cfg, 'cfg_ops', **kwargs)
+    self.out_channels = get_attr_kwargs(cfg, 'out_channels', **kwargs)
+    self.cfg_ops = get_attr_kwargs(cfg, 'cfg_ops', **kwargs)
 
     self.num_branch = len(self.cfg_ops)
 
@@ -119,35 +120,98 @@ class MixedActLayer(nn.Module):
 
 
 @D2LAYER_REGISTRY.register()
-class NormActConv(nn.Module):
+class DenseCell(nn.Module):
+
   def __init__(self, cfg, **kwargs):
-    super(NormActConv, self).__init__()
+    super().__init__()
 
-    self.C_in                          = get_attr_kwargs(cfg, 'C_in', **kwargs)
-    self.C_out                         = get_attr_kwargs(cfg, 'C_out', **kwargs)
-    self.kernel_size                   = get_attr_kwargs(cfg, 'kernel_size', **kwargs)
-    self.stride                        = get_attr_kwargs(cfg, 'stride', default=1, **kwargs)
-    self.padding                       = get_attr_kwargs(cfg, 'padding', default=1, **kwargs)
-    self.dilation                      = get_attr_kwargs(cfg, 'dilation', default=1, **kwargs)
-    self.weight                        = get_attr_kwargs(cfg, 'weight', default=None, **kwargs)
-    self.bias                          = get_attr_kwargs(cfg, 'bias', default=None, **kwargs)
-    self.which_act                     = get_attr_kwargs(cfg, 'which_act', default=nn.ReLU, **kwargs)
-    self.sn_num_svs                    = getattr(cfg, 'sn_num_svs', 1)
-    self.sn_num_itrs                   = getattr(cfg, 'sn_num_itrs', 1)
-    self.sn_eps                        = getattr(cfg, 'sn_eps', 1e-6)
-    self.cfg_bn                        = cfg.cfg_bn
-    self.cfg_act                       = cfg.cfg_act
-    self.cfg_conv                       = cfg.cfg_conv
+    cfg = self.update_cfg(cfg)
 
-    self.bn = build_d2layer(self.cfg_bn, num_features=self.C_in)
-    self.act = build_d2layer(self.cfg_act)
-    self.conv = build_d2layer(self.cfg_conv, )
-    raise NotImplemented
+    self.in_channels            = get_attr_kwargs(cfg, 'in_channels', **kwargs)
+    self.out_channels           = get_attr_kwargs(cfg, 'out_channels', **kwargs)
+    self.n_nodes                = get_attr_kwargs(cfg, 'n_nodes', **kwargs)
+    self.cfg_mix_layer          = get_attr_kwargs(cfg, 'cfg_mix_layer', **kwargs)
+    self.cfg_ops                = get_attr_kwargs(cfg, 'cfg_ops', **kwargs)
+    self.cell_op_idx            = get_attr_kwargs(cfg, 'cell_op_idx', default=None, **kwargs)
 
-  def forward(self, *inputs):
-    x = self.bn(*inputs)
-    x = self.act(x)
-    x = self.conv(x)
-    return x
+    self.num_edges = (self.n_nodes + 1) * self.n_nodes // 2
+    self.cfg_keys = list(self.cfg_ops.keys())
 
+    self.in_conv = nn.Conv2d(in_channels=self.in_channels, out_channels=self.out_channels,
+                             kernel_size=1, stride=1, padding=0)
+    self.out_conv = nn.Conv2d(in_channels=self.out_channels*self.n_nodes, out_channels=self.out_channels,
+                              kernel_size=1, stride=1, padding=0)
+    # generate dag
+    edge_idx = 0
+    self.dag = nn.ModuleList()
+    for i in range(self.n_nodes):
+      self.dag.append(nn.ModuleList())
+      for j in range(1 + i):
+        if self.cell_op_idx is not None:
+          op_key = self.cfg_keys[self.cell_op_idx[edge_idx]]
+          cfg_ops = EasyDict({op_key: self.cfg_ops[op_key]})
+          edge_idx += 1
+          op = build_d2layer(self.cfg_mix_layer, **{**kwargs, "in_channels": self.out_channels,
+                                                    "out_channels"         : self.out_channels,
+                                                    "cfg_ops"              : cfg_ops})
+        else:
+          op = build_d2layer(self.cfg_mix_layer, **{**kwargs, "in_channels": self.out_channels,
+                                                    "out_channels"         : self.out_channels,
+                                                    "cfg_ops"              : self.cfg_ops})
+        self.dag[i].append(op)
+    pass
 
+  def forward(self, x, batched_arcs):
+    x = self.in_conv(x)
+
+    states = [x, ]
+    idx_start = 0
+    for edges in self.dag:
+      edges_arcs = batched_arcs[:, idx_start:idx_start+len(edges)]
+      idx_start += len(edges)
+      s_cur = sum(edge(s, edges_arcs[:, i]) for i, (edge, s) in enumerate(zip(edges, states)))
+
+      states.append(s_cur)
+
+    cat_out = torch.cat(states[1:], dim=1)
+    out = self.out_conv(cat_out)
+    return out
+
+  def test_case(self):
+    bs = 2
+    num_ops = len(self.cfg_ops)
+    x = torch.randn(bs, 3, 8, 8).cuda()
+    batched_arcs = torch.tensor([
+      [0, 0, 0, 0, 0, 0],
+      [0, 1, 1, 1, 1, 1],
+    ]).cuda()
+    out = self(x, batched_arcs)
+    return out
+
+  def update_cfg(self, cfg):
+    if not getattr(cfg, 'update_cfg', False):
+      return cfg
+
+    cfg_str = """
+      name: "DenseCell"
+      n_nodes: 3
+      cfg_mix_layer:
+        name: "MixedLayer"
+      cfg_ops:
+        Identity:
+          name: "Identity"
+        Conv2d_3x3:
+          name: "ActConv2d"
+          cfg_act:
+            name: "ReLU"
+          cfg_conv:
+            name: "Conv2d"
+            kernel_size: 3
+            padding: 1
+        None:
+          name: "D2None"
+        
+      """
+    default_cfg = EasyDict(yaml.safe_load(cfg_str))
+    cfg = update_config(default_cfg, cfg)
+    return cfg
