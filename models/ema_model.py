@@ -1,3 +1,5 @@
+import logging
+
 import torch
 
 
@@ -18,10 +20,11 @@ class EMA(object):
     self.decay = decay
     # Optional parameter indicating what iteration to start the decay at
     self.start_itr = start_itr
+    logger = logging.getLogger('tl')
     # fix bug after calling model.cuda()
     # self.source_dict = self.source.state_dict()
     # self.target_dict = self.target.state_dict()
-    print('Initializing EMA parameters to be source parameters.')
+    logger.info('Initializing EMA parameters to be source parameters.')
     # Initialize target's params to be source's
     with torch.no_grad():
       source_dict = self.source.state_dict()
@@ -40,5 +43,4 @@ class EMA(object):
       source_dict = self.source.state_dict()
       target_dict = self.target.state_dict()
       for key in source_dict:
-        target_dict[key].data.copy_(target_dict[key].data * decay
-                                    + source_dict[key].data * (1 - decay))
+        target_dict[key].data.copy_(target_dict[key].data * decay + source_dict[key].data * (1 - decay))

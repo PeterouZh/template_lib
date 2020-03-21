@@ -15,8 +15,8 @@ class UpSample(nn.Module):
     super(UpSample, self).__init__()
 
     self.scale_factor                   = get_attr_kwargs(cfg, 'scale_factor', default=2, **kwargs)
-    self.mode                           = get_attr_kwargs(cfg, 'mode', default='bilinear', choices=['nearest'],
-                                                          **kwargs)
+    self.mode                           = get_attr_kwargs(cfg, 'mode', default='bilinear',
+                                                          choices=['bilinear', 'nearest'], **kwargs)
     self.align_corners                  = get_attr_kwargs(cfg, 'align_corners', default=None, **kwargs)
 
 
@@ -32,3 +32,15 @@ class Identity(nn.Module):
 
   def forward(self, x, *args):
     return x
+
+
+@D2LAYER_REGISTRY.register()
+class D2None(nn.Module):
+  def __init__(self, cfg, **kwargs):
+    super().__init__()
+
+    pass
+
+  def forward(self, x):
+
+    return x * 0.0
