@@ -24,7 +24,12 @@ import pathlib
 import warnings
 
 import numpy as np
-import tensorflow as tf
+
+try:
+  import tensorflow as tf
+except ImportError:
+  print('Cannot import tf.')
+
 from scipy import linalg
 from imageio import imread
 import tarfile

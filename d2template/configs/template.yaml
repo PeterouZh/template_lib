@@ -1,0 +1,21 @@
+train:
+  args:
+    num_gpus: 1
+  start:
+    name: "train"
+    dataset_name: "cifar10_train"
+    IMS_PER_BATCH: 32
+    max_epoch: 1000
+    ASPECT_RATIO_GROUPING: false
+    NUM_WORKERS: 0
+    checkpoint_period: "iter_every_epoch"
+  dataset:
+    dataset_mapper: CIFAR10DatasetMapper
+    img_size: 32
+  trainer:
+    name: "BaseTrainer"
+    n_classes: 10
+    img_size: "kwargs['img_size']"
+    train_bs: "kwargs['train_bs']"
+    eval_torch_every_itr: "iter_every_epoch"
+    train_controller_every_iter: 50
