@@ -7,6 +7,8 @@ import torch
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 
+from detectron2.data import DatasetCatalog, MetadataCatalog
+
 from template_lib.utils import get_attr_kwargs
 from .build import DATASET_MAPPER_REGISTRY
 
@@ -55,12 +57,87 @@ class CIFAR10DatasetMapper(object):
     return dataset_dict
 
 
-def get_dict(name, data_path, subset):
+@DATASET_MAPPER_REGISTRY.register()
+class CIFAR10ClassificationTrainMapper(object):
+
+  def __init__(self, cfg, **kwargs):
+    # self.img_size = get_attr_kwargs(cfg.dataset, 'img_size', kwargs=kwargs)
+
+    self.transform = self.build_transform()
+    pass
+
+  def build_transform(self, ):
+
+    MEAN = [0.49139968, 0.48215827, 0.44653124]
+    STD = [0.24703233, 0.24348505, 0.26158768]
+    transf = [
+      transforms.RandomCrop(32, padding=4),
+      transforms.RandomHorizontalFlip(),
+      transforms.ToTensor(),
+      transforms.Normalize(MEAN, STD)
+    ]
+
+    train_transform = transforms.Compose(transf)
+    return train_transform
+
+  def __call__(self, dataset_dict):
+    """
+    Args:
+        dataset_dict (dict): Metadata of one image, in Detectron2 Dataset format.
+
+    Returns:
+        dict: a format that builtin models in detectron2 accept
+    """
+    dataset_dict = copy.deepcopy(dataset_dict)  # it will be modified by code below
+    # USER: Write your own image loading if it's not from a file
+    image = dataset_dict['image']
+    dataset_dict['image'] = self.transform(image)
+    return dataset_dict
+
+
+@DATASET_MAPPER_REGISTRY.register()
+class CIFAR10ClassificationTestMapper(object):
+
+  def __init__(self, cfg, **kwargs):
+    # self.img_size = get_attr_kwargs(cfg.dataset, 'img_size', kwargs=kwargs)
+
+    self.transform = self.build_transform()
+    pass
+
+  def build_transform(self, ):
+
+    MEAN = [0.49139968, 0.48215827, 0.44653124]
+    STD = [0.24703233, 0.24348505, 0.26158768]
+    transf = [
+      transforms.ToTensor(),
+      transforms.Normalize(MEAN, STD)
+    ]
+
+    train_transform = transforms.Compose(transf)
+    return train_transform
+
+  def __call__(self, dataset_dict):
+    """
+    Args:
+        dataset_dict (dict): Metadata of one image, in Detectron2 Dataset format.
+
+    Returns:
+        dict: a format that builtin models in detectron2 accept
+    """
+    dataset_dict = copy.deepcopy(dataset_dict)  # it will be modified by code below
+    # USER: Write your own image loading if it's not from a file
+    image = dataset_dict['image']
+    dataset_dict['image'] = self.transform(image)
+    return dataset_dict
+
+
+
+def get_dict(name, data_path, subset, **kwargs):
   if subset.lower() == 'train':
     train = True
   elif subset.lower() == 'test':
     train = False
-  c10_dataset = datasets.CIFAR10(root=data_path, train=subset, download=True)
+  c10_dataset = datasets.CIFAR10(root=data_path, train=train, download=True)
 
   meta_dict = {}
   meta_dict['num_images'] = len(c10_dataset)
@@ -82,33 +159,60 @@ def get_dict(name, data_path, subset):
   return dataset_dicts
 
 
-from detectron2.data import DatasetCatalog, MetadataCatalog
+def get_sampled_dict(name, data_path, sampler, **kwargs):
+  sampler = list(sampler)
+  train = True
+  c10_dataset = datasets.CIFAR10(root=data_path, train=train, download=True)
+
+  meta_dict = {}
+  meta_dict['num_images'] = len(sampler)
+  meta_dict['class_to_idx'] = c10_dataset.class_to_idx
+  meta_dict['classes'] = c10_dataset.classes
+  MetadataCatalog.get(name).set(**meta_dict)
+
+  dataset_dicts = []
+  data_iter = iter(c10_dataset)
+  for idx, (img, label) in enumerate(data_iter):
+    if not idx in sampler:
+      continue
+    record = {}
+
+    record["image_id"] = idx
+    record["height"] = img.height
+    record["width"] = img.width
+    record["image"] = img
+    record["label"] = int(label)
+    dataset_dicts.append(record)
+  return dataset_dicts
+
+
 
 data_path = "datasets/cifar10/"
-registed_name = ['cifar10_train',
-                 'cifar10_test']
-subsets = ['train',
-           'test']
+registed_name_list = [
+  'cifar10_train',
+  'cifar10_test',
+  'cifar10_0-25000',
+  'cifar10_25000-50000',
+]
 
-for name, subset in zip(registed_name, subsets):
+registed_func_list = [
+  get_dict,
+  get_dict,
+  get_sampled_dict,
+  get_sampled_dict,
+]
+
+kwargs_list = [
+  {'subset': 'train', },
+  {'subset': 'test', },
+  {'sampler': range(25000)},
+  {'sampler': range(25000, 50000)},
+]
+
+for name, func, kwargs in zip(registed_name_list, registed_func_list, kwargs_list):
   # warning : lambda must specify keyword arguments
-  DatasetCatalog.register(
-    name, (lambda name=name, data_path=data_path, subset=subset:
-           get_dict(name=name, data_path=data_path, subset=subset)))
+  DatasetCatalog.register(name, (lambda name=name, func=func, data_path=data_path, kwargs=kwargs:
+                                 func(name=name, data_path=data_path, **kwargs)))
 
 
-if __name__ == '__main__':
-  import matplotlib.pylab as plt
-  dataset_dicts = get_dict(name=registed_name[0], data_path=data_path, subset=subsets[0])
-  metadata = MetadataCatalog.get(registed_name[0])
-  for d in random.sample(dataset_dicts, 3):
-    img = d["image"]
-    file_name = str(d['image_id']) + '.jpg'
-    saved_dir = 'results/build_cifar10'
-    os.makedirs(saved_dir, exist_ok=True)
-    img.save(os.path.join(saved_dir, file_name))
-
-    pass
-    # plt.imshow(vis.get_image())
-    # plt.show()
-    # cv2_imshow(vis.get_image()[:, :, ::-1])
+pass

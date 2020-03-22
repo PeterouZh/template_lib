@@ -223,13 +223,13 @@ class TextLogger(object):
       for d in dict_list:
         labels += d.keys()
       filename = '__'.join(labels)[:MAXLEN]
-      filepath = os.path.join(self.root, 'plot__' + filename + ext)
+      filepath = os.path.join(self.root, '.1plot__' + filename + ext)
       filepaths.append(filepath)
     else:
       for d in dict_list:
         labels = d.keys()
         filename = '__'.join(labels)[:MAXLEN]
-        filepath = os.path.join(self.root, 'plot__' + filename + ext)
+        filepath = os.path.join(self.root, '.1plot__' + filename + ext)
         filepaths.append(filepath)
     return filepaths
 

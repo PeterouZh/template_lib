@@ -134,6 +134,25 @@ class ActConv2d(nn.Module):
 
 
 @D2LAYER_REGISTRY.register()
+class Conv2dAct(nn.Module):
+
+  def __init__(self, cfg, **kwargs):
+    super(Conv2dAct, self).__init__()
+
+    cfg_act                   = get_attr_kwargs(cfg, 'cfg_act', **kwargs)
+    cfg_conv                  = get_attr_kwargs(cfg, 'cfg_conv', **kwargs)
+
+    self.conv = build_d2layer(cfg_conv, **kwargs)
+    self.act = build_d2layer(cfg_act, **kwargs)
+
+
+  def forward(self, x):
+    x = self.conv(x)
+    x = self.act(x)
+    return x
+
+
+@D2LAYER_REGISTRY.register()
 class BNActConv2d(nn.Module):
 
   def __init__(self, cfg, **kwargs):
@@ -152,4 +171,26 @@ class BNActConv2d(nn.Module):
     x = self.bn(x)
     x = self.act(x)
     x = self.conv(x)
+    return x
+
+@D2LAYER_REGISTRY.register()
+class Conv2dBNAct(nn.Module):
+
+  def __init__(self, cfg, **kwargs):
+    super(Conv2dBNAct, self).__init__()
+
+    cfg_conv                  = get_attr_kwargs(cfg, 'cfg_conv', **kwargs)
+    cfg_bn                    = get_attr_kwargs(cfg, 'cfg_bn', **kwargs)
+    cfg_act                   = get_attr_kwargs(cfg, 'cfg_act', **kwargs)
+
+    self.conv = build_d2layer(cfg_conv, **kwargs)
+    self.bn = build_d2layer(cfg_bn, num_features=kwargs['out_channels'], **kwargs)
+    self.act = build_d2layer(cfg_act, **kwargs)
+
+
+
+  def forward(self, x):
+    x = self.conv(x)
+    x = self.bn(x)
+    x = self.act(x)
     return x

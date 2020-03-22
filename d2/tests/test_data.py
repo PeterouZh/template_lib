@@ -122,3 +122,68 @@ class TestingBuildImageNet(unittest.TestCase):
     # metadata = MetadataCatalog.get(registed_names[-1])
     # for d in random.sample(dataset_dicts, 3):
     #   pass
+
+
+class TestingBuildCIFAR10(unittest.TestCase):
+
+  def test_cifar10_train(self):
+    """
+
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '4,5'
+    if 'PORT' not in os.environ:
+      os.environ['PORT'] = '6006'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+    # func name
+    assert sys._getframe().f_code.co_name.startswith('test_')
+    command = sys._getframe().f_code.co_name[5:]
+    class_name = self.__class__.__name__[7:] \
+      if self.__class__.__name__.startswith('Testing') \
+      else self.__class__.__name__
+    outdir = f'results/{class_name}/{command}'
+    os.makedirs(outdir, exist_ok=True)
+
+    import matplotlib.pylab as plt
+    from template_lib.d2.data.build_cifar10 import data_path, registed_name_list, registed_func_list, kwargs_list
+    from detectron2.data import MetadataCatalog
+
+    dataset_dicts = registed_func_list[0](name=registed_name_list[0], data_path=data_path, **kwargs_list[0])
+    metadata = MetadataCatalog.get(registed_name_list[0])
+    for d in random.sample(dataset_dicts, 3):
+      img = d["image"]
+      file_name = str(d['image_id']) + '.jpg'
+      img.save(os.path.join(outdir, file_name))
+      pass
+
+  def test_cifar10_train_sampler(self):
+    """
+
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '4,5'
+    if 'PORT' not in os.environ:
+      os.environ['PORT'] = '6006'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+    # func name
+    assert sys._getframe().f_code.co_name.startswith('test_')
+    command = sys._getframe().f_code.co_name[5:]
+    class_name = self.__class__.__name__[7:] \
+      if self.__class__.__name__.startswith('Testing') \
+      else self.__class__.__name__
+    outdir = f'results/{class_name}/{command}'
+    os.makedirs(outdir, exist_ok=True)
+
+    import matplotlib.pylab as plt
+    from template_lib.d2.data.build_cifar10 import data_path, registed_name_list, registed_func_list, kwargs_list
+    from detectron2.data import MetadataCatalog
+
+    dataset_dicts = registed_func_list[3](name=registed_name_list[3], data_path=data_path, **kwargs_list[3])
+    metadata = MetadataCatalog.get(registed_name_list[2])
+    for d in random.sample(dataset_dicts, 3):
+      img = d["image"]
+      file_name = str(d['image_id']) + '.jpg'
+      img.save(os.path.join(outdir, file_name))
+      pass

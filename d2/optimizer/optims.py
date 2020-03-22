@@ -25,3 +25,23 @@ class Adam(optim.Adam):
     super(Adam, self).__init__(params, lr=lr, betas=betas, eps=eps, weight_decay=weight_decay,
                                amsgrad=amsgrad)
     pass
+
+
+@OPTIMIZER_REGISTRY.register()
+class SGD(optim.SGD):
+  """
+  params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
+                 weight_decay=0, amsgrad=False
+  """
+  def __init__(self, cfg, **kwargs):
+
+    params            = kwargs['params']
+    lr                = get_attr_kwargs(cfg, 'lr', **kwargs)
+    momentum          = get_attr_kwargs(cfg, 'momentum', default=0, **kwargs)
+    dampening         = get_attr_kwargs(cfg, 'dampening', default=0, **kwargs)
+    weight_decay      = get_attr_kwargs(cfg, 'weight_decay', default=0, **kwargs)
+    nesterov          = get_attr_kwargs(cfg, 'nesterov', default=False, **kwargs)
+
+    super(SGD, self).__init__(params, lr=lr, momentum=momentum, dampening=dampening,
+                              weight_decay=weight_decay, nesterov=nesterov)
+    pass
