@@ -12,5 +12,5 @@ def build_dataset_mapper(cfg, **kwargs):
     Build the whole model architecture, defined by ``cfg.MODEL.META_ARCHITECTURE``.
     Note that it does not load any weights from ``cfg``.
     """
-    dataset_mapper = cfg.dataset.dataset_mapper
-    return DATASET_MAPPER_REGISTRY.get(dataset_mapper)(cfg=cfg, **kwargs)
+    name = cfg.name
+    return DATASET_MAPPER_REGISTRY.get(name)(cfg=cfg, **kwargs)

@@ -64,7 +64,7 @@ class BaseTrainer(nn.Module):
       self.models = {}
       self.optims = {}
 
-      print_number_params(models_dict=self.models)
+      self._print_number_params(self.models)
 
     def build_optimizer(self):
 
@@ -116,4 +116,7 @@ class BaseTrainer(nn.Module):
       eval_iter = (ckpt_epoch) * iter_every_epoch - 1
       eval_ckpt = os.path.join(ckpt_dir, f'model_{eval_iter:07}.pth')
       return eval_ckpt
+
+    def _print_number_params(self, models_dict):
+      print_number_params(models_dict=models_dict)
 
