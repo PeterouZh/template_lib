@@ -45,3 +45,10 @@ class SGD(optim.SGD):
     super(SGD, self).__init__(params, lr=lr, momentum=momentum, dampening=dampening,
                               weight_decay=weight_decay, nesterov=nesterov)
     pass
+
+
+@OPTIMIZER_REGISTRY.register()
+class NoneOptim(object):
+
+  def __init__(self, cfg, **kwargs):
+    pass
