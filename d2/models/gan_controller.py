@@ -330,7 +330,8 @@ class ControllerProgressiveRLAlpha(_FairController):
         entropy = op_dist.entropy()
         entropys.append(entropy.view(-1, 1))
       else:
-        sampled_op = logit.argmax()
+        sampled_op = op_dist.sample()
+        # sampled_op = logit.argmax()
       sampled_arcs.append(sampled_op.view(-1, 1))
 
     self.sampled_arcs = torch.cat(sampled_arcs, dim=1)
