@@ -329,9 +329,10 @@ class ControllerProgressiveRLAlpha(_FairController):
         log_probs.append(log_prob.view(-1, 1))
         entropy = op_dist.entropy()
         entropys.append(entropy.view(-1, 1))
-      else:
+      elif layer_id < start_idx:
+        sampled_op = logit.argmax()
+      elif layer_id >= end_idx:
         sampled_op = op_dist.sample()
-        # sampled_op = logit.argmax()
       sampled_arcs.append(sampled_op.view(-1, 1))
 
     self.sampled_arcs = torch.cat(sampled_arcs, dim=1)
@@ -357,6 +358,7 @@ class ControllerProgressiveRLAlpha(_FairController):
     controller.zero_grad()
 
     sampled_arcs = controller(iteration)
+
     sample_entropy = get_ddp_attr(controller, 'sample_entropy')
     sample_log_prob = get_ddp_attr(controller, 'sample_log_prob')
 
@@ -417,6 +419,9 @@ class ControllerProgressiveRLAlpha(_FairController):
 
     if iteration % self.log_every_iter == 0:
       self.print_distribution(iteration=iteration, print_interval=10)
+      self.logger.info('\nsampled arcs: \n%s' % sampled_arcs.view(self.num_stage, -1))
+      self.myargs.textlogger.logstr(iteration,
+                                    sampled_arcs='\n' + np.array2string(sampled_arcs.cpu().numpy(), threshold=np.inf))
       default_dicts = collections.defaultdict(dict)
       for meter_k, meter in meter_dict.items():
         if meter_k in ['reward', 'baseline']:
