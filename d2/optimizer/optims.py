@@ -1,7 +1,7 @@
 import math
 import torch
 from torch import optim
-
+import torch.nn as nn
 from template_lib.utils import get_attr_kwargs
 
 from .build import OPTIMIZER_REGISTRY
@@ -48,7 +48,8 @@ class SGD(optim.SGD):
 
 
 @OPTIMIZER_REGISTRY.register()
-class NoneOptim(object):
+class NoneOptim(nn.Module):
 
   def __init__(self, cfg, **kwargs):
+    super(NoneOptim, self).__init__()
     pass

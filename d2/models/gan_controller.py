@@ -706,30 +706,31 @@ class CondControllerProgressiveRLAlpha(_FairController):
       org_formatters.append(handler.formatter)
       handler.setFormatter(logging.Formatter("%(message)s"))
 
-    default_dict = collections.defaultdict(dict)
     self.logger.info("####### distribution #######")
-    searched_arc = []
-    for layer_id, op_dist in enumerate(self.op_dist):
-      prob = op_dist.probs
-      max_op_id = prob.argmax().item()
-      searched_arc.append(max_op_id)
-      for op_id, op_name in enumerate(self.cfg_ops.keys()):
-        op_prob = prob[0][op_id]
-        default_dict[f'L{layer_id}'][get_prefix_abb(op_name)] = op_prob.item()
+    class_arcs = []
+    for class_idx in range(self.n_classes):
+      default_dict = collections.defaultdict(dict)
+      searched_arc = []
+      for layer_id, op_dist in enumerate(self.op_dist):
+        prob = op_dist.probs
+        max_op_id = prob[class_idx].argmax().item()
+        searched_arc.append(max_op_id)
+        for op_id, op_name in enumerate(self.cfg_ops.keys()):
+          op_prob = prob[class_idx][op_id]
+          default_dict[f'C{class_idx}L{layer_id}'][get_prefix_abb(op_name)] = op_prob.item()
 
-      if layer_id % print_interval == 0:
-        self.logger.info(layer_id//print_interval)
-      self.logger.info(prob)
+      class_arcs.append(searched_arc)
+      searched_arc = np.array(searched_arc)
+      self.logger.info(f'Class {class_idx} searched arcs: \n{searched_arc}')
+      self.myargs.textlogger.logstr(iteration,
+                                    searched_arc='\n' + np.array2string(searched_arc, threshold=np.inf))
 
-    searched_arc = np.array(searched_arc)
-    self.logger.info('\nsearched arcs: \n%s' % searched_arc.reshape((-1, print_interval)))
+      summary_defaultdict2txtfig(default_dict=default_dict, prefix='', step=iteration,
+                                 textlogger=self.myargs.textlogger)
+      self.logger.info("#####################")
+    class_arcs = np.array(class_arcs)
     self.myargs.textlogger.logstr(iteration,
-                                  searched_arc='\n' + np.array2string(searched_arc, threshold=np.inf))
-
-    summary_defaultdict2txtfig(default_dict=default_dict, prefix='', step=iteration,
-                               textlogger=self.myargs.textlogger)
-    self.logger.info("#####################")
-
+                                  searched_class_arc='\n' + np.array2string(class_arcs, threshold=np.inf))
     # restore formats
     for handler, formatter in zip(self.logger.handlers, org_formatters):
       handler.setFormatter(formatter)
