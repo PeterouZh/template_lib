@@ -683,7 +683,7 @@ class CondControllerProgressiveRLAlpha(_FairController):
 
     if iteration % self.log_every_iter == 0:
       self.print_distribution(iteration=iteration, print_interval=10)
-      self.logger.info('\nsampled arcs: \n%s' % sampled_arcs)
+      self.logger.info('\nsampled arcs: \n%s' % sampled_arcs.cpu().numpy())
       self.myargs.textlogger.logstr(iteration,
                                     sampled_arcs='\n' + np.array2string(sampled_arcs.cpu().numpy(), threshold=np.inf))
       default_dicts = collections.defaultdict(dict)
@@ -721,9 +721,9 @@ class CondControllerProgressiveRLAlpha(_FairController):
 
       class_arcs.append(searched_arc)
       searched_arc = np.array(searched_arc)
-      self.logger.info(f'Class {class_idx} searched arcs: \n{searched_arc}')
-      self.myargs.textlogger.logstr(iteration,
-                                    searched_arc='\n' + np.array2string(searched_arc, threshold=np.inf))
+      self.logger.info(f'Class {class_idx} searched arcs: {searched_arc}')
+      # self.myargs.textlogger.logstr(iteration,
+      #                               searched_arc='\n' + np.array2string(searched_arc, threshold=np.inf))
 
       summary_defaultdict2txtfig(default_dict=default_dict, prefix='', step=iteration,
                                  textlogger=self.myargs.textlogger)
@@ -755,7 +755,7 @@ class CondControllerProgressiveRLAlpha(_FairController):
 
     return batched_arcs
 
-  def get_sampled_arc(self, bs=1, iteration=0):
+  def get_sampled_arc(self, iteration=0):
     sampled_arc = []
     start_idx, end_idx = self._get_stage_index(iteration)
     fixed_layer_idx = list(range(0, start_idx))
@@ -764,10 +764,10 @@ class CondControllerProgressiveRLAlpha(_FairController):
       logit = self.alpha[layer_id]
 
       if layer_id in fixed_layer_idx:
-        sampled_op = logit.argmax().view(-1, 1).to(self.device)
+        sampled_op = logit.argmax(-1).view(-1, 1).to(self.device)
       else:
         op_dist = Categorical(logits=logit)
-        sampled_op = op_dist.sample((bs,)).view(-1, 1).to(self.device)
+        sampled_op = op_dist.sample().view(-1, 1).to(self.device)
       sampled_arc.append(sampled_op)
 
     sampled_arc = torch.cat(sampled_arc, dim=1)
