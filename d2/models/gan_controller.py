@@ -727,10 +727,11 @@ class CondControllerProgressiveRLAlpha(_FairController):
 
       summary_defaultdict2txtfig(default_dict=default_dict, prefix='', step=iteration,
                                  textlogger=self.myargs.textlogger)
-      self.logger.info("#####################")
+
     class_arcs = np.array(class_arcs)
     self.myargs.textlogger.logstr(iteration,
                                   searched_class_arc='\n' + np.array2string(class_arcs, threshold=np.inf))
+    self.logger.info("#####################")
     # restore formats
     for handler, formatter in zip(self.logger.handlers, org_formatters):
       handler.setFormatter(formatter)
