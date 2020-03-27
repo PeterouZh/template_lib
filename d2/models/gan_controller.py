@@ -458,7 +458,7 @@ class ControllerProgressiveRLAlpha(_FairController):
       self.logger.info(prob)
 
     searched_arc = np.array(searched_arc)
-    self.logger.info('\nsearched arcs: \n%s' % searched_arc)
+    self.logger.info('\nsearched arcs: \n%s' % searched_arc.reshape((-1, print_interval)))
     self.myargs.textlogger.logstr(iteration,
                                   searched_arc='\n' + np.array2string(searched_arc, threshold=np.inf))
 
