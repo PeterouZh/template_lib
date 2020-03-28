@@ -303,7 +303,8 @@ class ControllerProgressiveRLAlpha(_FairController):
         break
 
     if cur_stage == -1:
-      start_idx = 0
+      cur_stage = len(self.epochs_stage) - 1
+      start_idx = cur_stage * self.num_layers_per_stage
       end_idx = self.num_layers
     else:
       start_idx = cur_stage * self.num_layers_per_stage
