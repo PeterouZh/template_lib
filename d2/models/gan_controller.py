@@ -123,7 +123,7 @@ class ControllerRLAlpha(_FairController):
 
     return self.sampled_arcs
 
-  def get_sampled_arc(self, bs=1):
+  def get_sampled_arc(self, bs=1, *args, **kwargs):
     sampled_arc = []
     for layer_id in range(self.num_layers):
       logit = self.alpha[layer_id]
