@@ -78,6 +78,70 @@ class TestingDiscriminator(unittest.TestCase):
 
     pass
 
+  def test_AutoGANCIFAR10ADiscriminator(self):
+    """
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'PORT' not in os.environ:
+      os.environ['PORT'] = '6006'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
+    # func name
+    assert sys._getframe().f_code.co_name.startswith('test_')
+    command = sys._getframe().f_code.co_name[5:]
+    class_name = self.__class__.__name__[7:] \
+      if self.__class__.__name__.startswith('Testing') \
+      else self.__class__.__name__
+    outdir = f'results/{class_name}/{command}'
+
+    from template_lib.gans.networks import build_discriminator
+    cfg_str = """
+          name: "AutoGANCIFAR10ADiscriminator"
+          update_cfg: true
+        """
+    cfg = EasyDict(yaml.safe_load(cfg_str))
+    D = build_discriminator(cfg).cuda()
+    out = D.test_case()
+
+    import torchviz
+    g = torchviz.make_dot(out)
+    g.view()
+
+    pass
+
+  def test_DenseDiscriminator_v1(self):
+    """
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'PORT' not in os.environ:
+      os.environ['PORT'] = '6006'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
+    # func name
+    assert sys._getframe().f_code.co_name.startswith('test_')
+    command = sys._getframe().f_code.co_name[5:]
+    class_name = self.__class__.__name__[7:] \
+      if self.__class__.__name__.startswith('Testing') \
+      else self.__class__.__name__
+    outdir = f'results/{class_name}/{command}'
+
+    from template_lib.gans.networks import build_discriminator
+    cfg_str = """
+          name: "DenseDiscriminator_v1"
+          update_cfg: true
+        """
+    cfg = EasyDict(yaml.safe_load(cfg_str))
+    D = build_discriminator(cfg).cuda()
+    out = D.test_case()
+
+    import torchviz
+    g = torchviz.make_dot(out)
+    g.view()
+
+    pass
+
 
 class TestingController(unittest.TestCase):
 

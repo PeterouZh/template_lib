@@ -27,6 +27,21 @@ class UpSample(nn.Module):
 
 
 @D2LAYER_REGISTRY.register()
+class AvgPool2d(nn.AvgPool2d):
+
+  def __init__(self, cfg, **kwargs):
+    kernel_size              = get_attr_kwargs(cfg, 'kernel_size', default=2, **kwargs)
+    stride                   = get_attr_kwargs(cfg, 'stride', default=None, **kwargs)
+    padding                  = get_attr_kwargs(cfg, 'padding', default=0, **kwargs)
+    ceil_mode                = get_attr_kwargs(cfg, 'ceil_mode', default=False, **kwargs)
+    count_include_pad        = get_attr_kwargs(cfg, 'count_include_pad', default=True, **kwargs)
+    # divisor_override         = get_attr_kwargs(cfg, 'divisor_override', default=None, **kwargs)
+
+    super().__init__(kernel_size=kernel_size, stride=stride, padding=padding, ceil_mode=ceil_mode,
+                     count_include_pad=count_include_pad)
+
+
+@D2LAYER_REGISTRY.register()
 class Identity(nn.Module):
   def __init__(self, cfg, **kwargs):
     super().__init__()

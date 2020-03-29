@@ -1,3 +1,4 @@
+import yaml
 import json
 
 from easydict import EasyDict
@@ -5,7 +6,7 @@ import functools
 import torch
 from torch import nn
 
-from template_lib.utils import get_eval_attr, get_attr_kwargs
+from template_lib.utils import get_eval_attr, get_attr_kwargs, update_config
 from template_lib.d2.layers import build_d2layer
 from template_lib.d2.utils import comm
 
@@ -180,7 +181,7 @@ class AutoGANCIFAR10ADiscriminatorCProj(nn.Module):
             nn.init.normal_(m.weight.data, 1.0, 0.02)
             nn.init.constant_(m.bias.data, 0.0)
 
-
+    
 @GENERATOR_REGISTRY.register()
 class PathAwareAutoGANCIFAR10AGenerator(nn.Module):
     def __init__(self, cfg, **kwargs):

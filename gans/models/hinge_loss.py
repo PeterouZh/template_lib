@@ -51,12 +51,12 @@ class HingeLossCond(object):
     self.D.train()
     self.D.zero_grad()
 
-    d_real = self.D(real, dy)
+    d_real = self.D(real, y=dy, **kwargs)
 
     z_sample = z.sample()
     z_sample = z_sample.to(self.device)
     fake = self.G(z_sample, y=gy, **kwargs)
-    d_fake = self.D(fake.detach(), gy)
+    d_fake = self.D(fake.detach(), y=gy, **kwargs)
 
     r_logit_mean, f_logit_mean, d_loss = self.hinge_loss_discriminator(r_logit=d_real, f_logit=d_fake)
     summary_d['d_logit_mean']['r_logit_mean'] = r_logit_mean.item()
@@ -76,7 +76,7 @@ class HingeLossCond(object):
       gy = dy
 
       fake = self.G(z_sample, y=gy, **kwargs)
-      d_fake_g = self.D(fake, gy)
+      d_fake_g = self.D(fake, y=gy, **kwargs)
 
       G_f_logit_mean, g_loss = self.hinge_loss_generator(f_logit=d_fake_g)
       summary_d['d_logit_mean']['G_f_logit_mean'] = G_f_logit_mean.item()
