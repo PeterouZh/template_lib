@@ -541,6 +541,7 @@ class CondControllerProgressiveRLAlpha(_FairController):
     self.child_grad_bound        = get_attr_kwargs(cfg, 'child_grad_bound', **kwargs)
     self.log_every_iter          = get_attr_kwargs(cfg, 'log_every_iter', default=50, **kwargs)
     self.cfg_ops                 = get_attr_kwargs(cfg, 'cfg_ops', **kwargs)
+    self.progressive             = get_attr_kwargs(cfg, 'progressive', default=True, **kwargs)
 
     self.device = torch.device(f'cuda:{comm.get_rank()}')
     self.baseline = None
@@ -554,6 +555,8 @@ class CondControllerProgressiveRLAlpha(_FairController):
       self.alpha.append(nn.Parameter(1e-4 * torch.randn(self.n_classes, self.num_branches)))
 
   def _get_stage_index(self, iteration):
+    if not self.progressive:
+      return 0, self.num_layers
     cur_epoch = iteration // self.iter_every_epoch
     cur_stage = -1
     for i, cur_stage_epoch in enumerate(self.epochs_stage):
