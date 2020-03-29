@@ -79,8 +79,8 @@ class AutoGANCIFAR10ADiscriminator(nn.Module):
             self.weights_init, init_type=self.init_type)
         self.apply(weights_init_func)
 
-    def forward(self, *x):
-        h = x[0]
+    def forward(self, x, *args, **kwargs):
+        h = x
 
         h = self.model(h)
         h = self.block4(h)
