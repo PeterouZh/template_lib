@@ -111,18 +111,19 @@ class AutoGANCIFAR10ADiscriminator(nn.Module):
 
 @DISCRIMINATOR_REGISTRY.register()
 class AutoGANCIFAR10ADiscriminatorCProj(nn.Module):
-    def __init__(self, cfg, activation=nn.ReLU()):
-        super(AutoGANCIFAR10ADiscriminatorCProj, self).__init__()
+    def __init__(self, cfg, **kwargs):
+        super().__init__()
 
-        self.ch                    = cfg.model.discriminator.ch * 4
-        self.d_spectral_norm       = cfg.model.discriminator.d_spectral_norm
-        self.init_type             = getattr(cfg.model.discriminator, 'init_type', 'xavier_uniform')
-        self.n_classes             = get_eval_attr(cfg.model.discriminator, 'n_classes', dict(cfg=cfg))
-        self.num_D_SVs             = getattr(cfg.model.discriminator, 'num_D_SVs', 1)
-        self.num_D_SV_itrs         = getattr(cfg.model.discriminator, 'num_D_SV_itrs', 1)
-        self.SN_eps                = getattr(cfg.model.discriminator, 'SN_eps', 1e-6)
+        self.ch                    = get_attr_kwargs(cfg, 'ch', default=128, **kwargs)
+        self.d_spectral_norm       = get_attr_kwargs(cfg, 'd_spectral_norm', default=True, **kwargs)
+        self.init_type             = get_attr_kwargs(cfg, 'init_type', default='xavier_uniform', **kwargs)
+        self.cfg_act               = get_attr_kwargs(cfg, 'cfg_act', default=EasyDict(name='ReLU'), **kwargs)
+        self.n_classes             = get_attr_kwargs(cfg, 'n_classes', **kwargs)
+        self.num_D_SVs             = get_attr_kwargs(cfg, 'num_D_SVs', default=1, **kwargs)
+        self.num_D_SV_itrs         = get_attr_kwargs(cfg, 'num_D_SV_itrs', default=1, **kwargs)
+        self.SN_eps                = get_attr_kwargs(cfg, 'SN_eps', default=1e-6, **kwargs)
 
-        self.activation = activation
+        self.activation            = build_d2layer(cfg=self.cfg_act)
 
         self.which_embedding = functools.partial(SNEmbedding,
                                                  num_svs=self.num_D_SVs, num_itrs=self.num_D_SV_itrs,
@@ -133,13 +134,13 @@ class AutoGANCIFAR10ADiscriminatorCProj(nn.Module):
                                         in_channels=3, out_channels=self.ch)
         self.block2 = DisBlock(d_spectral_norm=self.d_spectral_norm,
                                in_channels=self.ch, out_channels=self.ch,
-                               activation=activation, downsample=True)
+                               activation=self.activation, downsample=True)
         self.block3 = DisBlock(d_spectral_norm=self.d_spectral_norm,
                                in_channels=self.ch, out_channels=self.ch,
-                               activation=activation, downsample=False)
+                               activation=self.activation, downsample=False)
         self.block4 = DisBlock(d_spectral_norm=self.d_spectral_norm,
                                in_channels=self.ch, out_channels=self.ch,
-                               activation=activation, downsample=False)
+                               activation=self.activation, downsample=False)
         layers = [self.block1, self.block2, self.block3]
         model = nn.Sequential(*layers)
         self.model = model
@@ -151,7 +152,7 @@ class AutoGANCIFAR10ADiscriminatorCProj(nn.Module):
             self.weights_init, init_type=self.init_type)
         self.apply(weights_init_func)
 
-    def forward(self, x, y, *args):
+    def forward(self, x, y, *args, **kwargs):
         h = x
 
         h = self.model(h)
@@ -162,6 +163,7 @@ class AutoGANCIFAR10ADiscriminatorCProj(nn.Module):
         out = self.l5(h)
 
         out = out + torch.sum(self.embed(y) * h, 1, keepdim=True)
+
         return out
 
     @staticmethod
@@ -181,7 +183,7 @@ class AutoGANCIFAR10ADiscriminatorCProj(nn.Module):
             nn.init.normal_(m.weight.data, 1.0, 0.02)
             nn.init.constant_(m.bias.data, 0.0)
 
-    
+
 @GENERATOR_REGISTRY.register()
 class PathAwareAutoGANCIFAR10AGenerator(nn.Module):
     def __init__(self, cfg, **kwargs):
