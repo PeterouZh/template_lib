@@ -102,7 +102,11 @@ class LogSumExpLoss(object):
     r_logit_mean = r_logit.mean()
     f_logit_mean = f_logit.mean()
 
-    D_loss = F.relu(torch.logsumexp(f_logit, dim=0) + torch.logsumexp(-r_logit, dim=0) + m)
+    # D_loss = F.relu(torch.logsumexp(f_logit, dim=0) + torch.logsumexp(-r_logit, dim=0) + m)
+
+    loss_real = torch.logsumexp(F.relu(1. - r_logit), dim=0)
+    loss_fake = torch.logsumexp(F.relu(1. + f_logit), dim=0)
+    D_loss = loss_real + loss_fake
 
     return r_logit_mean, f_logit_mean, D_loss
 
