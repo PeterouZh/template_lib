@@ -68,6 +68,11 @@ class MixedLayer(nn.Module):
     bs = len(sample_arc)
     sample_arc = sample_arc.type(torch.int64)
 
+    arc_unique = sample_arc.unique()
+    if len(arc_unique) == 1:
+      x = self.branches[arc_unique](x)
+      return x
+
     sample_arc_onehot = torch.zeros(bs, self.num_branch).cuda()
     sample_arc_onehot[torch.arange(bs), sample_arc] = 1
     sample_arc_onehot = sample_arc_onehot.view(bs, self.num_branch, 1, 1, 1)
