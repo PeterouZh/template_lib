@@ -70,7 +70,7 @@ class MixedLayer(nn.Module):
 
     arc_unique = sample_arc.unique()
     if len(arc_unique) == 1:
-      x = self.branches[arc_unique](x)
+      x = self.branches[arc_unique](x, **kwargs)
       return x
 
     sample_arc_onehot = torch.zeros(bs, self.num_branch).cuda()
