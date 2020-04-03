@@ -406,3 +406,107 @@ class DenseBlockV1(nn.Module):
     default_cfg = EasyDict(yaml.safe_load(cfg_str))
     cfg = update_config(default_cfg, cfg)
     return cfg
+
+
+class PixelNorm(nn.Module):
+  def __init__(self):
+    super().__init__()
+
+  def forward(self, input):
+    return input / torch.sqrt(torch.mean(input ** 2, dim=1, keepdim=True) + 1e-8)
+
+
+class NoiseInjection(nn.Module):
+  def __init__(self, channel):
+    super().__init__()
+
+    self.weight = nn.Parameter(torch.zeros(1, channel, 1, 1))
+
+  def forward(self, image, noise):
+    return image + self.weight * noise
+
+
+@D2LAYER_REGISTRY.register()
+class StyleLayer(nn.Module):
+
+  def __init__(self, cfg, **kwargs):
+    super(StyleLayer, self).__init__()
+
+    cfg = self.update_cfg(cfg)
+
+    self.z_dim                  = get_attr_kwargs(cfg, 'z_dim', **kwargs)
+    self.n_mlp                  = get_attr_kwargs(cfg, 'n_mlp', **kwargs)
+    self.num_features           = get_attr_kwargs(cfg, 'num_features', **kwargs)
+    self.eps                    = get_attr_kwargs(cfg, 'eps', default=1e-5, **kwargs)
+    self.momentum               = get_attr_kwargs(cfg, 'momentum', default=0.1, **kwargs)
+
+    self.conv = nn.Conv2d(self.num_features, self.num_features, 3, 1, 1)
+    # Prepare gain and bias layers
+    layers = [PixelNorm()]
+    for i in range(self.n_mlp):
+      layers.append(nn.Linear(self.z_dim, self.z_dim))
+      layers.append(nn.LeakyReLU(0.2))
+    self.style = nn.Sequential(*layers)
+
+    self.gain = nn.Linear(in_features=self.z_dim, out_features=self.num_features)
+    self.bias = nn.Linear(in_features=self.z_dim, out_features=self.num_features)
+
+    self.noise = NoiseInjection(self.num_features)
+    self.lrelu = nn.LeakyReLU(0.2)
+    pass
+
+  def forward(self, x):
+    """
+
+    :param x:
+    :param y: feature [b, self.input_size]
+    :return:
+    """
+    x = self.conv(x)
+    b, c, h, w = x.size()
+    noise = torch.randn(b, 1, h, w, device=x.device)
+    x = self.noise(x, noise)
+    x = self.lrelu(x)
+
+    z = torch.randn(b, self.z_dim, device=x.device)
+    w_code = self.style(z)
+    gain = (1 + self.gain(w_code)).view(b, -1, 1, 1)
+    bias = self.bias(w_code).view(b, -1, 1, 1)
+    x = F.instance_norm(x, running_mean=None, running_var=None, weight=None, bias=None,
+                        use_input_stats=True, momentum=self.momentum, eps=self.eps)
+    out = x * gain + bias
+    return out
+
+  def test_case(self):
+    bs = 2
+    x = torch.randn(bs, 256, 8, 8).cuda()
+    out = self(x)
+    return out
+
+  def update_cfg(self, cfg):
+    if not getattr(cfg, 'update_cfg', False):
+      return cfg
+
+    cfg_str = """
+        name: "StyleLayer"
+        z_dim: 128
+        n_mlp: 1
+        num_features: 256
+
+      """
+    default_cfg = EasyDict(yaml.safe_load(cfg_str))
+    cfg = update_config(default_cfg, cfg)
+    return cfg
+
+
+
+
+
+
+
+
+
+
+
+
+  

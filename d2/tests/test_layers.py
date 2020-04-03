@@ -335,3 +335,37 @@ class TestingLayers(unittest.TestCase):
     g = torchviz.make_dot(out)
     g.view()
     pass
+
+  def test_StyleLayer(self):
+    """
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'PORT' not in os.environ:
+      os.environ['PORT'] = '6006'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
+    # func name
+    assert sys._getframe().f_code.co_name.startswith('test_')
+    command = sys._getframe().f_code.co_name[5:]
+    class_name = self.__class__.__name__[7:] \
+      if self.__class__.__name__.startswith('Testing') \
+      else self.__class__.__name__
+    outdir = f'results/{class_name}/{command}'
+    import yaml
+    from template_lib.d2.layers import build_d2layer
+
+    cfg_str = """
+          name: "StyleLayer"
+          update_cfg: true
+    """
+    cfg = EasyDict(yaml.safe_load(cfg_str))
+
+    op = build_d2layer(cfg)
+    op.cuda()
+    out = op.test_case()
+
+    import torchviz
+    g = torchviz.make_dot(out)
+    g.view()
+    pass
