@@ -1,3 +1,4 @@
+import math
 import yaml
 from easydict import EasyDict
 import functools
@@ -57,7 +58,7 @@ class D2None(nn.Module):
 
     pass
 
-  def forward(self, x):
+  def forward(self, x, **kwargs):
 
     return x * 0.0
 
@@ -131,7 +132,7 @@ class DenseBlock(nn.Module):
         self.dag[i].append(op)
     pass
 
-  def forward(self, x, batched_arcs):
+  def forward(self, x, batched_arcs, **kwargs):
     skip = x
     x = self.in_conv(x)
 
@@ -140,7 +141,7 @@ class DenseBlock(nn.Module):
     for edges in self.dag:
       edges_arcs = batched_arcs[:, idx_start:idx_start + len(edges)]
       idx_start += len(edges)
-      s_cur = sum(edge(s, edges_arcs[:, i]) for i, (edge, s) in enumerate(zip(edges, states)))
+      s_cur = sum(edge(s, edges_arcs[:, i], **kwargs) for i, (edge, s) in enumerate(zip(edges, states)))
 
       states.append(s_cur)
 
@@ -425,7 +426,6 @@ class NoiseInjection(nn.Module):
   def forward(self, image, noise):
     return image + self.weight * noise
 
-
 @D2LAYER_REGISTRY.register()
 class StyleLayer(nn.Module):
 
@@ -499,9 +499,106 @@ class StyleLayer(nn.Module):
     return cfg
 
 
+@D2LAYER_REGISTRY.register()
+class ModulatedConv2d(nn.Module):
+  def __init__(self, cfg, **kwargs):
+    super().__init__()
+
+    self.in_channels               = get_attr_kwargs(cfg, 'in_channels', **kwargs)
+    self.out_channels              = get_attr_kwargs(cfg, 'out_channels', **kwargs)
+    self.kernel_size               = get_attr_kwargs(cfg, 'kernel_size', **kwargs)
+    self.style_dim                 = get_attr_kwargs(cfg, 'style_dim', **kwargs)
+    self.demodulate                = get_attr_kwargs(cfg, 'demodulate', default=True, **kwargs)
+
+    fan_in = self.in_channels * self.kernel_size ** 2
+    self.scale = 1 / math.sqrt(fan_in)
+    self.padding = self.kernel_size // 2
+
+    self.weight = nn.Parameter(torch.randn(1, self.out_channels, self.in_channels, self.kernel_size, self.kernel_size))
+    self.modulation = nn.Linear(self.style_dim, self.in_channels)
+    pass
+
+  def forward(self, input, style):
+    batch, in_channel, height, width = input.shape
+
+    style = self.modulation(style).view(batch, 1, in_channel, 1, 1)
+    weight = self.scale * self.weight * style
+
+    if self.demodulate:
+      demod = torch.rsqrt(weight.pow(2).sum([2, 3, 4]) + 1e-8)
+      weight = weight * demod.view(batch, self.out_channels, 1, 1, 1)
+
+    weight = weight.view(batch * self.out_channels, in_channel, self.kernel_size, self.kernel_size)
+
+    input = input.view(1, batch * in_channel, height, width)
+    out = F.conv2d(input, weight, padding=self.padding, groups=batch)
+    _, _, height, width = out.shape
+    out = out.view(batch, self.out_channels, height, width)
+
+    return out
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}({self.in_channels}, {self.out_channels}, {self.kernel_size}')
 
 
+class NoiseInjectionV2(nn.Module):
+  def __init__(self):
+    super().__init__()
 
+    self.weight = nn.Parameter(torch.zeros(1))
+
+  def forward(self, image, noise=None):
+    if noise is None:
+      batch, _, height, width = image.shape
+      noise = image.new_empty(batch, 1, height, width).normal_()
+    return image + self.weight * noise
+
+
+@D2LAYER_REGISTRY.register()
+class StyleV2Conv(nn.Module):
+
+  def __init__(self, cfg, **kwargs):
+    super().__init__()
+
+    cfg = self.update_cfg(cfg)
+
+    self.cfg_modconv                   = get_attr_kwargs(cfg, 'cfg_modconv', **kwargs)
+
+    self.cfg = cfg
+
+    self.activate = nn.ReLU()
+    self.conv = build_d2layer(self.cfg_modconv, **kwargs)
+    self.noise = NoiseInjectionV2()
+
+  def forward(self, x, style, noise=None, **kwargs):
+    x = self.activate(x)
+    x = self.conv(x, style)
+    out = self.noise(x, noise=noise)
+
+    return out
+
+  def test_case(self, in_channels, out_channels):
+    bs = 2
+    x = torch.randn(bs, in_channels, 8, 8).cuda()
+    style = torch.randn(bs, self.cfg.cfg_modconv.style_dim).cuda()
+    out = self(x, style)
+    return out
+
+  def update_cfg(self, cfg):
+    if not getattr(cfg, 'update_cfg', False):
+      return cfg
+
+    cfg_str = """
+        name: "StyleV2Conv"
+        cfg_modconv:
+          name: "ModulatedConv2d"
+          kernel_size: 3
+          style_dim: 192
+
+      """
+    default_cfg = EasyDict(yaml.safe_load(cfg_str))
+    cfg = update_config(default_cfg, cfg)
+    return cfg
 
 
 

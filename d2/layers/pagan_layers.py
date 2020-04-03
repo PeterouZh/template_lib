@@ -64,7 +64,7 @@ class MixedLayer(nn.Module):
       self.branches.append(branch)
     pass
 
-  def forward(self, x, sample_arc):
+  def forward(self, x, sample_arc, **kwargs):
     bs = len(sample_arc)
     sample_arc = sample_arc.type(torch.int64)
 
@@ -77,7 +77,7 @@ class MixedLayer(nn.Module):
     sample_arc_onehot[torch.arange(bs), sample_arc] = 1
     sample_arc_onehot = sample_arc_onehot.view(bs, self.num_branch, 1, 1, 1)
 
-    x = [branch(x).unsqueeze(1) if idx in sample_arc else \
+    x = [branch(x, **kwargs).unsqueeze(1) if idx in sample_arc else \
            (torch.zeros(bs, self.out_channels, x.size(-1), x.size(-1)).cuda().requires_grad_(False).unsqueeze(1)) \
          for idx, branch in enumerate(self.branches)]
     # x = [branch(x, y).unsqueeze(1) for branch in self.branches]

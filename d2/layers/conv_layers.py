@@ -61,7 +61,7 @@ class Conv2d(nn.Conv2d):
                                  dilation=dilation, groups=groups, bias=bias,
                                  padding_mode=padding_mode)
 
-  def forward(self, input, *args):
+  def forward(self, input, **kargs):
     x = super(Conv2d, self).forward(input)
     return x
 
@@ -127,7 +127,7 @@ class ActConv2d(nn.Module):
     self.conv = build_d2layer(cfg_conv, **kwargs)
 
 
-  def forward(self, x):
+  def forward(self, x, **kwargs):
     x = self.act(x)
     x = self.conv(x)
     return x
@@ -194,3 +194,27 @@ class Conv2dBNAct(nn.Module):
     x = self.bn(x)
     x = self.act(x)
     return x
+
+
+@D2LAYER_REGISTRY.register()
+class ActConv2dCBN(nn.Module):
+
+  def __init__(self, cfg, **kwargs):
+    super().__init__()
+
+    cfg_act                   = get_attr_kwargs(cfg, 'cfg_act', **kwargs)
+    cfg_conv                  = get_attr_kwargs(cfg, 'cfg_conv', **kwargs)
+    cfg_cbn                   = get_attr_kwargs(cfg, 'cfg_cbn', **kwargs)
+
+    self.act = build_d2layer(cfg_act, **kwargs)
+    self.conv = build_d2layer(cfg_conv, **kwargs)
+    self.cbn = build_d2layer(cfg_cbn, num_features=kwargs['in_channels'], **kwargs)
+
+
+  def forward(self, x, cbn, **kwargs):
+    x = self.act(x)
+    x = self.conv(x)
+    x = self.cbn(x, cbn)
+    return x
+
+
