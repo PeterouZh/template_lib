@@ -758,7 +758,8 @@ class CondControllerProgressiveRLAlpha(_FairController):
       arcs.append(layer_arcs)
     batched_arcs = torch.cat(arcs, dim=1)
 
-    return batched_arcs
+    fair_arcs = None
+    return batched_arcs, fair_arcs
 
   def get_sampled_arc(self, iteration=0):
     sampled_arc = []
