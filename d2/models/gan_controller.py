@@ -687,7 +687,8 @@ class CondControllerProgressiveRLAlpha(_FairController):
 
     if iteration % self.log_every_iter == 0:
       self.print_distribution(iteration=iteration, print_interval=10)
-      self.logger.info('\nsampled arcs: \n%s' % sampled_arcs.cpu().numpy())
+      if len(sampled_arcs) <= 10:
+        self.logger.info('\nsampled arcs: \n%s' % sampled_arcs.cpu().numpy())
       self.myargs.textlogger.logstr(iteration,
                                     sampled_arcs='\n' + np.array2string(sampled_arcs.cpu().numpy(), threshold=np.inf))
       default_dicts = collections.defaultdict(dict)
@@ -740,7 +741,7 @@ class CondControllerProgressiveRLAlpha(_FairController):
     for handler, formatter in zip(self.logger.handlers, org_formatters):
       handler.setFormatter(formatter)
 
-  def get_fair_path(self, labels, iteration):
+  def get_fair_path(self, labels, iteration, **kwargs):
     """
     :return: (bs x num_branches, num_layers)
     """

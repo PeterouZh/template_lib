@@ -38,7 +38,7 @@ class CIFAR10DatasetMapper(object):
 
   def __init__(self, cfg, **kwargs):
 
-    self.img_size             = get_attr_kwargs(cfg, 'img_size', kwargs=kwargs)
+    self.img_size             = get_attr_kwargs(cfg, 'img_size', **kwargs)
 
     self.transform = self.build_transform(img_size=self.img_size)
 
