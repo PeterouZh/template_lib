@@ -500,6 +500,9 @@ class DenseGeneratorCBN_v1(nn.Module):
 
 @GENERATOR_REGISTRY.register()
 class DenseGeneratorCBN_v2(nn.Module):
+  """
+  Split z
+  """
   def __init__(self, cfg, **kwargs):
     super().__init__()
 
@@ -628,6 +631,9 @@ class DenseGeneratorCBN_v2(nn.Module):
 
 @GENERATOR_REGISTRY.register()
 class DenseGeneratorCBN_v3(nn.Module):
+  """
+  Do not split z
+  """
   def __init__(self, cfg, **kwargs):
     super().__init__()
 
