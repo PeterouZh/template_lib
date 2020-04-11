@@ -67,6 +67,24 @@ class Conv2d(nn.Conv2d):
 
 
 @D2LAYER_REGISTRY.register()
+class Conv2dOp(nn.Module):
+  """
+  """
+  def __init__(self, cfg, **kwargs):
+    super().__init__()
+
+    self.stride                        = get_attr_kwargs(cfg, 'stride', default=1, **kwargs)
+    self.padding                       = get_attr_kwargs(cfg, 'padding', default=0, **kwargs)
+    self.dilation                      = get_attr_kwargs(cfg, 'dilation', default=1, **kwargs)
+    self.groups                        = get_attr_kwargs(cfg, 'groups', default=1, **kwargs)
+
+  def forward(self, x, weight, bias, **kargs):
+    x = F.conv2d(x, weight, bias, stride=self.stride, padding=self.padding,
+                 dilation=self.dilation, groups=self.groups)
+    return x
+
+
+@D2LAYER_REGISTRY.register()
 class Linear(nn.Linear):
   """
   # 2D Conv layer with spectral norm
@@ -129,7 +147,7 @@ class ActConv2d(nn.Module):
 
   def forward(self, x, **kwargs):
     x = self.act(x)
-    x = self.conv(x)
+    x = self.conv(x, **kwargs)
     return x
 
 

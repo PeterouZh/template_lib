@@ -541,6 +541,49 @@ class ModulatedConv2d(nn.Module):
     return (f'{self.__class__.__name__}({self.in_channels}, {self.out_channels}, {self.kernel_size}')
 
 
+@D2LAYER_REGISTRY.register()
+class ModulatedConv2dOp(nn.Module):
+  def __init__(self, cfg, **kwargs):
+    super().__init__()
+
+    self.in_channels               = get_attr_kwargs(cfg, 'in_channels', **kwargs)
+    self.out_channels              = get_attr_kwargs(cfg, 'out_channels', **kwargs)
+    self.kernel_size               = get_attr_kwargs(cfg, 'kernel_size', **kwargs)
+    self.style_dim                 = get_attr_kwargs(cfg, 'style_dim', **kwargs)
+    self.demodulate                = get_attr_kwargs(cfg, 'demodulate', default=True, **kwargs)
+
+    fan_in = self.in_channels * self.kernel_size ** 2
+    self.scale = 1 / math.sqrt(fan_in)
+    self.padding = self.kernel_size // 2
+
+    # self.weight = nn.Parameter(torch.randn(1, self.out_channels, self.in_channels, self.kernel_size, self.kernel_size))
+    self.modulation = nn.Linear(self.style_dim, self.in_channels)
+    pass
+
+  def forward(self, input, style, weight, **kwargs):
+    batch, in_channel, height, width = input.shape
+
+    style = self.modulation(style).view(batch, 1, in_channel, 1, 1)
+    weight = weight.unsqueeze(0)
+    weight = self.scale * weight * style
+
+    if self.demodulate:
+      demod = torch.rsqrt(weight.pow(2).sum([2, 3, 4]) + 1e-8)
+      weight = weight * demod.view(batch, self.out_channels, 1, 1, 1)
+
+    weight = weight.view(batch * self.out_channels, in_channel, self.kernel_size, self.kernel_size)
+
+    input = input.view(1, batch * in_channel, height, width)
+    out = F.conv2d(input, weight, padding=self.padding, groups=batch)
+    _, _, height, width = out.shape
+    out = out.view(batch, self.out_channels, height, width)
+
+    return out
+
+  def __repr__(self):
+    return (f'{self.__class__.__name__}({self.in_channels}, {self.out_channels}, {self.kernel_size}')
+
+
 class NoiseInjectionV2(nn.Module):
   def __init__(self):
     super().__init__()
@@ -572,7 +615,7 @@ class StyleV2Conv(nn.Module):
 
   def forward(self, x, style, noise=None, **kwargs):
     x = self.activate(x)
-    x = self.conv(x, style)
+    x = self.conv(x, style, **kwargs)
     out = self.noise(x, noise=noise)
 
     return out

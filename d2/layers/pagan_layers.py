@@ -89,6 +89,55 @@ class MixedLayer(nn.Module):
 
 
 @D2LAYER_REGISTRY.register()
+class MixedLayerShareWeights(nn.Module):
+
+  def __init__(self, cfg, **kwargs):
+    super().__init__()
+
+    self.in_channels            = get_attr_kwargs(cfg, 'in_channels', **kwargs)
+    self.out_channels           = get_attr_kwargs(cfg, 'out_channels', **kwargs)
+    self.kernel_size            = get_attr_kwargs(cfg, 'kernel_size', **kwargs)
+    self.cfg_ops                = get_attr_kwargs(cfg, 'cfg_ops', **kwargs)
+
+    self.num_branch = len(self.cfg_ops)
+
+    self.shared_weights = nn.Parameter(
+      torch.randn(self.out_channels, self.in_channels, self.kernel_size, self.kernel_size))
+    self.shared_bias = nn.Parameter(torch.randn(self.out_channels))
+    nn.init.orthogonal_(self.shared_weights.data)
+
+    self.branches = nn.ModuleList()
+    for name, cfg_op in self.cfg_ops.items():
+      branch = build_d2layer(cfg_op, in_channels=self.in_channels, out_channels=self.out_channels)
+      self.branches.append(branch)
+    pass
+
+  def forward(self, x, sample_arc, **kwargs):
+    bs = len(sample_arc)
+    sample_arc = sample_arc.type(torch.int64)
+
+    arc_unique = sample_arc.unique()
+    if len(arc_unique) == 1:
+      x = self.branches[arc_unique](x, weight=self.shared_weights, bias=self.shared_bias, **kwargs)
+      return x
+
+    sample_arc_onehot = torch.zeros(bs, self.num_branch).cuda()
+    sample_arc_onehot[torch.arange(bs), sample_arc] = 1
+    sample_arc_onehot = sample_arc_onehot.view(bs, self.num_branch, 1, 1, 1)
+
+    x = [branch(x, weight=self.shared_weights, bias=self.shared_bias, **kwargs).unsqueeze(1) if idx in sample_arc else \
+           (torch.zeros(bs, self.out_channels, x.size(-1), x.size(-1)).cuda().requires_grad_(False).unsqueeze(1)) \
+         for idx, branch in enumerate(self.branches)]
+    # x = [branch(x, y).unsqueeze(1) for branch in self.branches]
+    x = torch.cat(x, 1)
+    x = sample_arc_onehot * x
+    x = x.sum(dim=1)
+
+    return x
+
+
+
+@D2LAYER_REGISTRY.register()
 class MixedActLayer(nn.Module):
 
   def __init__(self, cfg, **kwargs):
