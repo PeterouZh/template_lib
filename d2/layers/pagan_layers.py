@@ -97,14 +97,18 @@ class MixedLayerShareWeights(nn.Module):
     self.in_channels            = get_attr_kwargs(cfg, 'in_channels', **kwargs)
     self.out_channels           = get_attr_kwargs(cfg, 'out_channels', **kwargs)
     self.kernel_size            = get_attr_kwargs(cfg, 'kernel_size', **kwargs)
+    self.bias                   = get_attr_kwargs(cfg, 'bias', **kwargs)
     self.cfg_ops                = get_attr_kwargs(cfg, 'cfg_ops', **kwargs)
 
     self.num_branch = len(self.cfg_ops)
 
     self.shared_weights = nn.Parameter(
       torch.randn(self.out_channels, self.in_channels, self.kernel_size, self.kernel_size))
-    self.shared_bias = nn.Parameter(torch.randn(self.out_channels))
     nn.init.orthogonal_(self.shared_weights.data)
+    if self.bias:
+      self.shared_bias = nn.Parameter(torch.randn(self.out_channels))
+    else:
+      self.shared_bias = None
 
     self.branches = nn.ModuleList()
     for name, cfg_op in self.cfg_ops.items():

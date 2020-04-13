@@ -195,4 +195,46 @@ class TestingGraphviz(unittest.TestCase):
 
     g.view()
 
+  def test_rank_same(self):
+    """
 
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'PORT' not in os.environ:
+      os.environ['PORT'] = '6006'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
+    # func name
+    assert sys._getframe().f_code.co_name.startswith('test_')
+    command = sys._getframe().f_code.co_name[5:]
+    class_name = self.__class__.__name__[7:] \
+      if self.__class__.__name__.startswith('Testing') \
+      else self.__class__.__name__
+    outdir = f'results/{class_name}/{command}'
+    import shutil
+    shutil.rmtree(outdir, ignore_errors=True)
+    os.makedirs(outdir, exist_ok=True)
+
+    from graphviz import Digraph
+
+    filename = os.path.join(outdir, 'hello')
+
+    d = Digraph('G', filename=filename, format='png')
+
+    with d.subgraph() as s:
+      s.attr(rank='same')
+      s.node('A')
+      s.node('X')
+
+    d.node('C')
+
+    with d.subgraph() as s:
+      s.attr(rank='same')
+      s.node('B')
+      s.node('D')
+      s.node('Y')
+
+    d.edges(['AB', 'AC', 'CD', 'XY'])
+
+    d.view()
