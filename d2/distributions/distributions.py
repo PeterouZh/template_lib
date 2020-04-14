@@ -71,3 +71,23 @@ class CategoricalUniform(distributions.Categorical):
     else:
       sample = super(CategoricalUniform, self).sample(sample_shape=sample_shape)
     return sample
+
+
+@D2DISTRIBUTIONS_REGISTRY.register()
+class ConstantValue(object):
+
+  def __init__(self, cfg, **kwargs):
+
+    self.constant                     = get_attr_kwargs(cfg, 'constant', **kwargs)
+    self.sample_shape                 = get_attr_kwargs(cfg, 'sample_shape', default=None, **kwargs)
+
+    if isinstance(self.sample_shape, int):
+      self.sample_shape = [self.sample_shape, ]
+    pass
+
+  def sample(self, sample_shape=None):
+    if sample_shape is None:
+      sample = torch.empty(self.sample_shape, dtype=torch.int64).fill_(self.constant)
+    else:
+      sample = torch.empty(sample_shape, dtype=torch.int64).fill_(self.constant)
+    return sample
