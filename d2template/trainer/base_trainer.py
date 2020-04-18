@@ -115,6 +115,7 @@ class BaseTrainer(nn.Module):
     def _get_ckpt_path(self, ckpt_dir, ckpt_epoch, iter_every_epoch):
       eval_iter = (ckpt_epoch) * iter_every_epoch - 1
       eval_ckpt = os.path.join(ckpt_dir, f'model_{eval_iter:07}.pth')
+      self.logger.info(f'Load weights:\n{os.path.abspath(eval_ckpt)}')
       return eval_ckpt
 
     def _print_number_params(self, models_dict):

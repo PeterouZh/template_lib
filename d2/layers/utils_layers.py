@@ -606,6 +606,7 @@ class StyleV2Conv(nn.Module):
     cfg = self.update_cfg(cfg)
 
     self.cfg_modconv                   = get_attr_kwargs(cfg, 'cfg_modconv', **kwargs)
+    self.add_noise                     = get_attr_kwargs(cfg, 'add_noise', default=True, **kwargs)
 
     self.cfg = cfg
 
@@ -616,8 +617,10 @@ class StyleV2Conv(nn.Module):
   def forward(self, x, style, noise=None, **kwargs):
     x = self.activate(x)
     x = self.conv(x, style, **kwargs)
-    out = self.noise(x, noise=noise)
-
+    if self.add_noise:
+      out = self.noise(x, noise=noise)
+    else:
+      out = x
     return out
 
   def test_case(self, in_channels, out_channels):

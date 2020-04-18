@@ -185,6 +185,74 @@ class AutoGANCIFAR10ADiscriminatorCProj(nn.Module):
 
 
 @DISCRIMINATOR_REGISTRY.register()
+class AutoGANCIFAR10ADiscriminatorCProj_v1(nn.Module):
+    def __init__(self, cfg, **kwargs):
+        super().__init__()
+
+        self.ch                    = get_attr_kwargs(cfg, 'ch', default=128, **kwargs)
+        self.d_spectral_norm       = get_attr_kwargs(cfg, 'd_spectral_norm', default=True, **kwargs)
+        self.init_type             = get_attr_kwargs(cfg, 'init_type', default='xavier_uniform', **kwargs)
+        self.cfg_act               = get_attr_kwargs(cfg, 'cfg_act', default=EasyDict(name='ReLU'), **kwargs)
+        self.n_classes             = get_attr_kwargs(cfg, 'n_classes', **kwargs)
+        self.activation            = build_d2layer(cfg=self.cfg_act)
+
+        self.embed = nn.Embedding(self.n_classes, self.ch)
+
+        self.block1 = OptimizedDisBlock(d_spectral_norm=self.d_spectral_norm,
+                                        in_channels=3, out_channels=self.ch)
+        self.block2 = DisBlock(d_spectral_norm=self.d_spectral_norm,
+                               in_channels=self.ch, out_channels=self.ch,
+                               activation=self.activation, downsample=True)
+        self.block3 = DisBlock(d_spectral_norm=self.d_spectral_norm,
+                               in_channels=self.ch, out_channels=self.ch,
+                               activation=self.activation, downsample=False)
+        self.block4 = DisBlock(d_spectral_norm=self.d_spectral_norm,
+                               in_channels=self.ch, out_channels=self.ch,
+                               activation=self.activation, downsample=False)
+        layers = [self.block1, self.block2, self.block3]
+        model = nn.Sequential(*layers)
+        self.model = model
+        self.l5 = nn.Linear(self.ch, 1, bias=False)
+        if self.d_spectral_norm:
+            self.l5 = nn.utils.spectral_norm(self.l5)
+
+        weights_init_func = functools.partial(
+            self.weights_init, init_type=self.init_type)
+        self.apply(weights_init_func)
+
+    def forward(self, x, y, *args, **kwargs):
+        h = x
+
+        h = self.model(h)
+        h = self.block4(h)
+        h = self.activation(h)
+        # Global average pooling
+        h = h.sum(2).sum(2)
+        out = self.l5(h)
+
+        out = out + torch.sum(self.embed(y) * h, 1, keepdim=True)
+
+        return out
+
+    @staticmethod
+    def weights_init(m, init_type='orth'):
+        classname = m.__class__.__name__
+        if classname.find('Conv2d') != -1:
+            if init_type == 'normal':
+                nn.init.normal_(m.weight.data, 0.0, 0.02)
+            elif init_type == 'orth':
+                nn.init.orthogonal_(m.weight.data)
+            elif init_type == 'xavier_uniform':
+                nn.init.xavier_uniform(m.weight.data, 1.)
+            else:
+                raise NotImplementedError(
+                    '{} unknown inital type'.format(init_type))
+        elif classname.find('BatchNorm2d') != -1:
+            nn.init.normal_(m.weight.data, 1.0, 0.02)
+            nn.init.constant_(m.bias.data, 0.0)
+
+
+@DISCRIMINATOR_REGISTRY.register()
 class AutoGANCIFAR10ADiscriminatorCProjNoFC(nn.Module):
     def __init__(self, cfg, **kwargs):
         super().__init__()

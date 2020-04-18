@@ -59,7 +59,7 @@ class WGANGPCond(object):
     z_sample = z.sample()
     z_sample = z_sample.to(self.device)
     fake = self.G(z_sample, y=gy, **kwargs)
-    d_fake = self.D(fake.detach(), gy)
+    d_fake = self.D(fake.detach(), gy, **kwargs)
     d_fake_mean = d_fake.mean()
     summary_d['d_logit_mean']['d_fake_mean'] = d_fake_mean.item()
 
@@ -85,7 +85,7 @@ class WGANGPCond(object):
       gy = dy
 
       fake = self.G(z_sample, y=gy, **kwargs)
-      d_fake_g = self.D(fake, gy)
+      d_fake_g = self.D(fake, gy, **kwargs)
       d_fake_g_mean = d_fake_g.mean()
 
       g_loss = -d_fake_g_mean
