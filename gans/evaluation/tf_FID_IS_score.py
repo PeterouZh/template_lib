@@ -440,7 +440,8 @@ class TFFIDISScore(object):
     IS_softmax = softmax
     return FID_pool3, IS_softmax
 
-  def __call__(self, sample_func, return_fid_stat=False, num_inception_images=None, stdout=sys.stdout):
+  def __call__(self, sample_func, return_fid_stat=False, num_inception_images=None,
+               return_fid_logit=False, stdout=sys.stdout):
     import torch
 
     class SampleClass(object):
@@ -469,7 +470,10 @@ class TFFIDISScore(object):
         mu, sigma = self._calculate_fid_stat(pred_FIDs=pred_FIDs)
       else:
         mu, sigma = 0, 0
-      return mu, sigma
+      if return_fid_logit:
+        return mu, sigma, pred_FIDs
+      else:
+        return mu, sigma
 
     if comm.is_main_process():
       self.logger.info(f"Num of images: {len(pred_FIDs)}")
