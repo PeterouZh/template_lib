@@ -104,7 +104,7 @@ class TestingPlot(unittest.TestCase):
     if 'PORT' not in os.environ:
       os.environ['PORT'] = '6006'
     if 'TIME_STR' not in os.environ:
-      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
     # func name
     assert sys._getframe().f_code.co_name.startswith('test_')
     command = sys._getframe().f_code.co_name[5:]
@@ -113,6 +113,10 @@ class TestingPlot(unittest.TestCase):
       else self.__class__.__name__
     outdir = f'results/{class_name}/{command}'
 
+    from datetime import datetime
+    TIME_STR = bool(int(os.getenv('TIME_STR', 0)))
+    time_str = datetime.now().strftime("%Y%m%d-%H_%M_%S_%f")[:-3]
+    outdir = outdir if not TIME_STR else (outdir + '_' + time_str)
 
     from template_lib.utils.plot_results import PlotResults
     import collections, shutil

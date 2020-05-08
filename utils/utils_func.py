@@ -4,6 +4,22 @@ import logging
 from torch.nn.parallel import DistributedDataParallel
 
 
+def _make_gen(reader):
+  b = reader(1024 * 1024)
+  while b:
+    yield b
+    b = reader(1024 * 1024)
+
+
+def rawgencount(filename):
+  "count num of lines of a file"
+  f = open(filename, 'rb')
+  f_gen = _make_gen(f.raw.read)
+  n_lines = sum(buf.count(b'\n') for buf in f_gen)
+  f.close()
+  return n_lines
+
+
 def top_accuracy(output, target, topk=(1,)):
   """ Computes the precision@k for the specified values of k """
   maxk = max(topk)

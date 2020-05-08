@@ -10,15 +10,12 @@ class TestingBuildImageNet(unittest.TestCase):
   def test_load_in_memory(self):
     """
     Usage:
-        export CUDA_VISIBLE_DEVICES=4,5
+        export CUDA_VISIBLE_DEVICES=0
         export PORT=6006
         export TIME_STR=0
-        export PYTHONPATH=.:./EXPERIMENTS:./detectron2_lib
-
-        python 	EXPERIMENTS/pagan/train_net.py \
-          --config EXPERIMENTS/pagan/config/pagan.yaml \
-          --command ddp_search_cgan_gen_ImageNet_debug \
-          --outdir results/PAGAN_ImageNet/ddp_search_cgan_gen_ImageNet_debug
+        export PYTHONPATH=./
+        python 	-c "from template_lib.d2.tests import test_data;\
+          test_data.TestingBuildImageNet().test_load_in_memory()"
     :return:
     """
     if 'CUDA_VISIBLE_DEVICES' not in os.environ:
@@ -41,10 +38,11 @@ class TestingBuildImageNet(unittest.TestCase):
     dataset_dicts = get_dict(name=registed_names[-1], data_path=data_paths[-1],
                              images_per_class=images_per_class_list[-1], show_bar=True, **(kwargs_list[-1]))
 
-    metadata = MetadataCatalog.get(registed_names[-1])
-    for d in random.sample(dataset_dicts, 3):
-
-      pass
+    # metadata = MetadataCatalog.get(registed_names[-1])
+    # for d in random.sample(dataset_dicts, 3):
+    #
+    #   pass
+    pass
 
   def test_create_imagenet_train_index(self):
     """

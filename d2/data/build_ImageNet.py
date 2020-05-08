@@ -175,9 +175,11 @@ registed_names = ['imagenet_train',
                   'imagenet_train_100x1k',
                   'imagenet_train_5x1k',
                   'imagenet_train_2x1k_size_48_in_memory',
-                  'imagenet_train_100x1k_size_48_in_memory'
+                  'imagenet_train_100x1k_size_48_in_memory',
+                  'imagenet_train_size_32_in_memory'
                   ]
 data_paths = ["datasets/imagenet/train",
+              "datasets/imagenet/train",
               "datasets/imagenet/train",
               "datasets/imagenet/train",
               "datasets/imagenet/train",
@@ -188,12 +190,14 @@ images_per_class_list = [np.inf,
                          5,
                          2,
                          100,
+                         np.inf,
                          ]
 kwargs_list = [{},
                {},
                {},
                {'load_in_memory': True, 'img_size': 48},
                {'load_in_memory': True, 'img_size': 48},
+               {'load_in_memory': True, 'img_size': 32},
                ]
 
 for name, data_path, images_per_class, kwargs in zip(registed_names, data_paths, images_per_class_list, kwargs_list):
