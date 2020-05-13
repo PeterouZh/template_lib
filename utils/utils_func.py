@@ -1,6 +1,6 @@
 import re
 import logging
-
+from numpy import array_equal
 from torch.nn.parallel import DistributedDataParallel
 
 
@@ -18,6 +18,9 @@ def rawgencount(filename):
   n_lines = sum(buf.count(b'\n') for buf in f_gen)
   f.close()
   return n_lines
+
+def array_eq_in_list(myarr, list_arrays):
+  return next((True for elem in list_arrays if array_equal(elem, myarr)), False)
 
 
 def top_accuracy(output, target, topk=(1,)):

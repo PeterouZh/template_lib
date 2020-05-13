@@ -129,6 +129,7 @@ def get_activations(images, sess, batch_size=50, verbose=True,
 # -------------------------------------------------------------------------------
 
 
+
 def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
   """Numpy implementation of the Frechet Distance.
   The Frechet distance between two multivariate Gaussians X_1 ~ N(mu_1, C_1)
@@ -356,6 +357,27 @@ def calculate_fid_given_paths(paths, inception_path, low_profile=False):
   return fid_value
 
 
+# Pytorch implementation of matrix sqrt, from Tsung-Yu Lin, and Subhransu Maji
+# https://github.com/msubhransu/matrix-sqrt
+def sqrt_newton_schulz(A, numIters, dtype=None):
+  import torch
+  with torch.no_grad():
+    if dtype is None:
+      dtype = A.type()
+    batchSize = A.shape[0]
+    dim = A.shape[1]
+    normA = A.mul(A).sum(dim=1).sum(dim=1).sqrt()
+    Y = A.div(normA.view(batchSize, 1, 1).expand_as(A))
+    I = torch.eye(dim,dim).view(1, dim, dim).repeat(batchSize,1,1).type(dtype)
+    Z = torch.eye(dim,dim).view(1, dim, dim).repeat(batchSize,1,1).type(dtype)
+    for i in range(numIters):
+      T = 0.5*(3.0*I - Z.bmm(Y))
+      Y = Y.bmm(T)
+      Z = T.bmm(Z)
+    sA = Y*torch.sqrt(normA).view(batchSize, 1, 1).expand_as(A)
+  return sA
+
+
 @GAN_METRIC_REGISTRY.register()
 class TFFIDISScore(object):
   def __init__(self, cfg):
@@ -491,8 +513,12 @@ class TFFIDISScore(object):
     comm.synchronize()
     return FID_tf, IS_mean_tf, IS_std_tf
 
-  def _calculate_frechet_distance(self, mu1, sigma1, mu2, sigma2, eps=1e-6):
-    return calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps)
+  def _calculate_frechet_distance(self, mu1, sigma1, mu2, sigma2, eps=1e-6, use_torch=False):
+    if use_torch:
+      fid = self._torch_calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps)
+    else:
+      fid = calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps)
+    return fid
 
   def _gather_numpy_array(self, data):
     data_list = comm.gather(data=data)
@@ -613,4 +639,43 @@ class TFFIDISScore(object):
     mu = np.mean(pred_FIDs, axis=0)
     sigma = np.cov(pred_FIDs, rowvar=False)
     return mu, sigma
+
+  @staticmethod
+  def _torch_calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
+    """Pytorch implementation of the Frechet Distance.
+    Taken from https://github.com/bioinf-jku/TTUR
+    The Frechet distance between two multivariate Gaussians X_1 ~ N(mu_1, C_1)
+    and X_2 ~ N(mu_2, C_2) is
+            d^2 = ||mu_1 - mu_2||^2 + Tr(C_1 + C_2 - 2*sqrt(C_1*C_2)).
+    Stable version by Dougal J. Sutherland.
+    Params:
+    -- mu1   : Numpy array containing the activations of a layer of the
+               inception net (like returned by the function 'get_predictions')
+               for generated samples.
+    -- mu2   : The sample mean over activations, precalculated on an
+               representive data set.
+    -- sigma1: The covariance matrix over activations for generated samples.
+    -- sigma2: The covariance matrix over activations, precalculated on an
+               representive data set.
+    Returns:
+    --   : The Frechet Distance.
+    """
+
+    assert mu1.shape == mu2.shape, \
+      'Training and test mean vectors have different lengths'
+    assert sigma1.shape == sigma2.shape, \
+      'Training and test covariances have different dimensions'
+    import torch
+
+    mu1 = torch.from_numpy(mu1).cuda()
+    sigma1 = torch.from_numpy(sigma1).cuda()
+    mu2 = torch.from_numpy(mu2).cuda()
+    sigma2 = torch.from_numpy(sigma2).cuda()
+
+    diff = mu1 - mu2
+    # Run 50 itrs of newton-schulz to get the matrix sqrt of sigma1 dot sigma2
+    covmean = sqrt_newton_schulz(sigma1.mm(sigma2).unsqueeze(0), 50).squeeze()
+    out = (diff.dot(diff) + torch.trace(sigma1) + torch.trace(sigma2)
+           - 2 * torch.trace(covmean))
+    return out
 
