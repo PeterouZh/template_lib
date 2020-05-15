@@ -113,7 +113,11 @@ def setup_config(config_file, saved_config_file, overwrite_opts, args, myargs):
     config_command = config_inherit_from_base(
       config=config_command, configs=config, overwrite_opts=overwrite_opts)
     config_command = convert_easydict_to_dict(config_command)
-    saved_config_command = {args.command: config_command}
+
+    saved_config = copy.deepcopy(config_command)
+    if 'base' in saved_config:
+      saved_config.pop('base')
+    saved_config_command = {args.command: saved_config}
     config_utils.YamlConfigParser.write_yaml(
       saved_config_command, fname=args.config_command_file)
     # update command config
