@@ -47,6 +47,34 @@ class TestingUnit(unittest.TestCase):
     import run
     run(argv_str)
 
+  def test_run(self):
+    """
+
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'PORT' not in os.environ:
+      os.environ['PORT'] = '6006'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
+    # func name
+    assert sys._getframe().f_code.co_name.startswith('test_')
+    command = sys._getframe().f_code.co_name[5:]
+    class_name = self.__class__.__name__[7:] \
+      if self.__class__.__name__.startswith('Testing') \
+      else self.__class__.__name__
+    outdir = f'results/{class_name}/{command}'
+
+    from datetime import datetime
+    TIME_STR = bool(int(os.getenv('TIME_STR', 0)))
+    time_str = datetime.now().strftime("%Y%m%d-%H_%M_%S_%f")[:-3]
+    outdir = outdir if not TIME_STR else (outdir + '_' + time_str)
+    print(outdir)
+
+    import collections, shutil
+    shutil.rmtree(outdir, ignore_errors=True)
+    os.makedirs(outdir, exist_ok=True)
+
 
 
 

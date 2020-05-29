@@ -95,7 +95,7 @@ class PlotResults(object):
 
 class TestingPlot(unittest.TestCase):
 
-  def test_only_conv3(self):
+  def test_plot_FID_CBN_location(self):
     """
 
     """
@@ -104,7 +104,7 @@ class TestingPlot(unittest.TestCase):
     if 'PORT' not in os.environ:
       os.environ['PORT'] = '6006'
     if 'TIME_STR' not in os.environ:
-      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '1'
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
     # func name
     assert sys._getframe().f_code.co_name.startswith('test_')
     command = sys._getframe().f_code.co_name[5:]
@@ -124,22 +124,19 @@ class TestingPlot(unittest.TestCase):
     shutil.rmtree(outdir, ignore_errors=True)
     os.makedirs(outdir, exist_ok=True)
 
-    top1 = collections.defaultdict(dict)
     outfigure = os.path.join(outdir, 'top1.jpg')
+    default_dicts = []
+    show_max = []
 
-    top1['results/Exp/search_with_only_sep_conv3_op_20200229-23_18_13_824'] = \
-      {'ops.sepConv3_affinel.f'      : 'textlog/valid.ma1.top1.log', }
-    top1['results/Exp/search_with_only_sep_conv3_op_20200229-23_19_39_828'] = \
-      {'ops.sepConv3_affinel.t': 'textlog/valid.ma1.top1.log', }
-    top1['results/Exp/search_with_only_conv3_op_20200229-23_20_25_557'] = \
-      {'ops.conv3_affinel.f': 'textlog/valid.ma1.top1.log', }
-    top1['results/PTDARTS/darts_search_20200229-23_20_54_914'] = \
-      {'ops.darts8ops_affinel.f': 'textlog/valid.ma1.top1.log', }
-
+    top1 = collections.defaultdict(dict)
+    top1['results/CIFAR10/train_cifar10_20200410-13_41_09_498'] = \
+      {'CBN_all_blocks': 'textlog/evaltf.ma0.FID_tf.log', }
     top1['properties'] = {'title': 'top1', }
-    default_dicts = [top1]
-    show_max = [True, ]
+    default_dicts.append(top1)
+    show_max.append(False)
+
     plotobs = PlotResults()
     label2datas_list = plotobs.plot_defaultdicts(
       outfigure=outfigure, default_dicts=default_dicts, show_max=show_max, figsize_wh=(16, 7.2))
     pass
+
