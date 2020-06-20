@@ -13,4 +13,6 @@ def build_dataset_mapper(cfg, **kwargs):
     Note that it does not load any weights from ``cfg``.
     """
     name = cfg.name
+    if name.lower() == 'none':
+        return None
     return DATASET_MAPPER_REGISTRY.get(name)(cfg=cfg, **kwargs)

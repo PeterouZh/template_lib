@@ -45,13 +45,13 @@ class DumpModule(nn.Module):
 @TRAINER_REGISTRY.register()
 class BaseTrainer(nn.Module):
 
-    def __init__(self, cfg, **kwargs):
+    def __init__(self, cfg, myargs, iter_every_epoch, **kwargs):
       super().__init__()
 
-      self.myargs                        = kwargs['myargs']
-      self.iter_every_epoch              = kwargs['iter_every_epoch']
+      self.cfg                           = cfg
+      self.myargs                        = myargs
+      self.iter_every_epoch              = iter_every_epoch
 
-      self.cfg = cfg
       self.device = torch.device(f'cuda:{comm.get_rank()}')
       self.logger = logging.getLogger('tl')
       self.distributed = comm.get_world_size() > 1
