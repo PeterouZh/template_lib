@@ -57,10 +57,10 @@ class BaseTrainer(nn.Module):
       self.distributed = comm.get_world_size() > 1
 
       torch.cuda.set_device(self.device)
-      self.build_models(cfg=cfg)
+      # self.build_models(cfg=cfg)
       self.to(self.device)
 
-    def build_models(self, cfg):
+    def build_models(self, **kwargs):
       self.models = {}
       self.optims = {}
 
@@ -121,3 +121,5 @@ class BaseTrainer(nn.Module):
     def _print_number_params(self, models_dict):
       print_number_params(models_dict=models_dict)
 
+    def after_resume(self):
+      pass

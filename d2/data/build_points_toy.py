@@ -51,6 +51,8 @@ class PointsDatasetMapper(object):
     """
     dataset_dict = copy.deepcopy(dataset_dict)  # it will be modified by code below
     # USER: Write your own image loading if it's not from a file
+    points = dataset_dict['points']
+    dataset_dict['points'] = points.permute(1, 0)
 
     return dataset_dict
 

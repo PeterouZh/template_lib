@@ -239,20 +239,37 @@ class TestingUnit(unittest.TestCase):
       test_bash.TestingUnit().test_resnet(32)"
 
     """
-    from multiprocessing import Queue
-    from template_lib.utils.test_resnet import TorchResnetWorker
+    import torch
+    # from multiprocessing import Queue
+    from template_lib.utils.test_resnet import TorchResnetWorker, run
+    from torch.multiprocessing import Queue
+    import torch.multiprocessing as mp
+
     determine_bs = True
     q = Queue()
-    # determine max bs
-    p = TorchResnetWorker(name='Command worker', args=(0, gpu, determine_bs, q))
-    p.start()
-    p.join()
-    bs = q.get()
+
+    try:
+      # determine max bs
+      torch.multiprocessing.spawn(run, args=(0, gpu, determine_bs, q),
+                                  nprocs=1, join=True, daemon=False)
+    except:
+      pass
+    # bs = q.get()
+    with open('results/max_bs.txt', 'r') as f:
+      bs = int(f.read())
+
     determine_bs = False
     while True:
-      p = TorchResnetWorker(name='Command worker', args=(bs, gpu, determine_bs, q))
-      p.start()
-      p.join()
+      # p = TorchResnetWorker(name='Command worker', args=(bs, gpu, determine_bs, q))
+      try:
+        # determine max bs
+        torch.multiprocessing.spawn(run, args=(bs, gpu, determine_bs, q),
+                                    nprocs=1, join=True, daemon=False)
+      except KeyboardInterrupt:
+        exit(0)
+      except:
+        pass
+
       bs -= 1
       if bs < 1:
         break
