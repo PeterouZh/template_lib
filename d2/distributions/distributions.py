@@ -91,3 +91,23 @@ class ConstantValue(object):
     else:
       sample = torch.empty(sample_shape, dtype=torch.int64).fill_(self.constant)
     return sample
+
+
+@D2DISTRIBUTIONS_REGISTRY.register()
+class Uniform(distributions.uniform.Uniform):
+
+  def __init__(self, cfg, **kwargs):
+
+    low                                 = get_attr_kwargs(cfg, 'low', default=0, **kwargs)
+    high                                = get_attr_kwargs(cfg, 'high', default=1, **kwargs)
+    self.sample_shape                   = get_attr_kwargs(cfg, 'sample_shape', default=None, **kwargs)
+
+    super(Uniform, self).__init__(low=low, high=high)
+    pass
+
+  def sample(self, sample_shape=None):
+    if sample_shape is None:
+      sample = super(Uniform, self).sample(sample_shape=self.sample_shape)
+    else:
+      sample = super(Uniform, self).sample(sample_shape=sample_shape)
+    return sample

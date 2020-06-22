@@ -77,9 +77,9 @@ def _normalize_data(data):
 
 
 def plot_3d_point_cloud(x, y, z, in_u_sphere=False, marker='.', s=8, alpha=.8,
-                        elev=10, azim=240, axes=None, *args, **kwargs):
+                        elev=10, azim=240, axes=None, colors='b', *args, **kwargs):
 
-  sc = axes.scatter(x, y, z, marker=marker, s=s, alpha=alpha, *args, **kwargs)
+  sc = axes.scatter(x, y, z, marker=marker, s=s, alpha=alpha, c=colors, *args, **kwargs)
   axes.view_init(elev=elev, azim=azim)
 
   if in_u_sphere:
