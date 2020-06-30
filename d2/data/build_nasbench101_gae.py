@@ -11,6 +11,7 @@ import copy
 import torch
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
+from torch_geometric.data import DataLoader
 
 from detectron2.data import DatasetCatalog, MetadataCatalog
 
@@ -19,7 +20,7 @@ from .build import DATASET_MAPPER_REGISTRY
 
 
 @DATASET_MAPPER_REGISTRY.register()
-class CIFAR10DatasetMapper(object):
+class NASBench101_GAE_DatasetMapper(object):
   """
   A callable which takes a dataset dict in Detectron2 Dataset format,
   and map it into a format used by the model.
@@ -34,18 +35,15 @@ class CIFAR10DatasetMapper(object):
   3. Prepare data and annotations to Tensor and :class:`Instances`
   """
   def build_transform(self, img_size):
-    transform = transforms.Compose([
-      transforms.Resize(img_size),
-      transforms.ToTensor(),
-      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-    ])
-    return transform
+
+    return None
 
   def __init__(self, cfg, **kwargs):
 
-    self.img_size             = get_attr_kwargs(cfg, 'img_size', **kwargs)
+    # self.img_size             = get_attr_kwargs(cfg, 'img_size', **kwargs)
 
-    self.transform = self.build_transform(img_size=self.img_size)
+    # self.transform = self.build_transform(img_size=self.img_size)
+    pass
 
   def __call__(self, dataset_dict):
     """
@@ -57,15 +55,14 @@ class CIFAR10DatasetMapper(object):
     """
     dataset_dict = copy.deepcopy(dataset_dict)  # it will be modified by code below
     # USER: Write your own image loading if it's not from a file
-    image = dataset_dict['image']
-    dataset_dict['image'] = self.transform(image)
+    # image = dataset_dict['image']
+    # dataset_dict['image'] = self.transform(image)
     return dataset_dict
 
 
 def _gauss(n):
   n = int(n)
   return n * (n + 1) // 2
-
 
 def _get_edges(edge_list, max_num_nodes):
   edge_list_sorted = np.array(sorted(edge_list, key=lambda edge: tuple(edge[::-1])))
@@ -75,16 +72,30 @@ def _get_edges(edge_list, max_num_nodes):
     edges[idx] = 1.
   return edges, edge_list_sorted
 
-
 def _get_edge_list_list(edge_list_sorted, max_num_nodes):
   edge_list_list = [np.array([[0, 1]]) for _ in range(max_num_nodes - 1)]
   dst = 1
   for idx, edge in enumerate(edge_list_sorted):
     if edge[1] != dst:
       dst = edge[1]
+      # for the nodes in front of dst
       edge_list_list[dst - 2] = edge_list_sorted[:idx]
+  # for the last node
   edge_list_list[dst - 1] = edge_list_sorted
   return edge_list_list
+
+
+def preprocess_batch_graphs(batched_inputs, device):
+
+  batch_size = len(batched_inputs)
+  batch_list = list()
+  for graph_batch in zip(*batched_inputs):
+    for i in range(batch_size):
+      graph_batch[i].to(device)
+    loader = DataLoader(graph_batch, batch_size, False)
+    batch_list.append(loader.__iter__().__next__().to(device))
+
+  return batch_list
 
 
 def get_dict(name, data_path, data_file, max_num_nodes, aggr='sum', device='cpu', **kwargs):
@@ -134,6 +145,9 @@ def get_dict(name, data_path, data_file, max_num_nodes, aggr='sum', device='cpu'
 
   meta_dict = {}
   meta_dict['num_images'] = len(dataset_dicts)
+  meta_dict['node_atts_idx2name'] = {1: 'input',
+                                     2: 'conv3x3-bn-relu', 3: 'conv1x1-bn-relu', 4: 'maxpool3x3',
+                                     0: 'output'}
   MetadataCatalog.get(name).set(**meta_dict)
 
   # for idx, (img, label) in enumerate(data_iter):
