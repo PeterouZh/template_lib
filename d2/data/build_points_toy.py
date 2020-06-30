@@ -110,7 +110,7 @@ def plot_points(points, show=True):
                       axes=ax, in_u_sphere=False)
   if show:
     fig.show()
-  plt.close(fig)
+  # plt.close(fig)
   pass
 
 
