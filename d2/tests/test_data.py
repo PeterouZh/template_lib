@@ -304,7 +304,7 @@ class TestingBuildNasBench101_gae(unittest.TestCase):
       registed_func_list, kwargs_list
     from detectron2.data import MetadataCatalog
 
-    dataset_dicts = registed_func_list[-1](name=registed_name_list[-1], data_path=data_path, **kwargs_list[-1])
-    metadata = MetadataCatalog.get(registed_name_list[-1])
+    dataset_dicts = registed_func_list[-2](name=registed_name_list[-2], data_path=data_path, **kwargs_list[-2])
+    metadata = MetadataCatalog.get(registed_name_list[-2])
 
     pass
