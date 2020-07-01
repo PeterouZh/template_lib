@@ -165,10 +165,12 @@ def get_dict(name, data_path, data_file, max_num_nodes, aggr='sum', device='cpu'
 data_path = "datasets/vs_gae/"
 registed_name_list = [
   'validation_data_10',
-  'validation_data_1000_samples'
+  'validation_data_1000_samples',
+  'training_data_90',
 ]
 
 registed_func_list = [
+  get_dict,
   get_dict,
   get_dict,
 ]
@@ -176,6 +178,7 @@ registed_func_list = [
 kwargs_list = [
   {'data_file': 'validation_data_10.pth', 'max_num_nodes': 7},
   {'data_file': 'validation_data_1000_samples.pth', 'max_num_nodes': 7},
+  {'data_file': 'training_data_90.pth', 'max_num_nodes': 7},
 ]
 
 for name, func, kwargs in zip(registed_name_list, registed_func_list, kwargs_list):
