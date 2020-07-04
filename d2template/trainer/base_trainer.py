@@ -34,6 +34,52 @@ from template_lib.utils import get_eval_attr, print_number_params, get_attr_kwar
 from .build import TRAINER_REGISTRY
 
 
+from detectron2.data import (
+  get_detection_dataset_dicts,
+  DatasetFromList, DatasetMapper, MapDataset, samplers,
+)
+from template_lib.d2.data import build_dataset_mapper
+
+
+def _trivial_batch_collator(batch):
+  """
+  A batch collator that does nothing.
+  """
+  return batch
+
+
+def build_detection_test_loader(cfg, dataset_name, batch_size, mapper=None):
+
+  dataset_dicts = get_detection_dataset_dicts(
+    [dataset_name],
+    filter_empty=False,
+    proposal_files=[
+      cfg.DATASETS.PROPOSAL_FILES_TEST[list(cfg.DATASETS.TEST).index(dataset_name)]
+    ]
+    if cfg.MODEL.LOAD_PROPOSALS
+    else None,
+  )
+
+  dataset = DatasetFromList(dataset_dicts)
+  if mapper is None:
+    mapper = DatasetMapper(cfg, False)
+  dataset = MapDataset(dataset, mapper)
+
+  sampler = samplers.InferenceSampler(len(dataset))
+  # Always use 1 image per worker during inference since this is the
+  # standard when reporting inference time in papers.
+  batch_sampler = torch.utils.data.sampler.BatchSampler(sampler, batch_size, drop_last=False)
+
+  data_loader = torch.utils.data.DataLoader(
+    dataset,
+    num_workers=cfg.DATALOADER.NUM_WORKERS,
+    batch_sampler=batch_sampler,
+    collate_fn=_trivial_batch_collator,
+  )
+  return data_loader
+
+
+
 class DumpModule(nn.Module):
   def __init__(self, model_dict):
     super(DumpModule, self).__init__()
@@ -123,3 +169,12 @@ class BaseTrainer(nn.Module):
 
     def after_resume(self):
       pass
+
+    def build_test_loader(self, cfg, dataset_name, batch_size, dataset_mapper):
+
+      if dataset_mapper is not None:
+        dataset_mapper = build_dataset_mapper(dataset_mapper)
+
+      data_loader = build_detection_test_loader(
+        cfg, dataset_name=dataset_name, batch_size=batch_size, mapper=dataset_mapper)
+      return data_loader

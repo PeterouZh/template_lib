@@ -178,7 +178,7 @@ def setup_args_and_myargs(args, myargs, start_tb=True, **kwargs):
 
   myargs.textlogger = logging_utils.TextLogger(
     log_root=args.textlogdir, reinitialize=(not args.resume),
-    logstyle='%10.3f')
+    logstyle='%10.6f')
 
   logger = logging.getLogger(__name__)
   logger.info("The outdir: \n\t{}".format(args.abs_outdir))

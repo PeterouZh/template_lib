@@ -163,7 +163,7 @@ class TextLogger(object):
   # '%#.#f' for floating point representation in text
   # '%#.#e' for exponent representation in text
   """
-  def __init__(self, log_root, reinitialize=False, logstyle='%3.3f'):
+  def __init__(self, log_root, reinitialize=False, logstyle='%3.5f'):
     self.root = log_root
     if not os.path.exists(self.root):
       os.mkdir(self.root)
