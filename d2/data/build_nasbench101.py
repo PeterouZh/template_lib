@@ -33,8 +33,8 @@ class NASBench101_Arc2Seq_DatasetMapper(object):
   3. Prepare data and annotations to Tensor and :class:`Instances`
   """
   ops2idx = {
-    'no-connect': 1,
-    'connect': 2,
+    'nc': 1,
+    'c': 2,
     'conv1x1-bn-relu': 3,
     'conv3x3-bn-relu': 4,
     'maxpool3x3'     : 5,
@@ -95,11 +95,11 @@ class NASBench101_Arc2Seq_DatasetMapper(object):
     return dataset_dict
 
 
-def get_dict(name, data_path, nasbench_file, num_samples, num_operations, val_acc_threshold=0., **kwargs):
+def get_dict(name, data_path, nasbench_file, num_samples, num_operations, val_acc_threshold=0., seed=1234, **kwargs):
 
   nasbench_file_abs = os.path.join(data_path, nasbench_file)
   print(f'Loading nasbench101: {nasbench_file_abs}')
-  nasbench = api.NASBench(nasbench_file_abs, num_samples=num_samples)
+  nasbench = api.NASBench(nasbench_file_abs, num_samples=num_samples, seed=seed)
 
   archs = []
   seqs = []
@@ -109,6 +109,7 @@ def get_dict(name, data_path, nasbench_file, num_samples, num_operations, val_ac
 
   min_val_acc = float('inf')
   max_val_acc = 0
+  min_data = max_data = None
   for idx, key in enumerate(all_keys):
     fixed_stat, computed_stat = nasbench.get_metrics_from_hash(key)
     if len(fixed_stat['module_operations']) not in num_operations:
@@ -122,8 +123,10 @@ def get_dict(name, data_path, nasbench_file, num_samples, num_operations, val_ac
 
     if min_val_acc > data['validation_accuracy']:
       min_val_acc = data['validation_accuracy']
+      min_data = data
     if max_val_acc < data['validation_accuracy']:
       max_val_acc = data['validation_accuracy']
+      max_data = data
 
     data["id"] = idx
     dataset_dicts.append(data)
@@ -133,6 +136,8 @@ def get_dict(name, data_path, nasbench_file, num_samples, num_operations, val_ac
   meta_dict['num_operations'] = num_operations
   meta_dict['min_val_acc'] = min_val_acc
   meta_dict['max_val_acc'] = max_val_acc
+  meta_dict['min_data'] = min_data
+  meta_dict['max_data'] = max_data
   print(f'min_val_acc: {min_val_acc}, max_val_acc: {max_val_acc}')
   if name not in MetadataCatalog.list():
     MetadataCatalog.get(name).set(**meta_dict)

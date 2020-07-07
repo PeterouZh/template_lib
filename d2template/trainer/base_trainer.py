@@ -15,6 +15,7 @@ from detectron2.structures import ImageList
 from detectron2.utils import comm
 from detectron2.utils.comm import get_world_size
 from detectron2.utils.events import get_event_storage
+from detectron2.checkpoint import Checkpointer, DetectionCheckpointer
 
 from template_lib.d2.distributions.fairnas_noise_sample import fairnas_repeat_tensor
 from template_lib.d2.distributions import build_d2distributions
@@ -178,3 +179,12 @@ class BaseTrainer(nn.Module):
       data_loader = build_detection_test_loader(
         cfg, dataset_name=dataset_name, batch_size=batch_size, mapper=dataset_mapper)
       return data_loader
+
+    def load_model_weights(self, ckpt_dir, ckpt_epoch, ckpt_iter_every_epoch, ckpt_path=None):
+      if ckpt_path is None:
+        ckpt_path = self._get_ckpt_path(ckpt_dir, ckpt_epoch, ckpt_iter_every_epoch)
+
+      model = self.get_saved_model()
+      checkpointer = Checkpointer(model, save_to_disk=False)
+      checkpointer.resume_or_load(ckpt_path, resume=False)
+      pass
