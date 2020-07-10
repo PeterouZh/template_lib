@@ -132,7 +132,7 @@ def get_dict(name, data_path, nasbench_file, num_samples, num_operations, val_ac
     dataset_dicts.append(data)
 
   meta_dict = {}
-  meta_dict['num_arcs'] = len(dataset_dicts)
+  meta_dict['num_samples'] = len(dataset_dicts)
   meta_dict['num_operations'] = num_operations
   meta_dict['min_val_acc'] = min_val_acc
   meta_dict['max_val_acc'] = max_val_acc

@@ -234,9 +234,10 @@ class TestingUnit(unittest.TestCase):
 
   def test_resnet(self, gpu='0,1,2,3,4,5,6,7', *tmp, **kwargs):
     """
-    export PYTHONPATH=../..
-    python -c "import test_bash; \
-      test_bash.TestingUnit().test_resnet(32)"
+    export CUDA_VISIBLE_DEVICES=1
+    export PYTHONPATH=./
+    python -c "from template_lib.examples import test_bash; \
+      test_bash.TestingUnit().test_resnet(gpu=0)"
 
     """
     import torch
@@ -245,6 +246,7 @@ class TestingUnit(unittest.TestCase):
     from torch.multiprocessing import Queue
     import torch.multiprocessing as mp
 
+    gpu = str(gpu)
     determine_bs = True
     q = Queue()
 
