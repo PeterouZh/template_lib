@@ -4,12 +4,28 @@ from numpy import array_equal
 from torch.nn.parallel import DistributedDataParallel
 
 
+class average_precision_score(object):
+  @staticmethod
+  def accuracy_score(y_true, y_pred, normalize=True):
+    from sklearn.metrics import average_precision_score, precision_recall_curve, accuracy_score
+
+    acc = accuracy_score(y_true, y_pred, normalize=normalize)
+    return acc
+
+  @staticmethod
+  def average_precision_score(y_true, y_score):
+    '''Compute average precision (AP) from prediction scores
+    '''
+    from sklearn.metrics import average_precision_score
+    average_precision = average_precision_score(y_true, y_score)
+    return average_precision
+
+
 def _make_gen(reader):
   b = reader(1024 * 1024)
   while b:
     yield b
     b = reader(1024 * 1024)
-
 
 def rawgencount(filename):
   "count num of lines of a file"
@@ -18,6 +34,7 @@ def rawgencount(filename):
   n_lines = sum(buf.count(b'\n') for buf in f_gen)
   f.close()
   return n_lines
+
 
 def array_eq_in_list(myarr, list_arrays):
   return next((True for elem in list_arrays if array_equal(elem, myarr)), False)
