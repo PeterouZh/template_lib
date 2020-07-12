@@ -136,7 +136,7 @@ def do_train(cfg, args, myargs):
   mapper = build_dataset_mapper(dataset_mapper)
   data_loader = build_detection_train_loader(cfg, mapper=mapper)
   metadata = MetadataCatalog.get(dataset_name)
-  num_images = metadata.get('num_images')
+  num_images = metadata.get('num_samples')
   iter_every_epoch = num_images // IMS_PER_BATCH
   max_iter = iter_every_epoch * max_epoch
 

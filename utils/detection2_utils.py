@@ -13,7 +13,13 @@ def _convert_dict_2_CfgNode(config):
       setattr(ret_cfg, k, _convert_dict_2_CfgNode(config[k]))
       pass
     else:
-      setattr(ret_cfg, k, config[k])
+      val = config[k]
+      if isinstance(config[k], list):
+        if isinstance(config[k][0], dict):
+          temp = list(map(dict, config[k]))
+          val = temp
+          pass
+      setattr(ret_cfg, k, val)
   return ret_cfg
 
 def _allow_CfgNode_new_allowed(cfg):
