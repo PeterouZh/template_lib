@@ -2,6 +2,7 @@ import logging
 import sys
 
 from detectron2.config import CfgNode
+from yacs.config import CfgNode as yacs_CfgNode
 
 from template_lib.utils import logging_utils
 
@@ -25,7 +26,7 @@ def _convert_dict_2_CfgNode(config):
 def _allow_CfgNode_new_allowed(cfg):
   cfg.__dict__[CfgNode.NEW_ALLOWED] = True
   for k in cfg:
-    if isinstance(cfg[k], CfgNode):
+    if isinstance(cfg[k], (CfgNode, yacs_CfgNode)):
       cfg[k] = _allow_CfgNode_new_allowed((cfg[k]))
   return cfg
 
