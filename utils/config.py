@@ -295,7 +295,13 @@ def convert_easydict_to_dict(config):
       # config[k] = dict(config[k])
       ret_config.update({k: convert_easydict_to_dict(config[k])})
     else:
-      ret_config.update({k: config[k]})
+      val = {k: config[k]}
+      if isinstance(config[k], list):
+        if isinstance(config[k][0], dict):
+          temp = list(map(dict, config[k]))
+          val = {k: temp}
+          pass
+      ret_config.update(val)
   return ret_config
 
 

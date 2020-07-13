@@ -103,7 +103,7 @@ class BaseTrainer(nn.Module):
       self.logger = logging.getLogger('tl')
       self.distributed = comm.get_world_size() > 1
 
-      torch.cuda.set_device(self.device)
+      # torch.cuda.set_device(self.device)
       # self.build_models(cfg=cfg)
       self.to(self.device)
 
