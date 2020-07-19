@@ -103,6 +103,7 @@ class BaseTrainer(nn.Module):
       self.timer = Timer()
       self.device = torch.device(f'cuda:{comm.get_rank()}')
       self.logger = logging.getLogger('tl')
+      self.num_gpu = comm.get_world_size()
       self.distributed = comm.get_world_size() > 1
 
       # torch.cuda.set_device(self.device)
