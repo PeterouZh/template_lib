@@ -11,6 +11,7 @@ from torch.nn.parallel import DistributedDataParallel
 import torch.nn.functional as F
 import numpy as np
 
+from fvcore.common.timer import Timer
 from detectron2.structures import ImageList
 from detectron2.utils import comm
 from detectron2.utils.comm import get_world_size
@@ -99,6 +100,7 @@ class BaseTrainer(nn.Module):
       self.myargs                        = myargs
       self.iter_every_epoch              = iter_every_epoch
 
+      self.timer = Timer()
       self.device = torch.device(f'cuda:{comm.get_rank()}')
       self.logger = logging.getLogger('tl')
       self.distributed = comm.get_world_size() > 1
@@ -110,6 +112,7 @@ class BaseTrainer(nn.Module):
     def build_models(self, **kwargs):
       self.models = {}
       self.optims = {}
+      self.schedulers = {}
 
       self._print_number_params(self.models)
 
@@ -118,6 +121,12 @@ class BaseTrainer(nn.Module):
       optims_dict = self.optims
 
       return optims_dict
+
+    def build_lr_scheduler(self):
+      scheduler = {}
+      if hasattr(self, 'schedulers'):
+        scheduler = self.schedulers
+      return scheduler
 
     def get_saved_model(self):
       models = {}

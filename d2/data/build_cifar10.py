@@ -140,7 +140,7 @@ def get_dict(name, data_path, subset, **kwargs):
   c10_dataset = datasets.CIFAR10(root=data_path, train=train, download=True)
 
   meta_dict = {}
-  meta_dict['num_images'] = len(c10_dataset)
+  meta_dict['num_samples'] = len(c10_dataset)
   meta_dict['class_to_idx'] = c10_dataset.class_to_idx
   meta_dict['classes'] = c10_dataset.classes
   MetadataCatalog.get(name).set(**meta_dict)
@@ -165,7 +165,7 @@ def get_sampled_dict(name, data_path, sampler, **kwargs):
   c10_dataset = datasets.CIFAR10(root=data_path, train=train, download=True)
 
   meta_dict = {}
-  meta_dict['num_images'] = len(sampler)
+  meta_dict['num_samples'] = len(sampler)
   meta_dict['class_to_idx'] = c10_dataset.class_to_idx
   meta_dict['classes'] = c10_dataset.classes
   MetadataCatalog.get(name).set(**meta_dict)
