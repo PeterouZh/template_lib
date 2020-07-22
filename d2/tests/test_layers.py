@@ -319,21 +319,10 @@ class TestingLayers(unittest.TestCase):
     import yaml
     from template_lib.d2.layers import build_d2layer
 
-    cfg_str = """
-          name: "DenseBlock"
-          update_cfg: true
-          in_channels: 144
+    from template_lib.d2.layers import DenseBlock
 
-    """
-    cfg = EasyDict(yaml.safe_load(cfg_str))
+    DenseBlock.test_case()
 
-    op = build_d2layer(cfg)
-    op.cuda()
-    out = op.test_case()
-
-    import torchviz
-    g = torchviz.make_dot(out)
-    g.view()
     pass
 
   def test_StyleLayer(self):

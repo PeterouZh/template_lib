@@ -154,16 +154,31 @@ class DenseBlock(nn.Module):
     num_edges = (n_nodes + 1) * n_nodes // 2
     return num_edges
 
-  def test_case(self):
+  @staticmethod
+  def test_case():
+    cfg_str = """
+              name: "DenseBlock"
+              update_cfg: true
+              in_channels: 144
+              """
+    cfg = EasyDict(yaml.safe_load(cfg_str))
+
+    op = build_d2layer(cfg)
+    op.cuda()
+
     bs = 2
-    num_ops = len(self.cfg_ops)
+    num_ops = len(op.cfg_ops)
     x = torch.randn(bs, 144, 8, 8).cuda()
     batched_arcs = torch.tensor([
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       [0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     ]).cuda()
-    out = self(x, batched_arcs)
-    return out
+    out = op(x, batched_arcs)
+
+    import torchviz
+    g = torchviz.make_dot(out)
+    g.view()
+    pass
 
   def update_cfg(self, cfg):
     if not getattr(cfg, 'update_cfg', False):
