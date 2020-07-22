@@ -1,4 +1,4 @@
-from .build import build_d2layer
+from .build import build_d2layer, D2LAYER_REGISTRY
 
 
 from .batchnorm_layers import BatchNorm2d, InstanceNorm2d, NoNorm, CondBatchNorm2d
