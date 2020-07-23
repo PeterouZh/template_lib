@@ -53,7 +53,9 @@ class DenseBlockWithArc(nn.Module):
         self.dag[i-1].append(op)
     pass
 
-  def forward(self, x, batched_arcs, **kwargs):
+  def forward(self, x, batched_arcs=None, **kwargs):
+    if self.cell_op_idx is not None and batched_arcs is None:
+      batched_arcs = torch.zeros((x.shape[0], self.num_edges), dtype=torch.int64).cuda()
 
     states = [x, ]
     idx_start = 0
@@ -141,7 +143,8 @@ class MixedLayerWithArc(nn.Module):
 
     self.branches = nn.ModuleList()
     for name, cfg_op in self.cfg_ops.items():
-      branch = build_d2layer_v2(cfg_op, in_channels=self.in_channels, out_channels=self.out_channels)
+      branch = build_d2layer_v2(
+        cfg_op, **{**kwargs, 'in_channels': self.in_channels, 'out_channels': self.out_channels})
       self.branches.append(branch)
     pass
 

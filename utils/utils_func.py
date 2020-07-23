@@ -1,9 +1,33 @@
+import numpy as np
 import os
 import re
 import logging
 from numpy import array_equal
 from torch.nn.parallel import DistributedDataParallel
 import json
+
+
+def get_arc_from_file(arc_file, arc_idx, nrows=1, sep=' '):
+  """
+  0:
+  [3 3 4 1 3 1 3 3 4 1 3 1 3 3 4 1 3 1]
+  """
+  if os.path.isfile(arc_file):
+    print(f'Using arc_file: {arc_file}, \tarc_idx: {arc_idx}')
+    with open(arc_file) as f:
+      while True:
+        epoch_str = f.readline().strip(': \n')
+        sample_arc = []
+        for _ in range(nrows):
+          class_arc = f.readline().strip('[\n ]')
+          sample_arc.append(np.fromstring(class_arc, dtype=int, sep=sep))
+        if arc_idx == int(epoch_str):
+          break
+    sample_arc = np.array(sample_arc)
+  else:
+    raise NotImplemented
+  print('fixed arcs: \n%s' % sample_arc)
+  return sample_arc.squeeze()
 
 
 def get_imagenet_label():
