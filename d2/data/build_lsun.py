@@ -63,6 +63,7 @@ class LSUNDatasetMapper(object):
 
     image, label = dataset[image_index]
     dataset_dict['image'] = self.transform(image)
+    dataset_dict['label'] = label
     return dataset_dict
 
 
