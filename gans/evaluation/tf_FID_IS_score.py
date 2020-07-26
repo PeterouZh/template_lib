@@ -410,7 +410,7 @@ class TFFIDISScore(object):
 
     self.tf_inception_model_dir = os.path.expanduser(self.tf_inception_model_dir)
     inception_path = self._check_or_download_inception(self.tf_inception_model_dir)
-    self.logger.info('Load tf inception model in %s', inception_path)
+    self.logger.warning('Load tf inception model in %s', inception_path)
     self._create_inception_graph(inception_path, name=self.tf_graph_name)
     self._create_inception_net()
     comm.synchronize()
@@ -699,6 +699,12 @@ class TFFIDISScore(object):
 
     cfg_str = """
                   update_cfg: true
+                  dataset_name: "cifar10_train"
+                  IMS_PER_BATCH: 32
+                  img_size: 32
+                  NUM_WORKERS: 0
+                  dataset_mapper_cfg:
+                    name: CIFAR10DatasetMapper
                   GAN_metric:
                     tf_fid_stat: "datasets/fid_stats_tf_cifar10.npz"
               """
@@ -709,10 +715,11 @@ class TFFIDISScore(object):
     cfg = D2Utils.cfg_merge_from_easydict(cfg, config)
 
     # fmt: off
-    dataset_name                 = cfg.start.dataset_name
-    IMS_PER_BATCH                = cfg.start.IMS_PER_BATCH
-    img_size                     = cfg.start.img_size
-    NUM_WORKERS                  = cfg.start.NUM_WORKERS
+    dataset_name                 = cfg.dataset_name
+    IMS_PER_BATCH                = cfg.IMS_PER_BATCH
+    img_size                     = cfg.img_size
+    NUM_WORKERS                  = cfg.NUM_WORKERS
+    dataset_mapper_cfg           = cfg.dataset_mapper_cfg
     GAN_metric                   = cfg.GAN_metric
     # fmt: on
 
@@ -725,7 +732,7 @@ class TFFIDISScore(object):
     num_workers = comm.get_world_size()
     batch_size = IMS_PER_BATCH // num_workers
 
-    dataset_mapper = build_dataset_mapper(cfg.dataset_mapper, img_size=img_size)
+    dataset_mapper = build_dataset_mapper(dataset_mapper_cfg, img_size=img_size)
     data_loader = build_detection_test_loader(
       cfg, dataset_name=dataset_name, batch_size=batch_size, mapper=dataset_mapper)
 
@@ -737,27 +744,59 @@ class TFFIDISScore(object):
     pass
 
   @staticmethod
+  def test_case_evaluate_FID_IS():
+    import torch
+    from template_lib.gans.evaluation import build_GAN_metric
+
+    cfg_str = """
+                      update_cfg: true
+                      GAN_metric:
+                        tf_fid_stat: "datasets/fid_stats_tf_cifar10.npz"
+                        num_inception_images: 5000
+                  """
+    config = EasyDict(yaml.safe_load(cfg_str))
+    cfg = TFFIDISScore.update_cfg(config)
+
+    FID_IS_tf = build_GAN_metric(cfg.GAN_metric)
+
+    class SampleFunc(object):
+      def __init__(self, G, z):
+        self.G = G
+        self.z = z
+      def __call__(self, *args, **kwargs):
+        with torch.no_grad():
+          z_sample = self.z.normal_(0, 1)
+          # self.G.eval()
+          # G_z = self.G(z_sample)
+          G_z = self.G.normal_(0, 1)
+        return G_z
+
+    bs = 64
+    z_dim = 128
+    img_size = 32
+    z = torch.empty((bs, z_dim)).cuda()
+    G = torch.empty((bs, 3, img_size, img_size)).cuda()
+    sample_func = SampleFunc(G=G, z=z)
+    try:
+      FID_tf, IS_mean_tf, IS_std_tf = FID_IS_tf(sample_func=sample_func)
+      print(f'IS_mean_tf:{IS_mean_tf:.3f} +- {IS_std_tf:.3f}\n\tFID_tf: {FID_tf:.3f}')
+    except:
+      print("Error FID_IS_tf.")
+      import traceback
+      print(traceback.format_exc())
+    pass
+
+  @staticmethod
   def update_cfg(cfg):
     if not getattr(cfg, 'update_cfg', False):
       return cfg
 
     cfg_str = """
-              args:
-                num_gpus: 1
-              start:
-                name: "compute_fid_stats"
-                dataset_name: "cifar10_train"
-                IMS_PER_BATCH: 32
-                img_size: 32
-                NUM_WORKERS: 0
-              dataset_mapper:
-                name: CIFAR10DatasetMapper
-                img_size: "kwargs['img_size']"
               GAN_metric:
                 name: TFFIDISScore
-                tf_fid_stat: "datasets/nas_cgan/tf_fid_stat/fid_stats_tf_{dataset_name}_{img_size}.npz"
-                tf_inception_model_dir: "datasets/nas_cgan/tf_inception_model"
-
+                tf_fid_stat: "datasets/tf_fid_stat_{dataset_name}_{img_size}.npz"
+                tf_inception_model_dir: "datasets/tf_inception_model"
+                num_inception_images: 50000
 
               """
     default_cfg = EasyDict(yaml.safe_load(cfg_str))
