@@ -17,7 +17,8 @@ See --help to see further details.
 """
 
 from __future__ import absolute_import, division, print_function
-
+import yaml
+from easydict import EasyDict
 import logging
 import os, sys
 import pathlib
@@ -35,6 +36,7 @@ from imageio import imread
 import tarfile
 
 from template_lib.d2.utils import comm
+from template_lib.utils import update_config
 
 from .build import GAN_METRIC_REGISTRY
 from . import get_sample_imgs_list_ddp
@@ -380,12 +382,20 @@ def sqrt_newton_schulz(A, numIters, dtype=None):
 
 @GAN_METRIC_REGISTRY.register()
 class TFFIDISScore(object):
-  def __init__(self, cfg):
+  def __init__(self, cfg, **kwargs):
 
-    self.tf_inception_model_dir       = cfg.GAN_metric.tf_inception_model_dir
-    self.tf_fid_stat                  = cfg.GAN_metric.tf_fid_stat
-    self.num_inception_images         = getattr(cfg.GAN_metric, 'num_inception_images', 50000)
-    self.IS_splits                    = getattr(cfg.GAN_metric, 'IS_splits', 10)
+    # fmt: off
+    if 'GAN_metric' in cfg:
+      self.tf_inception_model_dir       = cfg.GAN_metric.tf_inception_model_dir
+      self.tf_fid_stat                  = cfg.GAN_metric.tf_fid_stat
+      self.num_inception_images         = getattr(cfg.GAN_metric, 'num_inception_images', 50000)
+      self.IS_splits                    = getattr(cfg.GAN_metric, 'IS_splits', 10)
+    else:
+      self.tf_inception_model_dir       = cfg.tf_inception_model_dir
+      self.tf_fid_stat                  = cfg.tf_fid_stat
+      self.num_inception_images         = getattr(cfg, 'num_inception_images', 50000)
+      self.IS_splits                    = getattr(cfg, 'IS_splits', 10)
+    # fmt: on
 
     self.logger = logging.getLogger('tl')
     ws = comm.get_world_size()
@@ -617,20 +627,20 @@ class TFFIDISScore(object):
 
     if return_fid_stat:
       if comm.is_main_process():
-        self.logger.info(f"Num of images: {len(pred_FIDs)}")
+        self.logger.warning(f"Num of images: {len(pred_FIDs)}")
         mu, sigma = self._calculate_fid_stat(pred_FIDs=pred_FIDs)
       else:
         mu, sigma = 0, 0
       return mu, sigma
 
     if comm.is_main_process():
-      self.logger.info(f"Num of images: {len(pred_FIDs)}")
+      self.logger.warning(f"Num of images: {len(pred_FIDs)}")
       IS_mean, IS_std = self._calculate_IS(pred_ISs=pred_ISs, IS_splits=self.IS_splits)
-      self.logger.info(f'dataset IS_mean: {IS_mean:.3f} +- {IS_std}')
+      self.logger.warning(f'dataset IS_mean: {IS_mean:.3f} +- {IS_std}')
 
       # calculate FID stat
       mu, sigma = self._calculate_fid_stat(pred_FIDs=pred_FIDs)
-      self.logger.info(f'Saving tf_fid_stat to {self.tf_fid_stat}')
+      self.logger.warning(f'Saving tf_fid_stat to {self.tf_fid_stat}')
       os.makedirs(os.path.dirname(self.tf_fid_stat), exist_ok=True)
       np.savez(self.tf_fid_stat, **{'mu': mu, 'sigma': sigma})
     comm.synchronize()
@@ -678,4 +688,79 @@ class TFFIDISScore(object):
     out = (diff.dot(diff) + torch.trace(sigma1) + torch.trace(sigma2)
            - 2 * torch.trace(covmean))
     return out
+
+  @staticmethod
+  def test_case_calculate_fid_stat_CIFAR10():
+    from template_lib.d2.data import build_dataset_mapper
+    from template_lib.d2template.trainer.base_trainer import build_detection_test_loader
+    from template_lib.gans.evaluation import build_GAN_metric
+    from template_lib.utils.detection2_utils import D2Utils
+    from template_lib.d2.data import build_cifar10
+
+    cfg_str = """
+                  update_cfg: true
+                  GAN_metric:
+                    tf_fid_stat: "datasets/fid_stats_tf_cifar10.npz"
+              """
+    config = EasyDict(yaml.safe_load(cfg_str))
+    config = TFFIDISScore.update_cfg(config)
+
+    cfg = D2Utils.create_cfg()
+    cfg = D2Utils.cfg_merge_from_easydict(cfg, config)
+
+    # fmt: off
+    dataset_name                 = cfg.start.dataset_name
+    IMS_PER_BATCH                = cfg.start.IMS_PER_BATCH
+    img_size                     = cfg.start.img_size
+    NUM_WORKERS                  = cfg.start.NUM_WORKERS
+    GAN_metric                   = cfg.GAN_metric
+    # fmt: on
+
+    cfg.defrost()
+    cfg.DATALOADER.NUM_WORKERS = NUM_WORKERS
+    cfg.GAN_metric.tf_fid_stat = cfg.GAN_metric.tf_fid_stat.format(
+      dataset_name=dataset_name, img_size=img_size)
+    cfg.freeze()
+
+    num_workers = comm.get_world_size()
+    batch_size = IMS_PER_BATCH // num_workers
+
+    dataset_mapper = build_dataset_mapper(cfg.dataset_mapper, img_size=img_size)
+    data_loader = build_detection_test_loader(
+      cfg, dataset_name=dataset_name, batch_size=batch_size, mapper=dataset_mapper)
+
+    FID_IS_tf = build_GAN_metric(GAN_metric)
+    FID_IS_tf.calculate_fid_stat_of_dataloader(data_loader=data_loader)
+
+    comm.synchronize()
+
+    pass
+
+  @staticmethod
+  def update_cfg(cfg):
+    if not getattr(cfg, 'update_cfg', False):
+      return cfg
+
+    cfg_str = """
+              args:
+                num_gpus: 1
+              start:
+                name: "compute_fid_stats"
+                dataset_name: "cifar10_train"
+                IMS_PER_BATCH: 32
+                img_size: 32
+                NUM_WORKERS: 0
+              dataset_mapper:
+                name: CIFAR10DatasetMapper
+                img_size: "kwargs['img_size']"
+              GAN_metric:
+                name: TFFIDISScore
+                tf_fid_stat: "datasets/nas_cgan/tf_fid_stat/fid_stats_tf_{dataset_name}_{img_size}.npz"
+                tf_inception_model_dir: "datasets/nas_cgan/tf_inception_model"
+
+
+              """
+    default_cfg = EasyDict(yaml.safe_load(cfg_str))
+    cfg = update_config(default_cfg, cfg)
+    return cfg
 

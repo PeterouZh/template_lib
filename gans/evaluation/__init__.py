@@ -1,4 +1,4 @@
-from .build import build_GAN_metric_dict
+from .build import build_GAN_metric_dict, build_GAN_metric
 from .utils import get_sample_imgs_list, get_sample_imgs_list_ddp
 
 # from .inception_score import TFInceptionScore

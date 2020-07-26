@@ -71,3 +71,32 @@ class D2Utils(object):
       myargs.stderr = sys.stderr
       logging_utils.redirect_print_to_logger(logger=logger)
     return myargs
+
+  @staticmethod
+  def create_cfg():
+    """
+    Create configs and perform basic setups.
+    """
+    from detectron2.config import CfgNode
+    # detectron2 default cfg
+    # cfg = get_cfg()
+    cfg = CfgNode()
+    cfg.OUTPUT_DIR = "./output"
+    cfg.SEED = -1
+    cfg.CUDNN_BENCHMARK = False
+    cfg.DATASETS = CfgNode()
+    cfg.SOLVER = CfgNode()
+
+    cfg.DATALOADER = CfgNode()
+    cfg.DATALOADER.FILTER_EMPTY_ANNOTATIONS = True
+    cfg.DATALOADER.SAMPLER_TRAIN = "TrainingSampler"
+
+    cfg.MODEL = CfgNode()
+    cfg.MODEL.KEYPOINT_ON = False
+    cfg.MODEL.LOAD_PROPOSALS = False
+    cfg.MODEL.WEIGHTS = ""
+
+    cfg.freeze()
+    return cfg
+
+
