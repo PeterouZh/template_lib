@@ -8,6 +8,11 @@ import torch
 import json
 
 
+def array2string(array_np):
+  array_str = np.array2string(array_np, threshold=np.inf)
+  return array_str
+
+
 def get_arc_from_file(arc_file, arc_idx, nrows=1, sep=' '):
   """
   0:
