@@ -5,6 +5,7 @@ import copy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn import init
 
 from template_lib.d2.layers_v2.build import D2LAYERv2_REGISTRY, build_d2layer_v2
 from template_lib.utils import get_attr_kwargs, update_config
@@ -52,6 +53,7 @@ class ModulatedConv2d(nn.Module):
     self.use_affine                = get_attr_kwargs(cfg, 'use_affine', default=False, **kwargs)
     self.style_dim                 = get_attr_kwargs(cfg, 'style_dim', default=None, **kwargs)
     self.demodulate                = get_attr_kwargs(cfg, 'demodulate', default=True, **kwargs)
+    self.init                      = get_attr_kwargs(cfg, 'init', default='ortho', **kwargs)
     # fmt: on
 
     fan_in = self.in_channels * self.kernel_size ** 2
@@ -59,6 +61,15 @@ class ModulatedConv2d(nn.Module):
     self.padding = self.kernel_size // 2
 
     self.weight = nn.Parameter(torch.randn(1, self.out_channels, self.in_channels, self.kernel_size, self.kernel_size))
+    if self.init == 'ortho':
+      init.orthogonal_(self.weight[0])
+    elif self.init == 'normal':
+      init.normal_(self.weight[0], 0, 1.)
+    elif self.init in ['glorot', 'xavier']:
+      init.xavier_uniform_(self.weight[0])
+    else:
+      print('Init style not recognized...')
+
     if self.use_affine:
       self.modulation = nn.Linear(self.style_dim, self.in_channels)
     pass
