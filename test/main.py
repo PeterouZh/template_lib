@@ -115,13 +115,16 @@ class TestingUnit(unittest.TestCase):
     pass
 
 
-def run(argv_str=None):
+def run(argv_str=None, return_args=False):
   from template_lib.utils.config import parse_args_and_setup_myargs, config2args
   from template_lib.utils.modelarts_utils import prepare_dataset
   run_script = os.path.relpath(__file__, os.getcwd())
   args1, myargs, _ = parse_args_and_setup_myargs(argv_str, run_script=run_script, start_tb=False)
   myargs.args = args1
   myargs.config = getattr(myargs.config, args1.command)
+
+  if return_args:
+    return args1, myargs
 
   if hasattr(myargs.config, 'datasets'):
     prepare_dataset(myargs.config.datasets, cfg=myargs.config)
