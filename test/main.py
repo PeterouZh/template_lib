@@ -34,8 +34,8 @@ class TestingUnit(unittest.TestCase):
     assert sys._getframe().f_code.co_name.startswith('test_')
     command = sys._getframe().f_code.co_name[5:]
     class_name = self.__class__.__name__[7:] \
-      if self.__class__.__name__.startswith('Testing') \
-      else self.__class__.__name__
+      if self.__class__.__name__.startswith('Testing') else self.__class__.__name__
+    class_name = class_name.strip('_')
     outdir = f'results/{class_name}/{command}'
 
     argv_str = f"""
