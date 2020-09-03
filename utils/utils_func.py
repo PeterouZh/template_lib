@@ -8,43 +8,11 @@ from torch.nn.parallel import DistributedDataParallel
 import torch
 import yaml
 import json
+import traceback
 
 
-def update_parser_defaults_from_yaml(parser):
-  parser.add_argument('--config', type=str, default='')
-  parser.add_argument('--command', type=str, default='')
-  parser.add_argument('--outdir', type=str, default='results/temp')
-
-  args = parser.parse_args()
-  imgdir = f'{args.outdir}/saved_imgs'
-  ckptdir = f'{args.outdir}/models'
-  os.makedirs(args.outdir, exist_ok=True)
-  os.makedirs(args.outdir, exist_ok=True)
-  os.makedirs(args.outdir, exist_ok=True)
-
-  # Load yaml file and update parser defaults
-  with open(args.config, 'rt') as handle:
-    cfg = yaml.load(handle)[args.command]
-  set_global_cfg(cfg)
-
-  parser_set_default(parser, cfg=cfg['args'],
-                     imgdir=imgdir, ckptdir=ckptdir)
-  return parser
-
-global_cfg = EasyDict()
-
-def set_global_cfg(cfg):
-  global global_cfg
-  global_cfg.clear()
-  global_cfg.update(cfg)
-  pass
-
-def parser_set_default(parser, cfg, **kwargs):
-  for k, v in cfg.items():
-    parser.set_defaults(**{k: v})
-  for k, v in kwargs.items():
-    parser.set_defaults(**{k: v})
-  return parser
+def print_exceptions():
+  print(traceback.format_exc())
 
 
 def array2string(array_np):
