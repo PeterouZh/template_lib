@@ -16,14 +16,21 @@ from .config import setup_config, set_global_cfg
 from template_lib.v2.logger import get_logger, set_global_textlogger, TextLogger
 
 
-def get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name):
+def get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__):
   # func name
   assert func_name.startswith('test_')
   command = func_name[5:]
-  class_name = self.__class__.__name__[7:] \
-    if self.__class__.__name__.startswith('Testing') else self.__class__.__name__
-  class_name = class_name.strip('_')
-  outdir = f'results/{class_name}/{command}'
+  class_name = self.__class__.__name__
+  subdir = class_name[7:] if self.__class__.__name__.startswith('Testing') else class_name
+  subdir = subdir.strip('_')
+  outdir = f'results/{subdir}/{command}'
+
+  file = os.path.relpath(file, os.path.curdir)
+  file = file.replace('/', '.')
+  run_str = f"""
+             python -c "from {file[:-3]} import {class_name};\\\n  {class_name}().{func_name}()"
+             """
+  print(run_str.strip())
   return command, outdir
 
 

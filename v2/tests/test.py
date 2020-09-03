@@ -33,7 +33,7 @@ class Testing_stylegan2(unittest.TestCase):
     if 'TIME_STR' not in os.environ:
       os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
 
-    command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name)
+    command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
     argv_str = f"""
                 --tl_config_file exp/configs/styleganv2.yaml
                 --tl_command {command}
