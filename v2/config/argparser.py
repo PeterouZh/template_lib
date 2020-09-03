@@ -11,10 +11,9 @@ import sys
 import yaml
 from easydict import EasyDict
 
-from .config import setup_config, set_global_cfg, global_cfg
+from .config import setup_config, set_global_cfg
 
-from template_lib.v2.logger import get_logger
-from template_lib.d2.utils import comm
+from template_lib.v2.logger import get_logger, set_global_textlogger, TextLogger
 
 
 def get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name):
@@ -61,9 +60,16 @@ def update_parser_defaults_from_yaml(parser, name='args'):
   os.makedirs(tl_ckptdir, exist_ok=True)
   os.makedirs(tl_imgdir, exist_ok=True)
   os.makedirs(tl_textdir, exist_ok=True)
-  # files
+  # log files
   tl_logfile = os.path.join(args.tl_outdir, "log.txt")
+  local_rank = getattr(args, 'local_rank', 0)
+  if local_rank == 0:
+    logger = get_logger(filename=tl_logfile)
 
+  # textlogger
+  if local_rank == 0:
+    textlogger = TextLogger(log_root=tl_textdir)
+    set_global_textlogger(textlogger=textlogger)
 
   # Load yaml file and update parser defaults
   with open(args.tl_config_file, 'rt') as f:
@@ -73,10 +79,6 @@ def update_parser_defaults_from_yaml(parser, name='args'):
   parser_set_defaults(parser, cfg=cfg[name],
                       tl_imgdir=tl_imgdir, tl_ckptdir=tl_ckptdir, tl_textdir=tl_textdir,
                       tl_logfile=tl_logfile)
-
-  local_rank = getattr(args, 'local_rank', 0)
-  if local_rank == 0:
-    logger = get_logger(filename=tl_logfile)
   return parser
 
 
