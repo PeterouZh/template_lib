@@ -117,6 +117,7 @@ class TestingUnit(unittest.TestCase):
 
 def run(argv_str=None, return_args=False):
   from template_lib.utils.config import parse_args_and_setup_myargs, config2args
+  from template_lib.utils import parser_set_default
   from template_lib.utils.modelarts_utils import prepare_dataset
   run_script = os.path.relpath(__file__, os.getcwd())
   args1, myargs, _ = parse_args_and_setup_myargs(argv_str, run_script=run_script, start_tb=False)
