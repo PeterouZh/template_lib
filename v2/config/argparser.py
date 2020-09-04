@@ -83,7 +83,7 @@ def update_parser_defaults_from_yaml(parser, name='args'):
     cfg = yaml.load(f)[args.tl_command]
   set_global_cfg(cfg)
 
-  parser_set_defaults(parser, cfg=cfg[name],
+  parser_set_defaults(parser, cfg=getattr(cfg, name, None),
                       tl_imgdir=tl_imgdir, tl_ckptdir=tl_ckptdir, tl_textdir=tl_textdir,
                       tl_logfile=tl_logfile)
   return parser
@@ -108,8 +108,9 @@ def _setup_outdir(args):
 
 
 def parser_set_defaults(parser, cfg, **kwargs):
-  for k, v in cfg.items():
-    parser.set_defaults(**{k: v})
+  if cfg:
+    for k, v in cfg.items():
+      parser.set_defaults(**{k: v})
   for k, v in kwargs.items():
     parser.set_defaults(**{k: v})
   return parser

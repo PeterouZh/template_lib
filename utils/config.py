@@ -255,6 +255,7 @@ def update_config(super_config, config, overwrite_opts=True):
   :param overwrite_opts: overwrite opts directly or overwrite its elements only
   :return:
   """
+  super_config = EasyDict(super_config)
   ret_config = copy.deepcopy(super_config)
   for k in config:
     if k == 'opts' and not overwrite_opts and hasattr(super_config, k):

@@ -18,7 +18,6 @@ class Testing_stylegan2(unittest.TestCase):
     Usage:
 
         export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-        export PORT=6006
         export TIME_STR=1
         export PYTHONPATH=./exp:./stylegan2-pytorch:./
         python 	-c "from exp.tests.test_styleganv2 import Testing_stylegan2;\
@@ -28,8 +27,6 @@ class Testing_stylegan2(unittest.TestCase):
     """
     if 'CUDA_VISIBLE_DEVICES' not in os.environ:
       os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
-    if 'PORT' not in os.environ:
-      os.environ['PORT'] = '6006'
     if 'TIME_STR' not in os.environ:
       os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
 
