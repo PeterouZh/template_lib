@@ -472,6 +472,9 @@ class TFFIDISScore(object):
 
     if num_inception_images is None:
       num_inception_images = self.num_inception_images
+    else:
+      num_inception_images = num_inception_images // comm.get_world_size()
+
     pred_FIDs, pred_ISs = self._get_activations_with_sample_func(
       sample_func=sample_func, num_inception_images=num_inception_images, stdout=stdout)
 
@@ -730,14 +733,15 @@ class TFFIDISScore(object):
   @staticmethod
   def test_case_evaluate_FID_IS():
     import torch
-    from template_lib.gans.evaluation import build_GAN_metric
+    from template_lib.v2.GAN.evaluation import build_GAN_metric
 
     cfg_str = """
-                      update_cfg: true
-                      GAN_metric:
-                        tf_fid_stat: "datasets/fid_stats_tf_cifar10.npz"
-                        num_inception_images: 5000
-                  """
+              update_cfg: true
+              GAN_metric:
+                tf_fid_stat: "datasets/fid_stats_tf_cifar10.npz"
+                tf_inception_model_dir: "datasets/GAN_eval/tf_inception_model"
+                num_inception_images: 5000
+              """
     config = EasyDict(yaml.safe_load(cfg_str))
     cfg = TFFIDISScore.update_cfg(config)
 
@@ -762,7 +766,7 @@ class TFFIDISScore(object):
     G = torch.empty((bs, 3, img_size, img_size)).cuda()
     sample_func = SampleFunc(G=G, z=z)
     try:
-      FID_tf, IS_mean_tf, IS_std_tf = FID_IS_tf(sample_func=sample_func)
+      FID_tf, IS_mean_tf, IS_std_tf = FID_IS_tf(sample_func=sample_func, num_inception_images=5000)
       print(f'IS_mean_tf:{IS_mean_tf:.3f} +- {IS_std_tf:.3f}\n\tFID_tf: {FID_tf:.3f}')
     except:
       print("Error FID_IS_tf.")
