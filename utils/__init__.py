@@ -7,6 +7,5 @@ from . import config
 from . import args_parser
 from .logging_utils import TextLogger
 
-from template_lib.v2.config import update_config
 
 

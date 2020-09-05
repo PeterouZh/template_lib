@@ -4,8 +4,6 @@ from easydict import EasyDict
 import yaml
 from pathlib import Path
 
-from template_lib.utils import config_utils, print_exceptions
-
 
 class YamlConfigParser(object):
   def __init__(self, fname, saved_fname):
@@ -37,7 +35,8 @@ def _get_config_from_file(config_file, saved_path):
     config = config_parser.cfg
     return config
   except ValueError:
-    print_exceptions()
+    import traceback
+    print(traceback.format_exc())
     exit(-1)
 
 

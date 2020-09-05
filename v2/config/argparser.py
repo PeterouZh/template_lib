@@ -86,7 +86,7 @@ def update_parser_defaults_from_yaml(parser, name='args'):
   else:
     cfg= {}
 
-  parser_set_defaults(parser, cfg=getattr(cfg, name, None),
+  parser_set_defaults(parser, cfg=cfg[name] if name in cfg else None,
                       tl_imgdir=tl_imgdir, tl_ckptdir=tl_ckptdir, tl_textdir=tl_textdir,
                       tl_logfile=tl_logfile)
   return parser

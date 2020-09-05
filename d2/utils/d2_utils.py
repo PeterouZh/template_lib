@@ -4,7 +4,7 @@ import sys
 from detectron2.config import CfgNode
 from yacs.config import CfgNode as yacs_CfgNode
 
-from template_lib.utils import logging_utils
+# from template_lib.utils import logging_utils
 
 
 def _convert_dict_2_CfgNode(config):
@@ -56,21 +56,21 @@ class D2Utils(object):
       myargs.stderr = None
     return myargs
 
-  @staticmethod
-  def setup_myargs_for_multiple_processing(myargs):
-    from detectron2.utils import comm
-    distributed = comm.get_world_size() > 1
-    if distributed and comm.is_main_process():
-      # setup logging in the project
-      logfile = myargs.args.logfile
-      logging_utils.get_logger(
-        filename=logfile, logger_names=['template_lib', 'tl'], stream=True)
-      logger = logging.getLogger('tl')
-      myargs.logger = logger
-      myargs.stdout = sys.stdout
-      myargs.stderr = sys.stderr
-      logging_utils.redirect_print_to_logger(logger=logger)
-    return myargs
+  # @staticmethod
+  # def setup_myargs_for_multiple_processing(myargs):
+  #   from detectron2.utils import comm
+  #   distributed = comm.get_world_size() > 1
+  #   if distributed and comm.is_main_process():
+  #     # setup logging in the project
+  #     logfile = myargs.args.logfile
+  #     logging_utils.get_logger(
+  #       filename=logfile, logger_names=['template_lib', 'tl'], stream=True)
+  #     logger = logging.getLogger('tl')
+  #     myargs.logger = logger
+  #     myargs.stdout = sys.stdout
+  #     myargs.stderr = sys.stderr
+  #     logging_utils.redirect_print_to_logger(logger=logger)
+  #   return myargs
 
   @staticmethod
   def create_cfg():
