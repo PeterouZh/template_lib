@@ -53,9 +53,9 @@ def config_inherit_from_base(config, configs, arg_base=[], overwrite_opts=False)
   for b in base:
     b_config = getattr(configs, b, {})
     b_config = config_inherit_from_base(b_config, configs, overwrite_opts=overwrite_opts)
-    super_config = _update_config(super_config, b_config, overwrite_opts=overwrite_opts)
+    super_config = update_config(super_config, b_config, overwrite_opts=overwrite_opts)
   # update super_config by config
-  super_config = _update_config(super_config, config, overwrite_opts=overwrite_opts)
+  super_config = update_config(super_config, config, overwrite_opts=overwrite_opts)
   return super_config
 
 
@@ -98,7 +98,7 @@ def convert_easydict_to_dict(config):
   return ret_config
 
 
-def _update_config(super_config, config, overwrite_opts=True):
+def update_config(super_config, config, overwrite_opts=True):
   """
 
   :param super_config:
@@ -106,6 +106,7 @@ def _update_config(super_config, config, overwrite_opts=True):
   :param overwrite_opts: overwrite opts directly or overwrite its elements only
   :return:
   """
+  super_config = EasyDict(super_config)
   ret_config = copy.deepcopy(super_config)
   for k in config:
     if k == 'opts' and not overwrite_opts and hasattr(super_config, k):
@@ -116,7 +117,7 @@ def _update_config(super_config, config, overwrite_opts=True):
         sub_config = copy.deepcopy(config[k])
         sub_config.pop('overwrite')
       else:
-        sub_config = _update_config(super_config[k], config[k])
+        sub_config = update_config(super_config[k], config[k])
       setattr(ret_config, k, sub_config)
     else:
       setattr(ret_config, k, config[k])

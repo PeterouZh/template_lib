@@ -6,6 +6,7 @@ from .utils_func import (is_debugging, get_prefix_abb, get_eval_attr, get_ddp_at
 from . import config
 from . import args_parser
 from .logging_utils import TextLogger
-from .config import update_config
+
+from template_lib.v2.config import update_config
 
 

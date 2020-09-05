@@ -79,9 +79,12 @@ def update_parser_defaults_from_yaml(parser, name='args'):
     set_global_textlogger(textlogger=textlogger)
 
   # Load yaml file and update parser defaults
-  with open(args.tl_config_file, 'rt') as f:
-    cfg = yaml.load(f)[args.tl_command]
-  set_global_cfg(cfg)
+  if not args.tl_command.lower() == 'none':
+    with open(args.tl_config_file, 'rt') as f:
+      cfg = yaml.load(f)[args.tl_command]
+    set_global_cfg(cfg)
+  else:
+    cfg= {}
 
   parser_set_defaults(parser, cfg=getattr(cfg, name, None),
                       tl_imgdir=tl_imgdir, tl_ckptdir=tl_ckptdir, tl_textdir=tl_textdir,
@@ -155,6 +158,9 @@ def setup_outdir_and_yaml(argv_str=None):
   logger = get_logger(filename=args.tl_logfile, logger_names=['template_lib', 'tl'], stream=True)
   args_str = get_dict_str(args)
   logger.info(f"The args: \n{args_str}")
+
+  if args.tl_command.lower() == 'none':
+    return args
 
   # Load yaml
   config, config_command = setup_config(
