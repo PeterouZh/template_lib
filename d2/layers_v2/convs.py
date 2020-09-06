@@ -8,7 +8,8 @@ import torch.nn.functional as F
 from torch.nn import init
 
 from template_lib.d2.layers_v2.build import D2LAYERv2_REGISTRY, build_d2layer_v2
-from template_lib.utils import get_attr_kwargs, update_config
+from template_lib.utils import get_attr_kwargs
+from template_lib.v2.config import update_config
 
 
 
