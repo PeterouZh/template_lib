@@ -58,7 +58,7 @@ def get_append_cmd_str(args):
 def update_parser_defaults_from_yaml(parser, name='args'):
   parser = build_parser(parser)
 
-  args = parser.parse_args()
+  args, _ = parser.parse_known_args()
   tl_ckptdir = f'{args.tl_outdir}/ckptdir'
   tl_imgdir = f'{args.tl_outdir}/imgdir'
   tl_textdir = f'{args.tl_outdir}/textdir'
