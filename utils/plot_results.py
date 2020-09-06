@@ -142,3 +142,42 @@ class TestingPlot(unittest.TestCase):
       outfigure=outfigure, default_dicts=default_dicts, show_max=show_max, figsize_wh=(16, 7.2))
     pass
 
+  def test_plot_FID_cifar10_style_position(self):
+    """
+    python -c "from exp.tests.test_styleganv2 import Testing_stylegan2_style_position;\
+      Testing_stylegan2_style_position().test_plot_FID_cifar10_style_position()"
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '3'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+
+    command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
+    argv_str = f"""
+                    --tl_config_file none
+                    --tl_command none
+                    --tl_outdir {outdir}
+                    """
+    args = setup_outdir_and_yaml(argv_str)
+    outdir = args.tl_outdir
+
+    from template_lib.utils.plot_results import PlotResults
+    import collections
+
+    outfigure = os.path.join(outdir, 'FID.jpg')
+    default_dicts = []
+    show_max = []
+
+    FID = collections.defaultdict(dict)
+    FID['results/stylegan2_style_position/train_cifar10_style_position_20200906-12_02_45_391'] = \
+      {'12_02_45_391-all_position': 'textdir/train.ma0.FID_tf.log', }
+
+    FID['properties'] = {'title': 'FID', }
+    default_dicts.append(FID)
+    show_max.append(False)
+
+    plotobs = PlotResults()
+    label2datas_list = plotobs.plot_defaultdicts(
+      outfigure=outfigure, default_dicts=default_dicts, show_max=show_max, figsize_wh=(16, 7.2))
+    print(f'Save to {outfigure}.')
+    pass
