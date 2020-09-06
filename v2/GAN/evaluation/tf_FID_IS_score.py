@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 import argparse
+import traceback
 
 import yaml
 from easydict import EasyDict
@@ -535,22 +536,24 @@ class TFFIDISScore(object):
 
     while (count) < num_inception_images:
       if verbose and comm.is_main_process():
-        print('\r', end=f'TF FID IS Score forwarding: [{count}/{num_inception_images}]',
-              file=stdout, flush=True)
+        print('\r', end=f'TF FID IS Score forwarding: [{count}/{num_inception_images}]', file=stdout, flush=True)
       try:
         batch = sample_func()
-        count += len(batch)
         # batch_list = comm.gather(data=batch)
         # if len(batch_list) > 0:
         #   batch = np.concatenate(batch_list, axis=0)
       except StopIteration:
         break
-
-      pred_FID, pred_IS = self.sess.run([self.FID_pool3, self.IS_softmax],
-                                        {f'{self.tf_graph_name}/ExpandDims:0': batch})
+      try:
+        pred_FID, pred_IS = self.sess.run([self.FID_pool3, self.IS_softmax],
+                                          {f'{self.tf_graph_name}/ExpandDims:0': batch})
+      except:
+        print(traceback.format_exc())
+        continue
+      count += len(batch)
       pred_FIDs.append(pred_FID)
       pred_ISs.append(pred_IS)
-    if verbose: print('', file=stdout)
+    if verbose: print(f'rank: {comm.get_rank()}', file=stdout)
 
     pred_FIDs = np.concatenate(pred_FIDs, 0).squeeze()
     pred_ISs = np.concatenate(pred_ISs, 0)
