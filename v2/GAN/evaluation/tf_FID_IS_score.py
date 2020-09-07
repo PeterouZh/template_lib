@@ -12,9 +12,12 @@ import warnings
 
 import numpy as np
 
+# import tensorflow as tf
 try:
   import tensorflow as tf
 except ImportError:
+  import traceback
+  traceback.print_exc()
   print('Cannot import tf.')
 
 from scipy import linalg
