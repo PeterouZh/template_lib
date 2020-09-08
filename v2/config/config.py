@@ -50,7 +50,7 @@ def config_inherit_from_base(config, configs, arg_base=[], overwrite_opts=False)
 
   super_config = EasyDict()
   for b in base:
-    b_config = getattr(configs, b, {})
+    b_config = getattr(configs, b)
     b_config = config_inherit_from_base(b_config, configs, overwrite_opts=overwrite_opts)
     super_config = update_config(super_config, b_config, overwrite_opts=overwrite_opts)
   # update super_config by config

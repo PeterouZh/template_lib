@@ -26,7 +26,7 @@ def get_git_hash(logger=None):
   except:
     sha = 0
     import traceback
-    print(traceback.format_exc(), flush=True)
+    print(traceback.format_exc())
   os.chdir(cwd)
   return sha
 
