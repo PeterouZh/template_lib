@@ -11,6 +11,26 @@ import json
 import traceback
 
 
+def get_git_hash(logger=None):
+  if logger is not None:
+    print = logger.info
+  cwd = os.getcwd()
+  # os.chdir(os.path.join(cwd, '..'))
+  try:
+    import git
+    repo = git.Repo(search_parent_directories=True)
+    sha = repo.head.object.hexsha
+    print('git hash: \n%s'%sha)
+    print('git checkout sha')
+    print('git submodule update --recursive')
+  except:
+    sha = 0
+    import traceback
+    print(traceback.format_exc(), flush=True)
+  os.chdir(cwd)
+  return sha
+
+
 def print_exceptions():
   print(traceback.format_exc())
 

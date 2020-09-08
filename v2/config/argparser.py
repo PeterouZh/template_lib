@@ -15,6 +15,7 @@ from .config import setup_config, set_global_cfg
 
 from template_lib.v2.logger import get_logger, set_global_textlogger, TextLogger
 from template_lib.d2.utils import comm
+from template_lib.utils import get_git_hash
 
 
 def get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__):
@@ -165,6 +166,9 @@ def setup_outdir_and_yaml(argv_str=None):
   logger = get_logger(filename=args.tl_logfile, logger_names=['template_lib', 'tl'], stream=True)
   args_str = get_dict_str(args)
   logger.info(f"The args: \n{args_str}")
+
+  # git
+  get_git_hash(logger)
 
   if args.tl_command.lower() == 'none':
     return args

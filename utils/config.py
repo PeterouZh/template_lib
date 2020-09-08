@@ -17,7 +17,7 @@ from . import torch_utils
 from . import shutil_utils
 from . import modelarts_utils
 from . import tensorboardX_utils
-from . import is_debugging, args_parser
+from . import is_debugging, args_parser, get_git_hash
 
 
 def get_config_from_file(config_file, saved_path):
@@ -148,25 +148,6 @@ def setup_checkpoint(ckptdir, myargs):
   checkpoint = torch_utils.CheckpointTool(ckptdir=ckptdir)
   myargs.checkpoint = checkpoint
   myargs.checkpoint_dict = collections.OrderedDict()
-
-
-def get_git_hash():
-  cwd = os.getcwd()
-  # os.chdir(os.path.join(cwd, '..'))
-  try:
-    import git
-    repo = git.Repo(search_parent_directories=True)
-    sha = repo.head.object.hexsha
-    print('git hash: \n%s'%sha)
-    print('git checkout sha', end='')
-    print('git submodule update --recursive')
-  except:
-    sha = 0
-    print('Error in get_git_hash')
-    import traceback
-    print(traceback.format_exc(), flush=True)
-  os.chdir(cwd)
-  return sha
 
 
 def setup_args_and_myargs(args, myargs, start_tb=True, **kwargs):

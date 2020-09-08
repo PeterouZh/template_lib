@@ -17,7 +17,7 @@ class YamlConfigParser(object):
     if isinstance(fname, str):
       fname = Path(fname)
     with fname.open('rt') as handle:
-      yaml_dict = yaml.load(handle)
+      yaml_dict = yaml.safe_load(handle)
       return yaml_dict
 
   @staticmethod
