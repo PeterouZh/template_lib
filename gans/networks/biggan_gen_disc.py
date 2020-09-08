@@ -10,7 +10,8 @@ import torch.nn.functional as F
 from torch.nn import Parameter as P
 
 from template_lib.gans.networks.build import DISCRIMINATOR_REGISTRY
-from template_lib.utils import get_attr_kwargs, update_config
+from template_lib.utils import get_attr_kwargs
+from template_lib.v2.config import update_config
 
 from . import biggan_gen_disc_utils as layers
 

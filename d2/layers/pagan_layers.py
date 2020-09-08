@@ -4,7 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from template_lib.utils import get_attr_kwargs, update_config
+from template_lib.utils import get_attr_kwargs
+from template_lib.v2.config import update_config
 
 from .build import D2LAYER_REGISTRY, build_d2layer
 

@@ -18,19 +18,6 @@ from detectron2.utils.comm import get_world_size
 from detectron2.utils.events import get_event_storage
 from detectron2.checkpoint import Checkpointer, DetectionCheckpointer
 
-from template_lib.d2.distributions.fairnas_noise_sample import fairnas_repeat_tensor
-from template_lib.d2.distributions import build_d2distributions
-from template_lib.d2.models import build_d2model
-from template_lib.trainer.base_trainer import Trainer
-from template_lib.trainer import get_ddp_attr
-from template_lib.gans import inception_utils, gan_utils, gan_losses, GANLosses
-from template_lib.gans.networks import build_discriminator, build_generator
-from template_lib.gans.evaluation import get_sample_imgs_list_ddp
-from template_lib.d2.optimizer import build_optimizer
-from template_lib.utils import modelarts_utils
-from template_lib.gans.evaluation import build_GAN_metric_dict
-from template_lib.gans.evaluation.fid_score import FIDScore
-from template_lib.gans.models import build_GAN_model
 from template_lib.utils import get_eval_attr, print_number_params, get_attr_kwargs, get_attr_eval
 
 from .build import TRAINER_REGISTRY
@@ -93,12 +80,14 @@ class DumpModule(nn.Module):
 @TRAINER_REGISTRY.register()
 class BaseTrainer(nn.Module):
 
-    def __init__(self, cfg, myargs, iter_every_epoch, **kwargs):
+    def __init__(self, cfg, args, iter_every_epoch, **kwargs):
       super().__init__()
 
+      # fmt: off
       self.cfg                           = cfg
-      self.myargs                        = myargs
+      self.args                          = args
       self.iter_every_epoch              = iter_every_epoch
+      # fmt: on
 
       self.timer = Timer()
       self.device = torch.device(f'cuda:{comm.get_rank()}')
