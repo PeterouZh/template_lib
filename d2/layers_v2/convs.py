@@ -130,7 +130,8 @@ class ModulatedConv2d(nn.Module):
     return out
 
   def __repr__(self):
-    return (f'{self.__class__.__name__}({self.in_channels}, {self.out_channels}, {self.kernel_size})')
+    return (f'{self.__class__.__name__}({self.in_channels}, {self.out_channels}, {self.kernel_size}), '
+            f'use_affine={self.use_affine}')
 
   @staticmethod
   def test_case():
