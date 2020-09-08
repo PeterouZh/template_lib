@@ -14,6 +14,7 @@ from easydict import EasyDict
 from .config import setup_config, set_global_cfg
 
 from template_lib.v2.logger import get_logger, set_global_textlogger, TextLogger
+from template_lib.d2.utils import comm
 
 
 def get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__):
@@ -55,6 +56,28 @@ def get_append_cmd_str(args):
   return cmd_str_append
 
 
+def setup_logger_global_cfg_global_textlogger(args, tl_textdir):
+  # log files
+  tl_logfile = os.path.join(args.tl_outdir, "log.txt")
+  local_rank = getattr(args, 'local_rank', 0)
+  if local_rank == 0 and comm.is_main_process():
+    if len(logging.getLogger('tl').handlers) < 2:
+      logger = get_logger(filename=tl_logfile)
+
+  # textlogger
+  if local_rank == 0 and comm.is_main_process():
+    textlogger = TextLogger(log_root=tl_textdir)
+    set_global_textlogger(textlogger=textlogger)
+
+  # Load yaml file and update parser defaults
+  if not args.tl_command.lower() == 'none':
+    with open(args.tl_config_file, 'rt') as f:
+      cfg = yaml.load(f)[args.tl_command]
+    set_global_cfg(cfg)
+  else:
+    cfg = {}
+  return cfg, tl_logfile
+
 def update_parser_defaults_from_yaml(parser, name='args'):
   parser = build_parser(parser)
 
@@ -67,24 +90,8 @@ def update_parser_defaults_from_yaml(parser, name='args'):
   os.makedirs(tl_ckptdir, exist_ok=True)
   os.makedirs(tl_imgdir, exist_ok=True)
   os.makedirs(tl_textdir, exist_ok=True)
-  # log files
-  tl_logfile = os.path.join(args.tl_outdir, "log.txt")
-  local_rank = getattr(args, 'local_rank', 0)
-  if local_rank == 0:
-    logger = get_logger(filename=tl_logfile)
 
-  # textlogger
-  if local_rank == 0:
-    textlogger = TextLogger(log_root=tl_textdir)
-    set_global_textlogger(textlogger=textlogger)
-
-  # Load yaml file and update parser defaults
-  if not args.tl_command.lower() == 'none':
-    with open(args.tl_config_file, 'rt') as f:
-      cfg = yaml.load(f)[args.tl_command]
-    set_global_cfg(cfg)
-  else:
-    cfg= {}
+  cfg, tl_logfile = setup_logger_global_cfg_global_textlogger(args, tl_textdir)
 
   parser_set_defaults(parser, cfg=cfg[name] if name in cfg else None,
                       tl_imgdir=tl_imgdir, tl_ckptdir=tl_ckptdir, tl_textdir=tl_textdir,

@@ -7,5 +7,5 @@ from . import config
 from . import args_parser
 from .logging_utils import TextLogger
 
-
+from .config import update_config
 

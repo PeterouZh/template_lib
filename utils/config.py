@@ -322,3 +322,29 @@ def config_inherit_from_base(config, configs, arg_base=[], overwrite_opts=False)
   # update super_config by config
   super_config = update_config(super_config, config, overwrite_opts=overwrite_opts)
   return super_config
+
+
+def update_config(super_config, config, overwrite_opts=True):
+  """
+
+  :param super_config:
+  :param config:
+  :param overwrite_opts: overwrite opts directly or overwrite its elements only
+  :return:
+  """
+  super_config = EasyDict(super_config)
+  ret_config = copy.deepcopy(super_config)
+  for k in config:
+    if k == 'opts' and not overwrite_opts and hasattr(super_config, k):
+      ret_config[k] = update_opts(super_config[k], config[k])
+    # merge dict element-wise
+    elif isinstance(config[k], dict) and hasattr(super_config, k):
+      if getattr(config[k], 'overwrite', False):
+        sub_config = copy.deepcopy(config[k])
+        sub_config.pop('overwrite')
+      else:
+        sub_config = update_config(super_config[k], config[k])
+      setattr(ret_config, k, sub_config)
+    else:
+      setattr(ret_config, k, config[k])
+  return ret_config

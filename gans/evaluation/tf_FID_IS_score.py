@@ -36,7 +36,7 @@ from imageio import imread
 import tarfile
 
 from template_lib.d2.utils import comm
-from template_lib.utils import update_config
+from template_lib.v2.config import update_config
 
 from .build import GAN_METRIC_REGISTRY
 from . import get_sample_imgs_list_ddp
