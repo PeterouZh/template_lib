@@ -62,9 +62,15 @@ class PlotResults(object):
         assert len(show_max) == len(default_dicts)
 
         fig, axes = self.get_fig_axes(rows=len(default_dicts), cols=1, figsize_wh=figsize_wh)
-        
+
         label2datas_list = []
         for idx, default_dict in enumerate(default_dicts):
+            data_xlim = None
+            axes_prop = default_dict.get('properties')
+            if axes_prop is not None:
+              if 'xlim' in axes_prop:
+                data_xlim = axes_prop['xlim'][-1]
+
             label2datas = {}
             # for each result dir
             for (result_dir, label2file) in default_dict.items():
@@ -81,6 +87,9 @@ class PlotResults(object):
 
                     data = np.loadtxt(filepath, delimiter=':')
                     data = data.reshape(-1, 2)
+                    # limit x in a range
+                    if data_xlim:
+                      data = data[[data[:, 0] <= data_xlim]]
                     
                     itr_val_str = self.get_itr_val_str(data, show_max[idx])
                     label_str = f'{itr_val_str}' + f'-{modi_minutes:03d}m---' + label

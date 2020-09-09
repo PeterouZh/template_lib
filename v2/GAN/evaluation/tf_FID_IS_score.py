@@ -550,6 +550,8 @@ class TFFIDISScore(object):
       try:
         pred_FID, pred_IS = self.sess.run([self.FID_pool3, self.IS_softmax],
                                           {f'{self.tf_graph_name}/ExpandDims:0': batch})
+      except KeyboardInterrupt:
+        exit(-1)
       except:
         print(traceback.format_exc())
         continue
