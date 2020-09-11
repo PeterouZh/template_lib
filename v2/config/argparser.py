@@ -79,7 +79,7 @@ def setup_logger_global_cfg_global_textlogger(args, tl_textdir):
     cfg = {}
   return cfg, tl_logfile
 
-def update_parser_defaults_from_yaml(parser, name='args'):
+def update_parser_defaults_from_yaml(parser, name='args', use_cfg_as_args=False):
   parser = build_parser(parser)
 
   args, _ = parser.parse_known_args()
@@ -94,7 +94,12 @@ def update_parser_defaults_from_yaml(parser, name='args'):
 
   cfg, tl_logfile = setup_logger_global_cfg_global_textlogger(args, tl_textdir)
 
-  parser_set_defaults(parser, cfg=cfg[name] if name in cfg else None,
+  if use_cfg_as_args:
+    default_args = cfg
+  else:
+    default_args = cfg[name] if name in cfg else None
+
+  parser_set_defaults(parser, cfg=default_args,
                       tl_imgdir=tl_imgdir, tl_ckptdir=tl_ckptdir, tl_textdir=tl_textdir,
                       tl_logfile=tl_logfile)
   return parser
