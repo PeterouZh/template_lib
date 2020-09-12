@@ -47,6 +47,40 @@ class Testing_stylegan2(unittest.TestCase):
     start_cmd_run(cmd_str)
     pass
 
+  def test_detectron2(self):
+    """
+    Usage:
+        export ANSI_COLORS_DISABLED=1
+
+        export CUDA_VISIBLE_DEVICES=2
+        export TIME_STR=1
+        export PYTHONPATH=.:./exp
+        python -c "from exp.tests.test_nas_cgan import TestingPrepareData;\
+          TestingPrepareData().test_calculate_fid_stat_CIFAR10()"
+
+    :return:
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+
+    command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
+    argv_str = f"""
+                    --tl_config_file exp/nas_cgan/config/prepare_data.yaml
+                    --tl_command {command}
+                    --tl_outdir {outdir}
+                    """
+    args = setup_outdir_and_yaml(argv_str)
+
+    num_gpus = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
+    cmd_str = f"""
+              python exp/scripts/train_net.py 
+               {get_append_cmd_str(args)}
+               --num-gpus {num_gpus}
+              """
+    start_cmd_run(cmd_str)
+    pass
 
 # from template_lib.v2.config import update_parser_defaults_from_yaml
 # update_parser_defaults_from_yaml(parser)
