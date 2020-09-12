@@ -385,15 +385,16 @@ class TFFIDISScore(object):
     self.num_inception_images = self.num_inception_images // ws
     self.tf_graph_name = 'FID_IS_Inception_Net'
     if os.path.isfile(self.tf_fid_stat):
+      self.logger.info(f'Loading tf_fid_stat: {self.tf_fid_stat}')
       f = np.load(self.tf_fid_stat)
       self.mu_data, self.sigma_data = f['mu'][:], f['sigma'][:]
       f.close()
     else:
-      self.logger.warning(f"tf_fid_stat does not exist: {self.tf_fid_stat}")
+      self.logger.info(f"tf_fid_stat does not exist: {self.tf_fid_stat}")
 
     self.tf_inception_model_dir = os.path.expanduser(self.tf_inception_model_dir)
     inception_path = self._check_or_download_inception(self.tf_inception_model_dir)
-    self.logger.warning('Load tf inception model in %s', inception_path)
+    self.logger.info('Load tf inception model in %s', inception_path)
     self._create_inception_graph(inception_path, name=self.tf_graph_name)
     self._create_inception_net()
     comm.synchronize()
