@@ -180,7 +180,9 @@ def print_number_params(models_dict):
     ))
 
 
-def get_ddp_attr(obj, attr, **kwargs):
+def get_ddp_attr(obj, attr=None, **kwargs):
+  if attr is None:
+    return getattr(obj, 'module', obj)
   return getattr(getattr(obj, 'module', obj), attr, **kwargs)
 
 

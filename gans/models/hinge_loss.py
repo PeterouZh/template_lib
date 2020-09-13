@@ -5,6 +5,7 @@ import collections
 
 from template_lib.trainer.base_trainer import Trainer
 from template_lib.utils import get_attr_kwargs
+from template_lib.v2.logger import global_textlogger
 
 from .build import GAN_MODEL_REGISTRY
 
@@ -15,7 +16,6 @@ class HingeLossCond(object):
 
   def __init__(self, cfg, **kwargs):
 
-    self.myargs                 = kwargs['myargs']
     self.D                      = kwargs['D']
     self.G                      = kwargs['G']
     self.D_optim                = kwargs['D_optim']
@@ -92,7 +92,7 @@ class HingeLossCond(object):
       Trainer.summary_defaultdict2txtfig(default_dict=summary_d,
                                          prefix='HingeLossCond',
                                          step=iteration,
-                                         textlogger=self.myargs.textlogger)
+                                         textlogger=global_textlogger)
 
     comm.synchronize()
     return
