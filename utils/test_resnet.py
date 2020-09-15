@@ -130,7 +130,7 @@ def determine_bs(net, q):
     torch.cuda.empty_cache()
     import traceback
     print(traceback.format_exc())
-
+    os.makedirs('results', exist_ok=True)
     with open('results/max_bs.txt', 'w') as f:
       f.write(str(bs - 1))
     # q.put(bs - 1)

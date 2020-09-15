@@ -42,8 +42,8 @@ class Testing_stylegan2(unittest.TestCase):
     cmd_str = f"""
         python -m torch.distributed.launch --nproc_per_node={nproc_per_node} --master_port=8888 
           exp/scripts/train.py 
+          {get_append_cmd_str(args)}
         """
-    cmd_str += get_append_cmd_str(args)
     start_cmd_run(cmd_str)
     pass
 
