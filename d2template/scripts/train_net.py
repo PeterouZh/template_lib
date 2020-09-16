@@ -37,33 +37,31 @@ logger = logging.getLogger("detectron2")
 
 @START_REGISTRY.register()
 def do_train(cfg, args):
+  # fmt: off
   run_func                                     = cfg.start.get('run_func', 'train_func')
   dataset_name                                 = cfg.start.dataset_name
-  IMS_PER_BATCH                                = cfg.start.IMS_PER_BATCH
-  ASPECT_RATIO_GROUPING                        = cfg.start.ASPECT_RATIO_GROUPING
+  IMS_PER_BATCH                                = cfg.start.IMS_PER_BATCH * comm.get_world_size()
   NUM_WORKERS                                  = cfg.start.NUM_WORKERS
   dataset_mapper                               = cfg.start.dataset_mapper
 
   max_epoch                                    = cfg.start.max_epoch
   checkpoint_period                            = cfg.start.checkpoint_period
 
-  resume_ckpt_dir                              = get_attr_kwargs(cfg.start, 'resume_ckpt_dir', default=None)
-  resume_ckpt_epoch                            = get_attr_kwargs(cfg.start, 'resume_ckpt_epoch', default=0)
-  resume_ckpt_iter_every_epoch                 = get_attr_kwargs(cfg.start, 'resume_ckpt_iter_every_epoch', default=0)
+  resume_cfg                                   = get_attr_kwargs(cfg.start, 'resume_cfg', default=None)
 
   cfg.defrost()
   cfg.DATASETS.TRAIN                           = (dataset_name, )
   cfg.SOLVER.IMS_PER_BATCH                     = IMS_PER_BATCH
-  cfg.DATALOADER.ASPECT_RATIO_GROUPING         = ASPECT_RATIO_GROUPING
   cfg.DATALOADER.NUM_WORKERS                   = NUM_WORKERS
   cfg.freeze()
+  # fmt: on
 
   # build dataset
   mapper = build_dataset_mapper(dataset_mapper)
   data_loader = build_detection_train_loader(cfg, mapper=mapper)
   metadata = MetadataCatalog.get(dataset_name)
-  num_images = metadata.get('num_samples')
-  iter_every_epoch = num_images // IMS_PER_BATCH
+  num_samples = metadata.get('num_samples')
+  iter_every_epoch = num_samples // IMS_PER_BATCH
   max_iter = iter_every_epoch * max_epoch
 
   model = build_trainer(cfg=cfg, args=args, iter_every_epoch=iter_every_epoch,
@@ -76,16 +74,15 @@ def do_train(cfg, args):
   scheduler = model.build_lr_scheduler()
 
   checkpointer = DetectionCheckpointer(model.get_saved_model(), cfg.OUTPUT_DIR, **optims_dict, **scheduler)
-  if args.resume:
-    resume_ckpt_dir = model._get_ckpt_path(ckpt_dir=resume_ckpt_dir, ckpt_epoch=resume_ckpt_epoch,
-                                           iter_every_epoch=resume_ckpt_iter_every_epoch)
+  if resume_cfg and resume_cfg.resume:
+    resume_ckpt_dir = model._get_ckpt_path(ckpt_dir=resume_cfg.ckpt_dir, ckpt_epoch=resume_cfg.ckpt_epoch,
+                                           iter_every_epoch=resume_cfg.iter_every_epoch)
     start_iter = (checkpointer.resume_or_load(resume_ckpt_dir).get("iteration", -1) + 1)
-    if get_attr_kwargs(args, 'finetune', default=False):
+    if get_attr_kwargs(resume_cfg, 'finetune', default=False):
       start_iter = 0
+    model.after_resume()
   else:
     start_iter = 0
-
-  model.after_resume()
 
   if run_func != 'train_func':
     eval(f'model.{run_func}()')
@@ -100,7 +97,8 @@ def do_train(cfg, args):
     if comm.is_main_process():
       pbar = tqdm.tqdm(pbar,
                        desc=f'do_train, {args.tl_time_str}, '
-                            f'iters {iter_every_epoch} * bs {IMS_PER_BATCH} = imgs {iter_every_epoch*IMS_PER_BATCH}',
+                            f'iters {iter_every_epoch} * bs {IMS_PER_BATCH} = '
+                            f'imgs {iter_every_epoch*IMS_PER_BATCH}',
                        initial=start_iter, total=max_iter)
 
     for data, iteration in pbar:
@@ -130,6 +128,7 @@ def setup(args, config):
   cfg.SOLVER = CfgNode()
 
   cfg.DATALOADER = CfgNode()
+  cfg.DATALOADER.ASPECT_RATIO_GROUPING = False
   cfg.DATALOADER.FILTER_EMPTY_ANNOTATIONS = True
   cfg.DATALOADER.SAMPLER_TRAIN = "TrainingSampler"
 

@@ -157,3 +157,15 @@ def redirect_print_to_logger(logger, ):
   pass
 
 
+def info_msg(logger, *argv):
+  # remove formats
+  org_formatters = []
+  for handler in logger.handlers:
+    org_formatters.append(handler.formatter)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+
+  logger.info(*argv)
+
+  # restore formats
+  for handler, formatter in zip(logger.handlers, org_formatters):
+    handler.setFormatter(formatter)

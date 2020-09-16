@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import argparse
 import torch
@@ -26,3 +27,21 @@ def main():
 
   # eval(args.run_func)()
   return args
+
+
+def gather_tensor_of_master(tensor):
+  tensor_list = comm.all_gather(tensor)
+  tensor = tensor_list[0].to(tensor.device)
+  return tensor
+
+
+def gather_tensor(data):
+  data_list = comm.gather(data=data)
+  if len(data_list) > 0:
+    if isinstance(data, np.ndarray):
+      data = np.concatenate(data_list, axis=0)
+    else:
+      data = torch.cat(data_list, dim=0).to(device=data.device)
+  else:
+    data = None
+  return data

@@ -69,7 +69,6 @@ class ControllerRLAlpha(_FairController):
     super(ControllerRLAlpha, self).__init__()
 
     self.FID_IS                  = kwargs['FID_IS']
-    self.myargs                  = kwargs['myargs']
     self.num_layers              = get_attr_kwargs(cfg, 'num_layers', **kwargs)
     self.num_branches            = get_attr_kwargs(cfg, 'num_branches', **kwargs)
     self.tanh_constant           = get_attr_kwargs(cfg, 'tanh_constant', default=1.5, **kwargs)

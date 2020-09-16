@@ -135,7 +135,7 @@ def parser_set_defaults(parser, cfg, **kwargs):
 def start_cmd_run(cmd_str):
   cmd = cmd_str.split()
   logger = logging.getLogger('tl')
-  logger.info('\n' + ' \\\n  '.join(cmd))
+  logger.info('run_str:\n' + ' \\\n  '.join(cmd))
   cmd[0] = sys.executable
   current_env = os.environ.copy()
   process = subprocess.Popen(cmd, env=current_env)
