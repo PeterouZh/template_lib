@@ -154,7 +154,7 @@ def get_dict_str(dict_obj):
   return message
 
 
-def setup_outdir_and_yaml(argv_str=None):
+def setup_outdir_and_yaml(argv_str=None, return_cfg=False):
   """
   Usage:
 
@@ -183,7 +183,10 @@ def setup_outdir_and_yaml(argv_str=None):
     config_file=args.tl_config_file, saved_config_file=args.tl_saved_config_file, args=args)
   cfg_str = get_dict_str(config_command)
   logger.info(f"The cfg: \n{cfg_str}")
-  return args
+  if return_cfg:
+    return args, EasyDict(config_command)
+  else:
+    return args
 
 
 
