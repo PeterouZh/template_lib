@@ -1,8 +1,17 @@
 import logging
 import sys
 
-from detectron2.config import CfgNode
-from yacs.config import CfgNode as yacs_CfgNode
+try:
+  from detectron2.config import CfgNode
+except:
+  import traceback
+  traceback.print_exc()
+
+try:
+  from yacs.config import CfgNode as yacs_CfgNode
+except:
+  import traceback
+  traceback.print_exc()
 
 # from template_lib.utils import logging_utils
 
