@@ -10,6 +10,18 @@ import yaml
 import json
 import traceback
 
+colors_dict = {
+      'blue': '#2B99F0',
+      'red': '#FE2224',
+      'pink': '#FD4BD7',
+      'green': '#17CE11',
+      'blue_violet': '#7241BE',
+      'black': '#020202',
+      'grey': '#A6A6A6',
+      'peach': '#FEAA92',
+      'yellow': '#FEFF00',
+      'purple': '#A40190',
+    }
 
 def get_git_hash(logger=None):
   if logger is not None:

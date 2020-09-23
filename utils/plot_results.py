@@ -89,7 +89,7 @@ class PlotResults(object):
                     data = data.reshape(-1, 2)
                     # limit x in a range
                     if data_xlim:
-                      data = data[[data[:, 0] <= data_xlim]]
+                      data = data[data[:, 0] <= data_xlim]
                     
                     itr_val_str = self.get_itr_val_str(data, show_max[idx])
                     label_str = f'{itr_val_str}' + f'-{modi_minutes:03d}m---' + label
