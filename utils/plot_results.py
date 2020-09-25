@@ -177,12 +177,15 @@ class TestingPlot(unittest.TestCase):
     default_dicts = []
     show_max = []
 
-    FID = collections.defaultdict(dict)
-    FID['results/stylegan2_style_position/train_cifar10_style_position_20200906-12_02_45_391'] = \
-      {'12_02_45_391-all_position': 'textdir/train.ma0.FID_tf.log', }
+    top1_randomlabel = collections.defaultdict(dict)
+    title = 'top1_randomlabel'
+    dd = eval(title)
+    dd['results/CIFAR10/train_R56_cifar10_20200923-23_55_05_422/'] = \
+      {'23_55_05_422-resnet-R56': 'textdir/test.ma1.top1_err.log',
+       'train': 'textdir/train.ma1.top1_err.log', }
 
-    FID['properties'] = {'title': 'FID', }
-    default_dicts.append(FID)
+    dd['properties'] = {'title': title, 'ylim': [0, 80]}
+    default_dicts.append(dd)
     show_max.append(False)
 
     plotobs = PlotResults()
