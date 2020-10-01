@@ -179,10 +179,10 @@ class TestingPlot(unittest.TestCase):
 
     top1_randomlabel = collections.defaultdict(dict)
     title = 'top1_randomlabel'
+    log_file = 'textdir/evaltf.ma0.FID_tf.log'
     dd = eval(title)
     dd['results/CIFAR10/train_R56_cifar10_20200923-23_55_05_422/'] = \
-      {'23_55_05_422-resnet-R56': 'textdir/test.ma1.top1_err.log',
-       'train': 'textdir/train.ma1.top1_err.log', }
+      {'23_55_05_422-resnet-R56': 'log_file', }
 
     dd['properties'] = {'title': title, 'ylim': [0, 80]}
     default_dicts.append(dd)
