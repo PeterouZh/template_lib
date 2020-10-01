@@ -23,6 +23,13 @@ colors_dict = {
       'purple': '#A40190',
     }
 
+color_beauty_dict = {
+  'orange': '#FF743E',
+  'green': '#33E69C',
+  'red': '#F84D4D',
+  'blue': '#0CE6DA',
+}
+
 def get_git_hash(logger=None):
   if logger is not None:
     print = logger.info
