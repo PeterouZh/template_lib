@@ -182,7 +182,7 @@ class TestingPlot(unittest.TestCase):
     log_file = 'textdir/evaltf.ma0.FID_tf.log'
     dd = eval(title)
     dd['results/CIFAR10/train_R56_cifar10_20200923-23_55_05_422/'] = \
-      {'23_55_05_422-resnet-R56': 'log_file', }
+      {'23_55_05_422-resnet-R56': log_file, }
 
     dd['properties'] = {'title': title, 'ylim': [0, 80]}
     default_dicts.append(dd)
