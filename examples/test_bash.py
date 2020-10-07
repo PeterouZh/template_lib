@@ -255,7 +255,10 @@ class TestingUnit(unittest.TestCase):
       torch.multiprocessing.spawn(run, args=(0, gpu, determine_bs, q),
                                   nprocs=1, join=True, daemon=False)
     except:
+      import traceback
+      traceback.print_exc()
       pass
+    time.sleep(2)
     # bs = q.get()
     with open('results/max_bs.txt', 'r') as f:
       bs = int(f.read())
