@@ -136,9 +136,14 @@ def start_cmd_run(cmd_str):
   cmd = cmd_str.split()
   logger = logging.getLogger('tl')
   logger.info('run_str:\n' + ' \\\n  '.join(cmd))
-  cmd[0] = sys.executable
   current_env = os.environ.copy()
-  process = subprocess.Popen(cmd, env=current_env)
+  if cmd[0] == 'python':
+    cmd[0] = sys.executable
+    process = subprocess.Popen(cmd, env=current_env)
+  elif cmd[0] == 'bash':
+    process = subprocess.Popen(['/bin/bash', '-o', 'xtrace', '-c', ' '.join(cmd[1:])], env=current_env)
+  else:
+    assert 0
 
   process.wait()
   if process.returncode != 0:
