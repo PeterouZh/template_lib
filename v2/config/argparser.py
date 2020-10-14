@@ -44,6 +44,7 @@ def build_parser(parser=None):
   parser.add_argument('--tl_outdir', type=str, default='results/temp')
 
   parser.add_argument('--tl_time_str', type=str, default='')
+  parser.add_argument('--tl_nni', action='store_true', default=False)
   return parser
 
 
@@ -73,7 +74,7 @@ def setup_logger_global_cfg_global_textlogger(args, tl_textdir):
   # Load yaml file and update parser defaults
   if not args.tl_command.lower() == 'none':
     with open(args.tl_config_file, 'rt') as f:
-      cfg = yaml.load(f)[args.tl_command]
+      cfg = yaml.safe_load(f)[args.tl_command]
     set_global_cfg(cfg)
   else:
     cfg = {}
