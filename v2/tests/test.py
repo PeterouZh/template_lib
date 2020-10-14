@@ -9,6 +9,7 @@ from template_lib.examples import test_bash
 from template_lib import utils
 from template_lib.v2.config import get_command_and_outdir, setup_outdir_and_yaml, get_append_cmd_str, \
   start_cmd_run
+from template_lib.nni import update_nni_config_file
 
 
 class Testing_stylegan2(unittest.TestCase):
@@ -79,6 +80,61 @@ class Testing_stylegan2(unittest.TestCase):
                {get_append_cmd_str(args)}
                --num-gpus {num_gpus}
               """
+    start_cmd_run(cmd_str)
+    pass
+
+  def test_nni(self, use_nni=False):
+    """
+    Usage:
+
+        export CUDA_VISIBLE_DEVICES=1,2,3,4,5,6,7
+        export TIME_STR=1
+        export PYTHONPATH=./
+        python -c "from exp.tests.test_nni import Testing_nni;\
+          Testing_nni().test_mnist_pytorch(use_nni=False)"
+
+    :return:
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+
+    command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
+    if use_nni: outdir = outdir + '_nni'
+    argv_str = f"""
+                --tl_config_file exp/configs/nni.yaml
+                --tl_command {command}
+                --tl_outdir {outdir}
+                """
+    args = setup_outdir_and_yaml(argv_str)
+
+    n_gpus = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
+
+    cmd_str = f"""
+            python 
+              exp/mnist_pytorch/mnist.py
+              {get_append_cmd_str(args)}
+            """
+
+    # use_nni = True
+    if use_nni:
+      # update nni config file
+      nni_config_file = "exp/mnist_pytorch/config.yml"
+      python_command = ' '.join([s.strip(' ') for s in cmd_str.split('\n')]) + ' --tl_nni'
+      update_nni_cfg_str = f"""
+                              logDir: {os.path.abspath(args.tl_outdir)}/nni
+                              trialConcurrency: {n_gpus}
+                              trial:
+                                command: {python_command}
+                                codeDir: {os.path.abspath(os.path.curdir)}
+                            """
+      updated_config_file = update_nni_config_file(
+        nni_config_file=nni_config_file, update_nni_cfg_str=update_nni_cfg_str)
+      cmd_str = f"""
+                 bash 
+                 nnictl create --config {updated_config_file}
+                 """
     start_cmd_run(cmd_str)
     pass
 

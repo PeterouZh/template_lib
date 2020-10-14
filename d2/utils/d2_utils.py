@@ -1,3 +1,4 @@
+from easydict import EasyDict
 import logging
 import sys
 
@@ -46,6 +47,7 @@ class D2Utils(object):
   """
   @staticmethod
   def cfg_merge_from_easydict(cfg, config):
+    config = EasyDict(config)
     config_cfg = _convert_dict_2_CfgNode(config)
     # cfg = CfgNode(cfg, new_allowed=True)
     cfg = _allow_CfgNode_new_allowed(cfg)
