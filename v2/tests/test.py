@@ -12,7 +12,7 @@ from template_lib.v2.config import get_command_and_outdir, setup_outdir_and_yaml
 from template_lib.nni import update_nni_config_file
 
 
-class Testing_stylegan2(unittest.TestCase):
+class Testing_v2(unittest.TestCase):
 
   def test_ddp(self):
     """
@@ -206,3 +206,45 @@ class Testing_stylegan2(unittest.TestCase):
 
 # from template_lib.v2.config import update_parser_defaults_from_yaml
 # update_parser_defaults_from_yaml(parser)
+
+
+class Testing_v2_cfgnode(unittest.TestCase):
+
+  def test_ddp(self):
+    """
+    Usage:
+
+        export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+        export TIME_STR=1
+        export PYTHONPATH=./exp:./stylegan2-pytorch:./
+        python 	-c "from exp.tests.test_styleganv2 import Testing_stylegan2;\
+          Testing_stylegan2().test_train_ffhq_128()"
+
+    :return:
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+    from template_lib.v2.config_cfgnode.argparser import \
+      (get_command_and_outdir, setup_outdir_and_yaml, get_append_cmd_str, start_cmd_run)
+
+    command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
+    argv_str = f"""
+                --tl_config_file template_lib/v2/tests/configs/config.yaml
+                --tl_command {command}
+                --tl_outdir {outdir}
+                """
+    args = setup_outdir_and_yaml(argv_str)
+
+    n_gpus = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
+    cmd_str = f"""
+        python -m torch.distributed.launch --nproc_per_node={n_gpus} --master_port=8888 
+        template_lib/v2/ddp/train.py
+        {get_append_cmd_str(args)}
+        --tl_opts key5.sub1 modified
+        """
+    start_cmd_run(cmd_str)
+    # from template_lib.v2.config_cfgnode import update_parser_defaults_from_yaml
+    # update_parser_defaults_from_yaml(parser)
+    pass

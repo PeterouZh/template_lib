@@ -16,4 +16,6 @@ test2:
   key5:
     sub1: '51'
 
-
+ddp:
+  base: test2
+  test_ddp: test_ddp

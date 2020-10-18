@@ -53,7 +53,6 @@ def get_append_cmd_str(args):
             --tl_config_file {args.tl_saved_config_command_file}
             --tl_command {args.tl_command}
             --tl_outdir {args.tl_outdir}
-            --tl_time_str {args.tl_time_str}
             """
   return cmd_str_append
 
@@ -108,7 +107,7 @@ def update_parser_defaults_from_yaml(parser, name='args', use_cfg_as_args=False)
 
 def _setup_outdir(args):
   TIME_STR = bool(int(os.getenv('TIME_STR', 0)))
-  args.tl_time_str = datetime.now().strftime("%Y%m%d-%H_%M_%S_%f")[:-3]
+  args.tl_time_str = datetime.now().strftime("%Y%m%d_%H%M_%f")[:-3]
   args.tl_outdir = args.tl_outdir if not TIME_STR else (args.tl_outdir + '_' + args.tl_time_str)
 
   shutil.rmtree(args.tl_outdir, ignore_errors=True)
@@ -136,7 +135,7 @@ def parser_set_defaults(parser, cfg, **kwargs):
 def start_cmd_run(cmd_str):
   cmd = cmd_str.split()
   logger = logging.getLogger('tl')
-  logger.info('run_str:\n' + ' \\\n  '.join(cmd))
+  logger.info('\nrun_str:\n' + ' \\\n  '.join(cmd))
   current_env = os.environ.copy()
   if cmd[0] == 'python':
     cmd[0] = sys.executable

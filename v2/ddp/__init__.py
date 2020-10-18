@@ -1,1 +1,1 @@
-from .utils import main, gather_tensor, gather_tensor_of_master
+from .utils import main, gather_tensor, gather_tensor_of_master, ddp_init

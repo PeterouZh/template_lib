@@ -50,6 +50,20 @@ class TLCfgNode(_CfgNode):
       command_cfg = TLCfgNode(command_cfg)
       return command_cfg
 
+    def dump_to_file(self, saved_file):
+      with open(saved_file, "w") as f:
+        self.dump(stream=f, sort_keys=False, indent=2)
+
+
+global_cfg = TLCfgNode()
+
+def set_global_cfg(cfg: TLCfgNode) -> None:
+  global global_cfg
+  global_cfg.clear()
+  global_cfg.update(cfg)
+  pass
+
+
 
 class Test_TLCfgNode(unittest.TestCase):
 
