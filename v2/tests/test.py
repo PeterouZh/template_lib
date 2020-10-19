@@ -7,8 +7,6 @@ import argparse
 from template_lib.utils.config import parse_args_and_setup_myargs, config2args
 from template_lib.examples import test_bash
 from template_lib import utils
-from template_lib.v2.config import get_command_and_outdir, setup_outdir_and_yaml, get_append_cmd_str, \
-  start_cmd_run
 from template_lib.nni import update_nni_config_file
 
 
@@ -30,6 +28,8 @@ class Testing_v2(unittest.TestCase):
       os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
     if 'TIME_STR' not in os.environ:
       os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+    from template_lib.v2.config import get_command_and_outdir, setup_outdir_and_yaml, get_append_cmd_str, \
+      start_cmd_run
 
     command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
     argv_str = f"""
@@ -65,6 +65,8 @@ class Testing_v2(unittest.TestCase):
       os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
     if 'TIME_STR' not in os.environ:
       os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+    from template_lib.v2.config import get_command_and_outdir, setup_outdir_and_yaml, get_append_cmd_str, \
+      start_cmd_run
 
     command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
     argv_str = f"""
@@ -99,6 +101,8 @@ class Testing_v2(unittest.TestCase):
       os.environ['CUDA_VISIBLE_DEVICES'] = '1'
     if 'TIME_STR' not in os.environ:
       os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+    from template_lib.v2.config import get_command_and_outdir, setup_outdir_and_yaml, get_append_cmd_str, \
+      start_cmd_run
 
     command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
     if use_nni: outdir = outdir + '_nni'
@@ -153,6 +157,8 @@ class Testing_v2(unittest.TestCase):
       os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     if 'TIME_STR' not in os.environ:
       os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+    from template_lib.v2.config import get_command_and_outdir, setup_outdir_and_yaml, get_append_cmd_str, \
+      start_cmd_run
 
     command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
     argv_str = f"""
