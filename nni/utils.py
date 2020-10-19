@@ -37,3 +37,14 @@ def nni_ss2cfg(data_dict, delimiter='.'):
           setattr(cur_dict, elem, EasyDict())
         cur_dict = getattr(cur_dict, elem)
   return ret_dict
+
+
+def cfgnode_merge_tunner_params(cfg, search_space: dict):
+  ss_opt = []
+  for k, v in search_space.items():
+    ss_opt.extend([k, v])
+  cfg.merge_from_list(ss_opt, new_allowed=True)
+
+
+
+

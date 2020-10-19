@@ -54,6 +54,24 @@ class TLCfgNode(_CfgNode):
       with open(saved_file, "w") as f:
         self.dump(stream=f, sort_keys=False, indent=2)
 
+    def merge_from_list(self, opt_list, new_allowed=False):
+
+      if new_allowed:
+        for k in opt_list[::2]:
+          sub_k_list = k.split('.')
+          cur_cfg = self
+          for idx, sub_k in enumerate(sub_k_list):
+            if sub_k not in cur_cfg:
+              if idx != len(sub_k_list) - 1:
+                cur_cfg.setdefault(sub_k, TLCfgNode())
+                cur_cfg = cur_cfg.get(sub_k)
+              else:
+                cur_cfg.setdefault(sub_k)
+            else:
+              if idx != len(sub_k_list) - 1:
+                cur_cfg = cur_cfg.get(sub_k)
+      super(TLCfgNode, self).merge_from_list(opt_list)
+      return self
 
 global_cfg = TLCfgNode()
 
