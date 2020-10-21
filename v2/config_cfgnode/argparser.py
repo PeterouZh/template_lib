@@ -92,7 +92,9 @@ def setup_logger_global_cfg_global_textlogger(args, tl_textdir):
     cfg.merge_from_list(args.tl_opts)
     set_global_cfg(cfg)
     logging.getLogger('tl').info("\nglobal_cfg: \n" + get_dict_str(cfg))
-    cfg.dump_to_file(f"{args.tl_outdir}/config_command.yaml")
+    saved_command_cfg = TLCfgNode(new_allowed=True)
+    setattr(saved_command_cfg, args.tl_command, cfg)
+    saved_command_cfg.dump_to_file(f"{args.tl_outdir}/config_command.yaml")
   else:
     cfg = {}
   return cfg, tl_logfile
