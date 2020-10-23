@@ -54,6 +54,12 @@ class TLCfgNode(_CfgNode):
       with open(saved_file, "w") as f:
         self.dump(stream=f, sort_keys=False, indent=2)
 
+    def dump_to_file_with_command(self, saved_file, command):
+      command_cfg = TLCfgNode(new_allowed=True)
+      setattr(command_cfg, command, self)
+      with open(saved_file, "w") as f:
+        command_cfg.dump(stream=f, sort_keys=False, indent=2)
+
     def merge_from_list(self, opt_list, new_allowed=False):
 
       if new_allowed:
