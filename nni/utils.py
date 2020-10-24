@@ -39,12 +39,28 @@ def nni_ss2cfg(data_dict, delimiter='.'):
   return ret_dict
 
 
-def cfgnode_merge_tunner_params(cfg, search_space: dict):
-  ss_opt = []
-  for k, v in search_space.items():
-    ss_opt.extend([k, v])
-  cfg.merge_from_list(ss_opt, new_allowed=True)
+# def cfgnode_merge_tunner_params(cfg, search_space: dict):
+#   ss_opt = []
+#   for k, v in search_space.items():
+#     ss_opt.extend([k, v])
+#   cfg.merge_from_list(ss_opt, new_allowed=True)
 
+def cfgnode_merge_tunner_params(cfg, search_space: dict):
+
+  # search_space = {'Generator.weight_decay': 0,
+  #                 'Discriminator.weight_decay': 0}
+
+  for k, v in search_space.items():
+    try:
+      cfg.merge_from_list([k, v], new_allowed=True)
+    except ValueError:
+      import traceback
+      logging.getLogger('tl').info(traceback.format_exc())
+
+      original_type = type(eval(f'cfg.{k}'))
+      v = original_type(v)
+      cfg.merge_from_list([k, v], new_allowed=True)
+      pass
 
 
 
