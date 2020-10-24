@@ -1,3 +1,4 @@
+import sys
 import argparse
 import logging
 import os
@@ -122,4 +123,5 @@ def update_parser_defaults_from_yaml(parser, name='args', use_cfg_as_args=False)
   parser_set_defaults(parser, cfg=default_args,
                       tl_imgdir=tl_imgdir, tl_ckptdir=tl_ckptdir, tl_textdir=tl_textdir,
                       tl_logfile=tl_logfile)
+  logging.getLogger('tl').info('sys.argv: \n python \n' + ' \ \n'.join(sys.argv))
   return parser
