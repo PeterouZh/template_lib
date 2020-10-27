@@ -27,7 +27,8 @@ color_beauty_dict = {
   'orange': '#FF743E',
   'green': '#33E69C',
   'red': '#F84D4D',
-  'blue': '#0CE6DA',
+  'light_blue': '#0CE6DA',
+  'blue': '#1F5CFA'
 }
 
 def get_git_hash(logger=None):
