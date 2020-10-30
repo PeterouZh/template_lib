@@ -21,11 +21,14 @@ colors_dict = {
       'peach': '#FEAA92',
       'yellow': '#FEFF00',
       'purple': '#A40190',
+      'beauty_green': '#33E69C',
+      'beauty_light_blue': '#0CE6DA',
     }
 
 color_beauty_dict = {
   'orange': '#FF743E',
   'green': '#33E69C',
+  'dark_green': '#17CE11',
   'red': '#F84D4D',
   'light_blue': '#0CE6DA',
   'blue': '#1F5CFA'
