@@ -22,7 +22,10 @@ colors_dict = {
       'yellow': '#FEFF00',
       'purple': '#A40190',
       'beauty_green': '#33E69C',
+      'beauty_blue': '#1F5CFA',
       'beauty_light_blue': '#0CE6DA',
+      'beauty_red': '#F84D4D',
+      'beauty_orange': '#FF743E',
     }
 
 color_beauty_dict = {
