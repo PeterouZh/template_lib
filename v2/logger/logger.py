@@ -4,12 +4,33 @@ import numpy as np
 import logging, os
 import datetime
 import sys
+from termcolor import colored
 
 from template_lib.d2.utils import comm
 
 
 FORMAT = "[%(levelname)s]: %(message)s [%(name)s][%(filename)s:%(funcName)s():%(lineno)s][%(asctime)s.%(msecs)03d]"
 DATEFMT = '%Y/%m/%d %H:%M:%S'
+
+
+class _ColorfulFormatter(logging.Formatter):
+  def __init__(self, *args, **kwargs):
+    self._root_name = kwargs.pop("root_name") + "."
+    self._abbrev_name = kwargs.pop("abbrev_name", "")
+    if len(self._abbrev_name):
+      self._abbrev_name = self._abbrev_name + "."
+    super(_ColorfulFormatter, self).__init__(*args, **kwargs)
+
+  def formatMessage(self, record):
+    record.name = record.name.replace(self._root_name, self._abbrev_name)
+    log = super(_ColorfulFormatter, self).formatMessage(record)
+    if record.levelno == logging.WARNING:
+      prefix = colored("WARNING", "red", attrs=["blink"])
+    elif record.levelno == logging.ERROR or record.levelno == logging.CRITICAL:
+      prefix = colored("ERROR", "red", attrs=["blink", "underline"])
+    else:
+      return log
+    return prefix + " " + log
 
 
 def logging_init(filename=None, level=logging.INFO, correct_time=False):
@@ -109,6 +130,16 @@ def set_hander(logger, filename, stream=True, level=logging.INFO):
   if stream:
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(level)
+
+    formatter = _ColorfulFormatter(
+      # colored("[%(asctime)s %(name)s]: ", "green") + "%(message)s",
+      colored("[%(asctime)s] %(name)s %(levelname)s:", "blue") + \
+      "%(message)s \t" + \
+      colored("[%(filename)s:%(funcName)s():%(lineno)s]", "blue"),
+      datefmt="%m/%d %H:%M:%S",
+      root_name='template_lib',
+      abbrev_name='tl',
+    )
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
 
