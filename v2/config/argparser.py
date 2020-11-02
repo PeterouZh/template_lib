@@ -108,7 +108,7 @@ def update_parser_defaults_from_yaml(parser, name='args', use_cfg_as_args=False)
 
 def _setup_outdir(args):
   TIME_STR = bool(int(os.getenv('TIME_STR', 0)))
-  args.tl_time_str = datetime.now().strftime("%Y%m%d_%H%M_%f")[:-3]
+  args.tl_time_str = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
   args.tl_outdir = args.tl_outdir if not TIME_STR else (args.tl_outdir + '-' + args.tl_time_str)
 
   shutil.rmtree(args.tl_outdir, ignore_errors=True)
