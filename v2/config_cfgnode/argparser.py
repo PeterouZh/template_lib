@@ -21,7 +21,6 @@ def build_parser(parser=None):
   parser.add_argument('--tl_opts', type=str, nargs='*', default=[])
 
   parser.add_argument('--tl_time_str', type=str, default='')
-  parser.add_argument('--tl_nni', action='store_true', default=False)
   return parser
 
 

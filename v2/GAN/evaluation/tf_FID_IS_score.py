@@ -390,7 +390,7 @@ class TFFIDISScore(object):
       self.mu_data, self.sigma_data = f['mu'][:], f['sigma'][:]
       f.close()
     else:
-      self.logger.info(f"tf_fid_stat does not exist: {self.tf_fid_stat}")
+      self.logger.warning(f"tf_fid_stat does not exist: {self.tf_fid_stat}")
 
     self.tf_inception_model_dir = os.path.expanduser(self.tf_inception_model_dir)
     inception_path = self._check_or_download_inception(self.tf_inception_model_dir)
@@ -627,13 +627,13 @@ class TFFIDISScore(object):
       return mu, sigma
 
     if comm.is_main_process():
-      self.logger.warning(f"Num of images: {len(pred_FIDs)}")
+      self.logger.info(f"Num of images: {len(pred_FIDs)}")
       IS_mean, IS_std = self._calculate_IS(pred_ISs=pred_ISs, IS_splits=self.IS_splits)
-      self.logger.warning(f'dataset IS_mean: {IS_mean:.3f} +- {IS_std}')
+      self.logger.info(f'dataset IS_mean: {IS_mean:.3f} +- {IS_std}')
 
       # calculate FID stat
       mu, sigma = self._calculate_fid_stat(pred_FIDs=pred_FIDs)
-      self.logger.warning(f'Saving tf_fid_stat to {self.tf_fid_stat}')
+      self.logger.info(f'Saving tf_fid_stat to {self.tf_fid_stat}')
       os.makedirs(os.path.dirname(self.tf_fid_stat), exist_ok=True)
       np.savez(self.tf_fid_stat, **{'mu': mu, 'sigma': sigma})
     comm.synchronize()
@@ -683,47 +683,28 @@ class TFFIDISScore(object):
     return out
 
   @staticmethod
-  def test_case_calculate_fid_stat_CIFAR10():
+  def test_case_calculate_fid_stat_CIFAR():
     from template_lib.d2.data import build_dataset_mapper
     from template_lib.d2template.trainer.base_trainer import build_detection_test_loader
     from template_lib.v2.GAN.evaluation import build_GAN_metric
     from template_lib.d2.utils import D2Utils
-    from template_lib.d2.data import build_cifar10
+    from template_lib.d2.data import build_cifar10, build_cifar100
+    from template_lib.v2.config_cfgnode import global_cfg
 
     from detectron2.utils import logger
     logger.setup_logger()
 
-    cfg_str = """
-                  update_cfg: true
-                  dataset_name: "cifar10_train"
-                  IMS_PER_BATCH: 32
-                  img_size: 32
-                  NUM_WORKERS: 0
-                  dataset_mapper_cfg:
-                    name: CIFAR10DatasetMapper
-                  GAN_metric:
-                    tf_fid_stat: "datasets/fid_stats_tf_cifar10.npz"
-                    tf_inception_model_dir: "datasets/GAN_eval/tf_inception_model"
-                    num_inception_images: 50000
-              """
-    config = EasyDict(yaml.safe_load(cfg_str))
-    config = TFFIDISScore.update_cfg(config)
-
     cfg = D2Utils.create_cfg()
-    cfg = D2Utils.cfg_merge_from_easydict(cfg, config)
+    cfg.update(global_cfg)
+    global_cfg.merge_from_dict(cfg)
 
     # fmt: off
     dataset_name                 = cfg.dataset_name
     IMS_PER_BATCH                = cfg.IMS_PER_BATCH
     img_size                     = cfg.img_size
-    NUM_WORKERS                  = cfg.NUM_WORKERS
     dataset_mapper_cfg           = cfg.dataset_mapper_cfg
     GAN_metric                   = cfg.GAN_metric
     # fmt: on
-
-    cfg.defrost()
-    cfg.DATALOADER.NUM_WORKERS = NUM_WORKERS
-    cfg.freeze()
 
     num_workers = comm.get_world_size()
     batch_size = IMS_PER_BATCH // num_workers
@@ -802,8 +783,14 @@ class TFFIDISScore(object):
 
 
 if __name__ == '__main__':
-  from template_lib.v2.ddp import main
-  args = main()
+  # from template_lib.v2.ddp import main
+  # args = main()
 
+  from template_lib.v2.config_cfgnode import update_parser_defaults_from_yaml, build_parser
+  parser = update_parser_defaults_from_yaml(parser=None, use_cfg_as_args=True)
+  args = parser.parse_args()
   eval(args.run_func)()
   pass
+
+
+
