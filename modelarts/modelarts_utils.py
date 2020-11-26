@@ -76,8 +76,8 @@ def setup_tl_outdir_obs(cfg):
     cfg.tl_outdir_obs = os.path.join(cfg.root_obs, 'results', proj_dir, cfg.tl_outdir[8:])
     logger.info(f"tl_outdir_obs: {cfg.tl_outdir_obs}")
   except ModuleNotFoundError:
-    logger = logging.getLogger('tl')
-    logger.info("Don't use modelarts!")
+    import traceback
+    traceback.print_exc()
   return
 
 
