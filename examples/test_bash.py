@@ -11,7 +11,7 @@ import argparse
 import random
 
 from template_lib import utils
-from template_lib.utils import modelarts_utils
+
 
 class Worker(multiprocessing.Process):
   def run(self):
@@ -91,6 +91,8 @@ class TestingUnit(unittest.TestCase):
       os.environ['DLS_TRAIN_URL'] = '/tmp/logs/1'
     if 'RESULTS_OBS' not in os.environ:
       os.environ['RESULTS_OBS'] = 's3://bucket-xx/ZhouPeng/results'
+
+    from template_lib.utils import modelarts_utils
 
     print('DLS_TRAIN_URL: %s'%os.environ['DLS_TRAIN_URL'])
     print('RESULTS_OBS: %s'%os.environ['RESULTS_OBS'])

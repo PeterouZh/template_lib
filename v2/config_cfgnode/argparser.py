@@ -4,8 +4,6 @@ import logging
 import os
 from easydict import EasyDict
 
-from template_lib.d2.utils import comm
-
 from ..logger import get_logger, set_global_textlogger, TextLogger
 from .config import TLCfgNode, set_global_cfg, global_cfg
 from ..config.argparser import (get_command_and_outdir, _setup_outdir, get_dict_str, get_git_hash,
@@ -73,16 +71,15 @@ def setup_outdir_and_yaml(argv_str=None, return_cfg=False):
     return args
 
 
-def setup_logger_global_cfg_global_textlogger(args, tl_textdir):
+def setup_logger_global_cfg_global_textlogger(args, tl_textdir, is_main_process=True):
   # log files
   tl_logfile = os.path.join(args.tl_outdir, "log.txt")
-  local_rank = getattr(args, 'local_rank', 0)
-  if local_rank == 0 and comm.is_main_process():
+  if is_main_process:
     if len(logging.getLogger('tl').handlers) < 2:
       logger = get_logger(filename=tl_logfile)
 
   # textlogger
-  if local_rank == 0 and comm.is_main_process():
+  if is_main_process:
     textlogger = TextLogger(log_root=tl_textdir)
     set_global_textlogger(textlogger=textlogger)
 
@@ -100,7 +97,7 @@ def setup_logger_global_cfg_global_textlogger(args, tl_textdir):
     cfg = {}
   return cfg, tl_logfile
 
-def update_parser_defaults_from_yaml(parser, name='args', use_cfg_as_args=False):
+def update_parser_defaults_from_yaml(parser, name='args', use_cfg_as_args=False, is_main_process=True):
   parser = build_parser(parser)
 
   args, _ = parser.parse_known_args()
@@ -113,7 +110,7 @@ def update_parser_defaults_from_yaml(parser, name='args', use_cfg_as_args=False)
   os.makedirs(tl_imgdir, exist_ok=True)
   os.makedirs(tl_textdir, exist_ok=True)
 
-  cfg, tl_logfile = setup_logger_global_cfg_global_textlogger(args, tl_textdir)
+  cfg, tl_logfile = setup_logger_global_cfg_global_textlogger(args, tl_textdir, is_main_process=is_main_process)
 
   if use_cfg_as_args:
     default_args = cfg

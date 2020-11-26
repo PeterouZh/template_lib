@@ -7,7 +7,6 @@ import datetime
 import sys
 
 from template_lib.utils import get_prefix_abb
-from template_lib.d2.utils import comm
 from template_lib.utils.plot_utils import plot_figure, plot_defaultdict2figure
 
 
@@ -110,8 +109,8 @@ class TextLogger(object):
 
 
   def logstr(self, itr, **kwargs):
-    if not comm.is_main_process():
-      return
+    # if not comm.is_main_process():
+    #   return
     for arg in kwargs:
       if arg not in self.metrics:
         if self.reinitialize:
@@ -124,8 +123,8 @@ class TextLogger(object):
 def summary_defaultdict2txtfig(default_dict, prefix, step,
                                textlogger=None, in_one_figure=True,
                                log_txt=True, log_fig=True, save_fig_sec=100):
-  if not comm.is_main_process():
-    return
+  # if not comm.is_main_process():
+  #   return
   if textlogger is not None:
     prefix_abb = get_prefix_abb(prefix=prefix)
     default_dict_copy = defaultdict(dict)
@@ -146,8 +145,8 @@ def summary_defaultdict2txtfig(default_dict, prefix, step,
 def summary_dict2txtfig(dict_data, prefix, step,
                         textlogger=None, in_one_axe=False,
                         log_txt=True, log_fig=True, save_fig_sec=100):
-  if not comm.is_main_process():
-    return
+  # if not comm.is_main_process():
+  #   return
   new_key_dict_data = {}
   for k, v in dict_data.items():
     new_k = k.replace('/', '--')

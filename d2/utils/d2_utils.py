@@ -2,11 +2,7 @@ from easydict import EasyDict
 import logging
 import sys
 
-try:
-  from detectron2.config import CfgNode
-except:
-  import traceback
-  traceback.print_exc()
+from detectron2.config import CfgNode
 
 try:
   from yacs.config import CfgNode as yacs_CfgNode

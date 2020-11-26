@@ -14,7 +14,6 @@ from easydict import EasyDict
 from .config import setup_config, set_global_cfg
 
 from template_lib.v2.logger import get_logger, set_global_textlogger, TextLogger
-from template_lib.d2.utils import comm
 from template_lib.utils import get_git_hash
 
 
@@ -58,16 +57,16 @@ def get_append_cmd_str(args):
   return cmd_str_append
 
 
-def setup_logger_global_cfg_global_textlogger(args, tl_textdir):
+def setup_logger_global_cfg_global_textlogger(args, tl_textdir, is_main_process=True):
   # log files
   tl_logfile = os.path.join(args.tl_outdir, "log.txt")
   local_rank = getattr(args, 'local_rank', 0)
-  if local_rank == 0 and comm.is_main_process():
+  if is_main_process:
     if len(logging.getLogger('tl').handlers) < 2:
       logger = get_logger(filename=tl_logfile)
 
   # textlogger
-  if local_rank == 0 and comm.is_main_process():
+  if is_main_process:
     textlogger = TextLogger(log_root=tl_textdir)
     set_global_textlogger(textlogger=textlogger)
 

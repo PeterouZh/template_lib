@@ -7,8 +7,6 @@ import multiprocessing
 import shutil
 import logging
 
-from template_lib.d2.utils import comm
-
 # from . import config
 
 
@@ -54,8 +52,8 @@ def copy_obs(s, d, copytree=False, join=False):
   return
 
 
-def modelarts_sync_results_dir(cfg, join=False):
-  if not comm.is_main_process():
+def modelarts_sync_results_dir(cfg, join=False, is_main_process=True):
+  if not is_main_process:
     return
   logger = logging.getLogger('tl')
   try:

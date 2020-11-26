@@ -6,9 +6,6 @@ import datetime
 import sys
 from termcolor import colored
 
-from template_lib.d2.utils import comm
-
-
 FORMAT = "[%(levelname)s]: %(message)s [%(name)s][%(filename)s:%(funcName)s():%(lineno)s][%(asctime)s.%(msecs)03d]"
 DATEFMT = '%Y/%m/%d %H:%M:%S'
 

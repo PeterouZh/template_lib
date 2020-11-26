@@ -4,8 +4,6 @@ import os
 import re
 import logging
 from numpy import array_equal
-from torch.nn.parallel import DistributedDataParallel
-import torch
 import yaml
 import json
 import time
@@ -176,6 +174,7 @@ def topk_errors(preds, labels, ks):
   """Computes the top-k error for each k.
   top1_err, top5_err = self._topk_errors(preds, labels, [1, 5])
   """
+  import torch
   err_str = "Batch dim of predictions and labels must match"
   assert preds.size(0) == labels.size(0), err_str
   # Find the top max_k predictions for each sample
@@ -228,6 +227,8 @@ def get_ddp_attr(obj, attr=None, **kwargs):
 
 
 def get_ddp_module(model):
+  import torch
+  from torch.nn.parallel import DistributedDataParallel
   if isinstance(model, DistributedDataParallel):
     model = model.module
   return model
