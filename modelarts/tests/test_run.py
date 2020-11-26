@@ -10,6 +10,7 @@ class TestingRun(unittest.TestCase):
   def test_run(self, *tmp):
     """
     Usage:
+        export ANSI_COLORS_DISABLED=1
         export CUDA_VISIBLE_DEVICES=0
         export TIME_STR=1
         export PYTHONPATH=./
