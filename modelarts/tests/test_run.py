@@ -13,8 +13,11 @@ class TestingRun(unittest.TestCase):
         export CUDA_VISIBLE_DEVICES=0
         export TIME_STR=1
         export PYTHONPATH=./
-        python -c "from template_lib.modelarts.tests.test_run import TestingRun;\
-          TestingRun().test_run()"
+        python template_lib/modelarts/scripts/run.py \
+          --tl_config_file template_lib/modelarts/tests/configs/run.yaml \
+          --tl_command run \
+          --tl_outdir results/Run/run \
+          --number 1
     :return:
     """
     if 'CUDA_VISIBLE_DEVICES' not in os.environ:
