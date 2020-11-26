@@ -8,6 +8,7 @@ from torch.nn.parallel import DistributedDataParallel
 import torch
 import yaml
 import json
+import time
 import traceback
 
 colors_dict = {
@@ -38,6 +39,18 @@ color_beauty_dict = {
   'light_blue': '#0CE6DA',
   'blue': '#1F5CFA'
 }
+
+
+def time2string(elapsed):
+  """
+  elapsed = time.time() - time_start
+  """
+  # hours, rem = divmod(elapsed, 3600)
+  # minutes, seconds = divmod(rem, 60)
+  # time_str = "{:0>2}h:{:0>2}m:{:05.2f}s".format(int(hours), int(minutes), seconds)
+  time_str = time.strftime('%H:%M:%S', time.gmtime(elapsed))
+  return time_str
+
 
 def get_git_hash(logger=None):
   if logger is not None:

@@ -93,8 +93,8 @@ def train(net, bs):
     rbs = bs
     print(bs)
     while True:
-      t = random.random()
-      time.sleep(t)
+      # t = random.random()
+      # time.sleep(t)
 
       x = torch.rand(rbs, 3, 224, 224).cuda()
       y = net(x)
@@ -104,8 +104,8 @@ def train(net, bs):
       loss = (y - one_hot).mean()
       loss.backward()
 
-      t = random.random()
-      time.sleep(t)
+      # t = random.random()
+      # time.sleep(t)
       rbs = random.randint(1, bs)
   except RuntimeError:
     torch.cuda.empty_cache()

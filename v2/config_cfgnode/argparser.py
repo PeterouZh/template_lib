@@ -7,7 +7,7 @@ from easydict import EasyDict
 from template_lib.d2.utils import comm
 
 from ..logger import get_logger, set_global_textlogger, TextLogger
-from .config import TLCfgNode, set_global_cfg
+from .config import TLCfgNode, set_global_cfg, global_cfg
 from ..config.argparser import (get_command_and_outdir, _setup_outdir, get_dict_str, get_git_hash,
                                 get_append_cmd_str, start_cmd_run, parser_set_defaults)
 
@@ -91,10 +91,11 @@ def setup_logger_global_cfg_global_textlogger(args, tl_textdir):
     cfg = TLCfgNode.load_yaml_with_command(args.tl_config_file, args.tl_command)
     cfg.merge_from_list(args.tl_opts)
     set_global_cfg(cfg)
-    logging.getLogger('tl').info("\nglobal_cfg: \n" + get_dict_str(cfg))
+    logging.getLogger('tl').info("\nglobal_cfg: \n" + get_dict_str(global_cfg))
     saved_command_cfg = TLCfgNode(new_allowed=True)
     setattr(saved_command_cfg, args.tl_command, cfg)
-    saved_command_cfg.dump_to_file(f"{args.tl_outdir}/config_command.yaml")
+    global_cfg.tl_saved_config_file = f"{args.tl_outdir}/config_command.yaml"
+    saved_command_cfg.dump_to_file(global_cfg.tl_saved_config_file)
   else:
     cfg = {}
   return cfg, tl_logfile
