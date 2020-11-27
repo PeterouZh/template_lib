@@ -205,7 +205,7 @@ if __name__ == '__main__':
   parser = update_parser_defaults_from_yaml(parser=parser, use_cfg_as_args=True)
   logger = logging.getLogger('tl')
 
-  args = parser.parse_known_args()
+  args, _ = parser.parse_known_args()
   global_cfg.merge_from_dict(vars(args))
   print(get_dict_str(global_cfg))
   main()
