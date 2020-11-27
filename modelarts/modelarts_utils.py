@@ -175,11 +175,7 @@ def start_process(func, args, myargs, loop=10):
 def modelarts_copy_data(datapath_obs, datapath, overwrite=False):
   try:
     import moxing as mox
-    if datapath_obs.startswith('root_obs'):
-      root_obs = os.environ['ROOT_OBS']
-      datapath_obs = os.path.join(root_obs, datapath_obs[9:])
-    else:
-      assert 0, __name__
+    assert datapath_obs.startswith('s3://')
 
     if not mox.file.exists(datapath_obs):
       assert 0, datapath_obs
@@ -188,7 +184,7 @@ def modelarts_copy_data(datapath_obs, datapath, overwrite=False):
     datapath = os.path.expanduser(datapath)
 
     if not overwrite and os.path.exists(datapath):
-      print('Skip copy [%s] \n to [%s]' % (datapath_obs, datapath))
+      print('Skip copying [%s] \n to [%s]' % (datapath_obs, datapath))
       return
 
     if mox.file.is_directory(datapath_obs):
@@ -204,11 +200,11 @@ def modelarts_copy_data(datapath_obs, datapath, overwrite=False):
       mox.file.copy(datapath_obs, datapath)
     print('End [%s] \n to [%s]' % (datapath_obs, datapath))
   except ModuleNotFoundError:
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger('tl')
     logger.info('\n\tIgnore datapath: %s' % datapath_obs)
     pass
   except:
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger('tl')
     import traceback
     logger.info('\n%s', traceback.format_exc())
     logger.info('\n\tIgnore datapath: %s' % datapath_obs)
@@ -217,9 +213,9 @@ def modelarts_copy_data(datapath_obs, datapath, overwrite=False):
     logger.disabled = False
 
 
-def prepare_dataset(dataset, cfg=None):
+def prepare_dataset(modelarts_datasets, global_cfg=None):
   """
-    dataset:
+    modelarts_datasets:
       dataset_root:
         datapath_obs: 'root_obs/keras/coco'
         datapath: './datasets/coco'
@@ -227,10 +223,9 @@ def prepare_dataset(dataset, cfg=None):
   :param dataset:
   :return:
   """
-  for k, v in dataset.items():
+  for k, v in modelarts_datasets.items():
     if getattr(v, 'eval', False):
-      v.datapath = eval(v.datapath)
-      v.datapath_obs = eval(v.datapath_obs, {'datapath': v.datapath})
+      v.datapath = eval(v.datapath, {'global_cfg': global_cfg})
       v.pop('eval')
     if isinstance(v, dict):
       modelarts_copy_data(**v)

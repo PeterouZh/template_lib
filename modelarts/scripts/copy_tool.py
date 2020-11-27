@@ -7,7 +7,8 @@ import moxing as mox
 parser = argparse.ArgumentParser(description='copy tool')
 parser.add_argument('-s', type=str)
 parser.add_argument('-d', type=str)
-parser.add_argument('-t', type=str, default="copy")
+parser.add_argument('-t', type=str, default="copy", choices=['copytree', 'copy',
+                                                             'copytree_nooverwrite', 'copy_nooverwrite'])
 cfg = parser.parse_args()
 
 def main():
