@@ -1,6 +1,8 @@
 import os
 import sys
-
+proj_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../"))
+os.chdir(proj_root)
+sys.path.insert(0, proj_root)
 def setup_package():
   packages = ['easydict', 'numpy', 'termcolor', 'fvcore', 'matplotlib']
   command_template = f'{sys.executable} -m pip install %s'
