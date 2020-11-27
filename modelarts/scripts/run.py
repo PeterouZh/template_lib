@@ -1,3 +1,17 @@
+import os
+import sys
+
+def setup_package():
+  packages = ['easydict', 'numpy', 'termcolor', 'fvcore', 'matplotlib']
+  command_template = f'{sys.executable} -m pip install %s'
+  for pack in packages:
+    command = command_template % pack
+    print('=Installing %s'%pack)
+    os.system(command)
+  pass
+
+setup_package()
+
 from datetime import datetime
 import logging
 import multiprocessing
@@ -6,7 +20,6 @@ from easydict import EasyDict
 import time
 import subprocess
 import yaml
-import os
 import sys
 import unittest
 import argparse
@@ -62,7 +75,6 @@ def setup_log_obs_dir():
     logger.info(traceback.format_exc())
     pass
   return
-
 
 def main():
   logger = logging.getLogger('tl')
