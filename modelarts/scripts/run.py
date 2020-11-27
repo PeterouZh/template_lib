@@ -1,10 +1,11 @@
+import pprint
 import os
 import sys
 proj_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../"))
 os.chdir(proj_root)
 sys.path.insert(0, proj_root)
 def setup_package():
-  packages = ['easydict', 'numpy', 'termcolor', 'fvcore', 'matplotlib']
+  packages = ['easydict', 'numpy', 'termcolor', '-I pyyaml', 'fvcore', 'matplotlib']
   command_template = f'{sys.executable} -m pip install %s'
   for pack in packages:
     command = command_template % pack
@@ -185,19 +186,28 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--number', type=int, default=1)
   tmp_args, _ = parser.parse_known_args()
-  if os.environ.get('TIME_STR', 0):
+  if os.environ.get('TIME_STR', 1):
     time_str = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
   else:
     time_str = ''
+
+  # setup sys.argv
+  argv = [sys.argv[0], ]
+  for v in sys.argv[1:]:
+    argv.extend(v.split('='))
+  sys.argv.clear()
+  sys.argv.extend(argv)
+
   sys.argv[sys.argv.index('--tl_outdir') + 1] = f"{sys.argv[sys.argv.index('--tl_outdir') + 1]}-{time_str}_{tmp_args.number:02d}"
   shutil.rmtree(sys.argv[sys.argv.index('--tl_outdir') + 1], ignore_errors=True)
 
+  pprint.pprint(sys.argv)
   parser = update_parser_defaults_from_yaml(parser=parser, use_cfg_as_args=True)
   logger = logging.getLogger('tl')
 
-  args = parser.parse_args()
+  args = parser.parse_known_args()
   global_cfg.merge_from_dict(vars(args))
-
+  print(get_dict_str(global_cfg))
   main()
 
 
