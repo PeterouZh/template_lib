@@ -112,6 +112,7 @@ def main():
       # parse command
       if not os.path.exists(bash_file) or not os.path.exists(global_cfg.tl_saved_config_file):
         continue
+      shutil.copy(bash_file, os.curdir)
       try:
         with open(global_cfg.tl_saved_config_file, 'rt') as handle:
           config = yaml.load(handle)
