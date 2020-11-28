@@ -159,6 +159,8 @@ def main():
                   file=err_f, flush=True)
             print(e.returncode, file=err_f, flush=True)
           err_f.close()
+        elif type(command) is list and command[0] == 'exit':
+          exit(0)
         logger.info('EE')
 
       # sync outdir to outdir_obs
