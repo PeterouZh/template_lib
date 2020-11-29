@@ -251,16 +251,16 @@ class Testing_v2_cfgnode(unittest.TestCase):
         --tl_opts key5.sub1 modified
         """
     start_cmd_run(cmd_str)
-    # from template_lib.v2.config_cfgnode import update_parser_defaults_from_yaml
+    # from template_lib.v2.config_cfgnode import update_parser_defaults_from_yaml, global_cfg
     # from template_lib.modelarts import modelarts_utils
     # update_parser_defaults_from_yaml(parser)
 
-    # modelarts_utils.setup_tl_outdir_obs(config)
-    # modelarts_utils.modelarts_sync_results_dir(config, join=True)
-    # modelarts_utils.prepare_dataset(config.get('modelarts_download', {}), global_cfg=config)
+    # modelarts_utils.setup_tl_outdir_obs(global_cfg)
+    # modelarts_utils.modelarts_sync_results_dir(global_cfg, join=True)
+    # modelarts_utils.prepare_dataset(global_cfg.get('modelarts_download', {}), global_cfg=global_cfg)
     #
-    # modelarts_utils.prepare_dataset(config.get('modelarts_upload', {}), global_cfg=config, download=False)
-    # modelarts_utils.modelarts_sync_results_dir(config, join=True)
+    # modelarts_utils.prepare_dataset(global_cfg.get('modelarts_upload', {}), global_cfg=global_cfg, download=False)
+    # modelarts_utils.modelarts_sync_results_dir(global_cfg, join=True)
     pass
 
   def test_save_early_collapse_on_cifar100(self):
