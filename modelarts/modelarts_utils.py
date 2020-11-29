@@ -236,7 +236,7 @@ def prepare_dataset(modelarts_datasets, global_cfg=None, download=True):
         datapath_obs: 'root_obs/keras/coco'
         datapath: './datasets/coco'
         overwrite: false
-  :param dataset:
+        eval: true
   :return:
   """
   for k, v in modelarts_datasets.items():
