@@ -184,7 +184,7 @@ def modelarts_copy_data(datapath_obs, datapath, overwrite=False, download=True):
       if not mox.file.exists(datapath_obs):
         assert 0, datapath_obs
 
-      print('=== Copying dataset ===')
+      print('=== Downloading dataset ===')
       if not overwrite and os.path.exists(datapath):
         print('Skip copying [%s] \n to [%s]' % (datapath_obs, datapath))
         return
@@ -201,6 +201,7 @@ def modelarts_copy_data(datapath_obs, datapath, overwrite=False, download=True):
         mox.file.copy(datapath_obs, datapath)
       print('End downloading [%s] \n to [%s]' % (datapath_obs, datapath))
     else:
+      print('=== Uploading dataset ===')
       if os.path.isdir(datapath):
         # disable info output
         logger.disabled = True
