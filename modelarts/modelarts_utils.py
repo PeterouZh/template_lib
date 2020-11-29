@@ -172,33 +172,46 @@ def start_process(func, args, myargs, loop=10):
       shutil.rmtree(args.outdir, ignore_errors=True)
 
 
-def modelarts_copy_data(datapath_obs, datapath, overwrite=False):
+def modelarts_copy_data(datapath_obs, datapath, overwrite=False, download=True):
   try:
     import moxing as mox
     assert datapath_obs.startswith('s3://')
 
-    if not mox.file.exists(datapath_obs):
-      assert 0, datapath_obs
-
-    print('=== Copying dataset ===')
+    logger = logging.getLogger()
     datapath = os.path.expanduser(datapath)
 
-    if not overwrite and os.path.exists(datapath):
-      print('Skip copying [%s] \n to [%s]' % (datapath_obs, datapath))
-      return
+    if download:
+      if not mox.file.exists(datapath_obs):
+        assert 0, datapath_obs
 
-    if mox.file.is_directory(datapath_obs):
-      # disable info output
-      logger = logging.getLogger()
-      logger.disabled = True
-      # dir
-      print('Copying dir [%s] \n to [%s]' % (datapath_obs, datapath))
-      mox.file.copy_parallel(datapath_obs, datapath)
+      print('=== Copying dataset ===')
+      if not overwrite and os.path.exists(datapath):
+        print('Skip copying [%s] \n to [%s]' % (datapath_obs, datapath))
+        return
+
+      if mox.file.is_directory(datapath_obs):
+        # disable info output
+        logger.disabled = True
+        # dir
+        print('Downloading dir [%s] \n to [%s]' % (datapath_obs, datapath))
+        mox.file.copy_parallel(datapath_obs, datapath)
+      else:
+        # file
+        print('Downloading file [%s] \n to [%s]' % (datapath_obs, datapath))
+        mox.file.copy(datapath_obs, datapath)
+      print('End downloading [%s] \n to [%s]' % (datapath_obs, datapath))
     else:
-      # file
-      print('Copying file [%s] \n to [%s]' % (datapath_obs, datapath))
-      mox.file.copy(datapath_obs, datapath)
-    print('End [%s] \n to [%s]' % (datapath_obs, datapath))
+      if os.path.isdir(datapath):
+        # disable info output
+        logger.disabled = True
+        # dir
+        print('Uploading dir [%s] \n to [%s]' % (datapath, datapath_obs))
+        mox.file.copy_parallel(datapath, datapath_obs)
+      else:
+        # file
+        print('Uploading file [%s] \n to [%s]' % (datapath, datapath_obs))
+        mox.file.copy(datapath, datapath_obs)
+      print('End uploading [%s] \n to [%s]' % (datapath, datapath_obs))
   except ModuleNotFoundError:
     logger = logging.getLogger('tl')
     logger.info('\n\tIgnore datapath: %s' % datapath_obs)
@@ -213,7 +226,7 @@ def modelarts_copy_data(datapath_obs, datapath, overwrite=False):
     logger.disabled = False
 
 
-def prepare_dataset(modelarts_datasets, global_cfg=None):
+def prepare_dataset(modelarts_datasets, global_cfg=None, download=True):
   """
     modelarts_datasets:
       dataset_root:
@@ -225,10 +238,11 @@ def prepare_dataset(modelarts_datasets, global_cfg=None):
   """
   for k, v in modelarts_datasets.items():
     if getattr(v, 'eval', False):
+      v.datapath_obs = eval("f'{}'".format(v.datapath_obs))
       v.datapath = eval(v.datapath, {'global_cfg': global_cfg})
       v.pop('eval')
     if isinstance(v, dict):
-      modelarts_copy_data(**v)
+      modelarts_copy_data(download=download, **v)
 
 
 class TestingUnit(unittest.TestCase):
