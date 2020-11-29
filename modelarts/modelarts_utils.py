@@ -63,6 +63,7 @@ def modelarts_sync_results_dir(cfg, join=False, is_main_process=True):
   except:
     import traceback
     logger.info(traceback.format_exc())
+    logger.info(f'\n======End uploading results dir======')
   return
 
 
@@ -174,6 +175,7 @@ def start_process(func, args, myargs, loop=10):
 
 
 def modelarts_copy_data(datapath_obs, datapath, overwrite=False, download=True):
+  print(f'=== {"Downloading" if download else "Uploading"} dataset ===')
   try:
     import moxing as mox
     assert datapath_obs.startswith('s3://')
@@ -185,7 +187,6 @@ def modelarts_copy_data(datapath_obs, datapath, overwrite=False, download=True):
       if not mox.file.exists(datapath_obs):
         assert 0, datapath_obs
 
-      print('=== Downloading dataset ===')
       if not overwrite and os.path.exists(datapath):
         print('Skip copying [%s] \n to [%s]' % (datapath_obs, datapath))
         return
@@ -202,7 +203,7 @@ def modelarts_copy_data(datapath_obs, datapath, overwrite=False, download=True):
         mox.file.copy(datapath_obs, datapath)
       print('End downloading [%s] \n to [%s]' % (datapath_obs, datapath))
     else:
-      print('=== Uploading dataset ===')
+      # print('=== Uploading dataset ===')
       if os.path.isdir(datapath):
         # disable info output
         logger.disabled = True
