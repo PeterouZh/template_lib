@@ -57,8 +57,9 @@ def modelarts_sync_results_dir(cfg, join=False, is_main_process=True):
     return
   logger = logging.getLogger('tl')
   try:
-    logger.info(f'Copying [{cfg.tl_outdir}] to [{cfg.tl_outdir_obs}].')
+    logger.info(f'\n======Uploading results dir======')
     copy_obs(cfg.tl_outdir, cfg.tl_outdir_obs, copytree=True, join=join)
+    logger.info(f'\n======End uploading results dir======')
   except:
     import traceback
     logger.info(traceback.format_exc())
