@@ -86,8 +86,11 @@ def main():
 
   old_command = ''
   # Create bash_command.sh
-  bash_file = os.path.join(global_cfg.tl_outdir, 'bash_command.sh')
+  bash_file = os.path.join(global_cfg.tl_outdir, f'bash_{global_cfg.number}.sh')
   open(bash_file, 'w').close()
+  config_file = f'{os.path.dirname(global_cfg.tl_saved_config_file)}/c_{global_cfg.number}.yaml'
+  shutil.copy(global_cfg.tl_saved_config_file, config_file)
+  global_cfg.tl_saved_config_file = config_file
   global_cfg.tl_saved_config_file_old = global_cfg.tl_saved_config_file + '.old'
 
   # copy outdir to outdir_obs, copy bash_file to outdir_obs
@@ -189,7 +192,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--number', type=int, default=1)
   tmp_args, _ = parser.parse_known_args()
-  if os.environ.get('TIME_STR', 1):
+  if bool(int(os.environ.get('TIME_STR', 1))):
     time_str = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
   else:
     time_str = ''

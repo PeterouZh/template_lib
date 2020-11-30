@@ -52,6 +52,7 @@ def get_append_cmd_str(args):
             --tl_config_file {args.tl_saved_config_command_file}
             --tl_command {args.tl_command}
             --tl_outdir {args.tl_outdir}
+            {'--tl_resume --tl_resumedir ' + {args.tl_resumedir} if args.tl_resume else ''}            
             --tl_time_str {args.tl_time_str}
             """
   return cmd_str_append

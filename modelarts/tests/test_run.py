@@ -25,7 +25,7 @@ class TestingRun(unittest.TestCase):
       os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     # if 'TIME_STR' not in os.environ:
     #   os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
-    os.environ['TIME_STR'] = 0
+    os.environ['TIME_STR'] = '0'
     if 'RESULTS_OBS' not in os.environ:
       os.environ['RESULTS_OBS'] = 's3://bucket-xx/ZhouPeng/results'
     from template_lib.v2.config_cfgnode.argparser import \
