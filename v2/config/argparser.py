@@ -105,13 +105,18 @@ def update_parser_defaults_from_yaml(parser, name='args', use_cfg_as_args=False)
   return parser
 
 
-def _setup_outdir(args):
-  TIME_STR = bool(int(os.getenv('TIME_STR', 0)))
-  args.tl_time_str = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
-  args.tl_outdir = args.tl_outdir if not TIME_STR else (args.tl_outdir + '-' + args.tl_time_str)
+def _setup_outdir(args, resume):
+  if resume:
+    args.tl_outdir = args.tl_resumedir
+    args.tl_config_file = os.path.join(args.tl_outdir, "config_command.yaml")
+    args.tl_time_str = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+  else:
+    TIME_STR = bool(int(os.getenv('TIME_STR', 0)))
+    args.tl_time_str = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+    args.tl_outdir = args.tl_outdir if not TIME_STR else (args.tl_outdir + '-' + args.tl_time_str)
 
-  shutil.rmtree(args.tl_outdir, ignore_errors=True)
-  os.makedirs(args.tl_outdir, exist_ok=True)
+    shutil.rmtree(args.tl_outdir, ignore_errors=True)
+    os.makedirs(args.tl_outdir, exist_ok=True)
 
   # dirs
   args.tl_abs_outdir = os.path.realpath(args.tl_outdir)

@@ -17,6 +17,8 @@ def build_parser(parser=None):
   parser.add_argument('--tl_command', type=str, default='')
   parser.add_argument('--tl_outdir', type=str, default='results/temp')
   parser.add_argument('--tl_opts', type=str, nargs='*', default=[])
+  parser.add_argument('--tl_resume', action='store_true', default=False)
+  parser.add_argument('--tl_resumedir', type=str, default='results/temp')
 
   parser.add_argument('--tl_time_str', type=str, default='')
   return parser
@@ -49,12 +51,12 @@ def setup_outdir_and_yaml(argv_str=None, return_cfg=False):
   args, unparsed_argv = parser.parse_known_args(args=argv_str)
 
   args = EasyDict(vars(args))
-  _setup_outdir(args=args)
+  _setup_outdir(args=args, resume=args.tl_resume)
 
   # get logger
   logger = get_logger(filename=args.tl_logfile, logger_names=['template_lib', 'tl'], stream=True)
   args_str = get_dict_str(args)
-  logger.info('\nprepared args:\n' + args_str)
+  logger.info('\nargs:\n' + args_str)
 
   # git
   get_git_hash(logger)
