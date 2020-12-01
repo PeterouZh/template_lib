@@ -242,7 +242,7 @@ def prepare_dataset(modelarts_datasets, global_cfg=None, download=True):
   for k, v in modelarts_datasets.items():
     if getattr(v, 'eval', False):
       v.datapath_obs = eval("f'{}'".format(v.datapath_obs))
-      v.datapath = eval(v.datapath, {'global_cfg': global_cfg})
+      v.datapath = eval("f'{}'".format(v.datapath))
       v.pop('eval')
     if isinstance(v, dict):
       modelarts_copy_data(download=download, **v)
