@@ -144,9 +144,9 @@ def summary_defaultdict2txtfig(default_dict, prefix, step,
 
 def summary_dict2txtfig(dict_data, prefix, step,
                         textlogger=None, in_one_axe=False,
-                        log_txt=True, log_fig=True, save_fig_sec=100):
-  # if not comm.is_main_process():
-  #   return
+                        log_txt=True, log_fig=True, save_fig_sec=100, is_main_process=True):
+  if not is_main_process:
+    return
   new_key_dict_data = {}
   for k, v in dict_data.items():
     new_k = k.replace('/', '--')

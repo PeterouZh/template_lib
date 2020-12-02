@@ -19,6 +19,7 @@ def build_parser(parser=None):
   parser.add_argument('--tl_opts', type=str, nargs='*', default=[])
   parser.add_argument('--tl_resume', action='store_true', default=False)
   parser.add_argument('--tl_resumedir', type=str, default='results/temp')
+  parser.add_argument('--tl_debug', action='store_true', default=False)
 
   parser.add_argument('--tl_time_str', type=str, default='')
   return parser
