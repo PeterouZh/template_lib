@@ -4,7 +4,6 @@ import sys
 import unittest
 import argparse
 
-from template_lib.utils.config import parse_args_and_setup_myargs, config2args
 from template_lib.examples import test_bash
 from template_lib import utils
 from template_lib.nni import update_nni_config_file
