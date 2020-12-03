@@ -8,6 +8,7 @@ class PlotResultsObs(object):
           'beijing': 's3://bucket-cv-competition-bj4/ZhouPeng',
           'huanan': 's3://bucket-1892/ZhouPeng',
           'huabei': 's3://bucket-cv-competition',
+          '7001': "s3://bucket-7001/ZhouPeng"
         }
         PlotResultsObs.setup_env()
         
@@ -106,25 +107,24 @@ class PlotResultsObs(object):
         
         return label2datas_list
 
-    
-import collections
-default_dict = collections.defaultdict(dict)
 
-default_dict['results/Domain-Adaptive-Faster-RCNN-PyTorch/Examples/train_no_domain_adaptive_faster_rcnn_20200117-19_14_05_880'] = {
-    'train_no_domain_adaptive_faster_rcnn_bs.2_cityscapes': 'textlog/eval.AP50.cityscapes_fine_instanceonly_seg_val_cocostyle.log',
-    'train_no_domain_adaptive_faster_rcnn_bs.2_foggy_cityscapes': 'textlog/eval.AP50.foggy_cityscapes_fine_instanceonly_seg_val_cocostyle.log'
-}
-default_dict['results/Domain-Adaptive-Faster-RCNN-PyTorch/Examples/train_no_domain_adaptive_faster_rcnn_20200117-23_28_47_574'] = {
-    'train_no_domain_adaptive_faster_rcnn_bs.1_cityscapes': 'textlog/eval.AP50.cityscapes_fine_instanceonly_seg_val_cocostyle.log',
-    'train_no_domain_adaptive_faster_rcnn_bs.1_foggy_cityscapes': 'textlog/eval.AP50.foggy_cityscapes_fine_instanceonly_seg_val_cocostyle.log'
-}
-default_dict['results/Domain-Adaptive-Faster-RCNN-PyTorch/Examples/train_domain_adaptive_faster_rcnn_20200117-13_14_00_183'] = {
-    'train_domain_adaptive_faster_rcnn_bs.1_cityscapes': 'textlog/eval.AP50.cityscapes_fine_instanceonly_seg_val_cocostyle.log',
-    'train_domain_adaptive_faster_rcnn_bs.1_foggy_cityscapes': 'textlog/eval.AP50.foggy_cityscapes_fine_instanceonly_seg_val_cocostyle.log'
-}
-default_dict['properties'] = {'title': 'AP50', 'xlim': [0, 70000]}
-default_dicts = [default_dict] 
-show_max = [True, ]
-plotobs = PlotResultsObs()
-plotobs.plot_defaultdicts(default_dicts=default_dicts, show_max=show_max, bucket='beijing', figsize_wh=(16, 7.2))
-pass
+def test():
+    import collections, os
+
+    default_dicts = []
+    show_max = []
+
+    top1_val = collections.defaultdict(dict)
+    title = 'top1_val'
+    log_file = 'textdir/epochVal.ma1.ValTop1.log'
+    dd = eval(title)
+    dd['results/proj/CIFAR10/train_R56_cifar10_20200923-23_55_05_422/'] = \
+        {'23_55_05_422-resnet-R56': log_file, }
+
+    dd['properties'] = {'title': title, 'ylim': [0, 80]}
+    default_dicts.append(dd)
+    show_max.append(False)
+
+    plotobs = PlotResultsObs()
+    plotobs.plot_defaultdicts(default_dicts=default_dicts, show_max=show_max, bucket='7001', figsize_wh=(16, 7.2))
+    pass
