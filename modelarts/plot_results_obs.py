@@ -57,8 +57,7 @@ class PlotResultsObs(object):
 
   def plot_defaultdicts(self, default_dicts, show_max=True, bucket='huanan', figsize_wh=(15, 8), legend_size=12):
     import matplotlib.pyplot as plt
-    % matplotlib
-    inline
+    % matplotlib inline
     import numpy as np
     import mpld3
     mpld3.enable_notebook()
