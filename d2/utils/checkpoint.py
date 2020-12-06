@@ -2,12 +2,9 @@ import sys
 import torch
 from torch import nn
 
-try:
-  from detectron2.utils.logger import setup_logger
-  from detectron2.checkpoint import Checkpointer, PeriodicCheckpointer
-except:
-  import traceback
-  traceback.print_exc()
+from detectron2.utils.logger import setup_logger
+from detectron2.checkpoint import Checkpointer, PeriodicCheckpointer
+
 
 class DumpModule(nn.Module):
   def __init__(self, model_dict):
