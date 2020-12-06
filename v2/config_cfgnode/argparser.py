@@ -89,6 +89,7 @@ def setup_logger_global_cfg_global_textlogger(args, tl_textdir, is_main_process=
 
   # Load yaml file and update parser defaults
   if not args.tl_command.lower() == 'none':
+    assert os.path.exists(args.tl_config_file)
     cfg = TLCfgNode.load_yaml_with_command(args.tl_config_file, args.tl_command)
     cfg.merge_from_list(args.tl_opts)
     set_global_cfg(cfg)
