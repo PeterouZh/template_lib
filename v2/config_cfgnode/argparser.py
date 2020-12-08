@@ -2,6 +2,8 @@ import sys
 import argparse
 import logging
 import os
+import time
+
 from easydict import EasyDict
 
 from ..logger import get_logger, set_global_textlogger, TextLogger
@@ -97,7 +99,9 @@ def setup_logger_global_cfg_global_textlogger(args, tl_textdir, is_main_process=
     saved_command_cfg = TLCfgNode(new_allowed=True)
     setattr(saved_command_cfg, args.tl_command, cfg)
     global_cfg.tl_saved_config_file = f"{args.tl_outdir}/config_command.yaml"
-    saved_command_cfg.dump_to_file(global_cfg.tl_saved_config_file)
+    time.sleep(0.1)
+    if is_main_process:
+      saved_command_cfg.dump_to_file(global_cfg.tl_saved_config_file)
   else:
     cfg = {}
   return cfg, tl_logfile
