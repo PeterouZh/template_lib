@@ -242,12 +242,15 @@ class Testing_v2_cfgnode(unittest.TestCase):
                 """
     args = setup_outdir_and_yaml(argv_str)
 
+    tl_opts = ' '.join(sys.argv[sys.argv.index('--tl_opts') + 1:]) if '--tl_opts' in sys.argv else ''
+    print(f'tl_opts:\n {tl_opts}')
+
     n_gpus = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
     cmd_str = f"""
         python -m torch.distributed.launch --nproc_per_node={n_gpus} --master_port=8888 
         template_lib/v2/ddp/train.py
         {get_append_cmd_str(args)}
-        --tl_opts key5.sub1 modified
+        --tl_opts {tl_opts}
         """
     start_cmd_run(cmd_str)
     # from template_lib.v2.config_cfgnode import update_parser_defaults_from_yaml, global_cfg
