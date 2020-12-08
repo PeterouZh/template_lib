@@ -21,7 +21,7 @@ class CopyObsProcessing(multiprocessing.Process):
     try:
       import moxing as mox
       s, d, copytree = self._args
-      logger.info('Starting %s, Copying %s \nto %s.' % (self.name, s, d))
+      logger.info('====== Starting %s, Copying %s to\n %s' % (self.name, s, d))
       start_time = time.time()
       if copytree:
         logger = logging.getLogger()
