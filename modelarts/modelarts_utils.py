@@ -18,7 +18,6 @@ class CopyObsProcessing(multiprocessing.Process):
   """
   def run(self):
     logger = logging.getLogger()
-    logger.disabled = True
     try:
       import moxing as mox
       s, d, copytree = self._args
