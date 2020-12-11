@@ -119,3 +119,144 @@ class Testing_PrepareImageNet(unittest.TestCase):
     modelarts_utils.prepare_dataset(global_cfg.get('modelarts_upload', {}), global_cfg=global_cfg, download=False)
     modelarts_utils.modelarts_sync_results_dir(global_cfg, join=True)
     pass
+
+  def test_ImageNet100_CMC_class_file_append_classname(self):
+    """
+    Usage:
+        proj_root=moco-exp
+        python template_lib/modelarts/scripts/copy_tool.py \
+          -s s3://bucket-7001/ZhouPeng/codes/$proj_root -d /cache/$proj_root -t copytree
+        cd /cache/$proj_root
+
+        export CUDA_VISIBLE_DEVICES=0
+        export TIME_STR=0
+        export PYTHONPATH=./
+        python -c "from template_lib.proj.imagenet.tests.test_imagenet import Testing_PrepareImageNet;\
+          Testing_PrepareImageNet().test_extract_ImageNet_1000x50()"
+
+    :return:
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+    from template_lib.v2.config_cfgnode.argparser import \
+      (get_command_and_outdir, setup_outdir_and_yaml, get_append_cmd_str, start_cmd_run)
+    from template_lib.proj.imagenet.utils import subdir2name_dict
+
+    command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
+    argv_str = f"""
+                --tl_config_file template_lib/proj/imagenet/tests/configs/PrepareImageNet.yaml
+                --tl_command {command}
+                --tl_outdir {outdir}
+                """
+    args, cfg = setup_outdir_and_yaml(argv_str, return_cfg=True)
+    class_list_file = cfg.class_list_file
+    saved_class_list_file = cfg.saved_class_list_file
+
+    with open(class_list_file, 'r') as f:
+      class_list = f.readlines()
+
+    saved_f = open(saved_class_list_file, 'w')
+    for class_subdir in tqdm.tqdm(class_list):
+      class_subdir =class_subdir.strip()
+      class_name = subdir2name_dict[class_subdir]
+      saved_f.write(f"{class_subdir} {class_name}\n")
+    saved_f.close()
+    pass
+
+
+  def test_extract_ImageNet100_CMC(self):
+    """
+    Usage:
+        proj_root=moco-exp
+        python template_lib/modelarts/scripts/copy_tool.py \
+          -s s3://bucket-7001/ZhouPeng/codes/$proj_root -d /cache/$proj_root -t copytree
+        cd /cache/$proj_root
+
+        export CUDA_VISIBLE_DEVICES=0
+        export TIME_STR=0
+        export PYTHONPATH=./
+        python -c "from template_lib.proj.imagenet.tests.test_imagenet import Testing_PrepareImageNet;\
+          Testing_PrepareImageNet().test_extract_ImageNet100_CMC()"
+
+    :return:
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+    from template_lib.v2.config_cfgnode.argparser import \
+      (get_command_and_outdir, setup_outdir_and_yaml, get_append_cmd_str, start_cmd_run)
+    from template_lib.v2.config_cfgnode import update_parser_defaults_from_yaml, global_cfg
+    from template_lib.modelarts import modelarts_utils
+    from distutils.dir_util import copy_tree
+
+    command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
+    argv_str = f"""
+                --tl_config_file template_lib/proj/imagenet/tests/configs/PrepareImageNet.yaml
+                --tl_command {command}
+                --tl_outdir {outdir}
+                """
+    args, cfg = setup_outdir_and_yaml(argv_str, return_cfg=True)
+
+    modelarts_utils.setup_tl_outdir_obs(global_cfg)
+    modelarts_utils.modelarts_sync_results_dir(global_cfg, join=True)
+    modelarts_utils.prepare_dataset(global_cfg.get('modelarts_download', {}), global_cfg=global_cfg)
+
+    train_dir = f'{cfg.data_dir}/train'
+    val_dir = f'{cfg.data_dir}/val'
+    save_train_dir = f'{cfg.saved_dir}/train'
+    save_val_dir = f'{cfg.saved_dir}/val'
+    os.makedirs(save_train_dir, exist_ok=True)
+    os.makedirs(save_val_dir, exist_ok=True)
+
+    with open(cfg.class_list_file, 'r') as f:
+      class_list = f.readlines()
+    for class_subdir in tqdm.tqdm(class_list):
+      class_subdir, _ = class_subdir.strip().split()
+      train_class_dir = f'{train_dir}/{class_subdir}'
+      save_train_class_dir = f'{save_train_dir}/{class_subdir}'
+      copy_tree(train_class_dir, save_train_class_dir)
+
+      val_class_dir = f'{val_dir}/{class_subdir}'
+      save_val_class_dir = f'{save_val_dir}/{class_subdir}'
+      copy_tree(val_class_dir, save_val_class_dir)
+
+    modelarts_utils.prepare_dataset(global_cfg.get('modelarts_upload', {}), global_cfg=global_cfg, download=False)
+    modelarts_utils.modelarts_sync_results_dir(global_cfg, join=True)
+    pass
+
+
+class Testing_utils(unittest.TestCase):
+
+  def test_get_subdir2name_dict(self):
+    """
+    Usage:
+
+        export CUDA_VISIBLE_DEVICES=0
+        export TIME_STR=0
+        export PYTHONPATH=./
+        python -c "from template_lib.proj.imagenet.tests.test_imagenet import Testing_PrepareImageNet;\
+          Testing_PrepareImageNet().test_mv_val_dataset()"
+
+    :return:
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+    from template_lib.v2.config_cfgnode.argparser import \
+      (get_command_and_outdir, setup_outdir_and_yaml, get_append_cmd_str, start_cmd_run)
+
+    command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
+    argv_str = f"""
+                --tl_config_file none
+                --tl_command none
+                --tl_outdir {outdir}
+                """
+    args = setup_outdir_and_yaml(argv_str)
+
+    from template_lib.proj.imagenet.utils import get_subdir2name_dict, subdir2name_dict
+    subdir2name_d = get_subdir2name_dict()
+    pass

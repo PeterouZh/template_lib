@@ -72,6 +72,9 @@ def setup_outdir_and_yaml(argv_str=None, return_cfg=False):
   logger.info(f"\nThe cfg: \n{get_dict_str(command_cfg)}")
   if return_cfg:
     global_cfg.merge_from_dict(command_cfg)
+    for k, v in vars(args).items():
+      if k.startswith('tl_'):
+        global_cfg.merge_from_dict({k: v})
     return args, command_cfg
   else:
     return args
