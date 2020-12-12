@@ -68,6 +68,12 @@ def modelarts_sync_results_dir(cfg, join=False, is_main_process=True):
 
 
 def setup_tl_outdir_obs(cfg):
+  """
+  Setup tl_outdir_obs
+  Backup code.zip to tl_outdir
+  """
+  from template_lib.utils import unzip_file
+
   logger = logging.getLogger('tl')
   try:
     import moxing as mox
@@ -77,6 +83,10 @@ def setup_tl_outdir_obs(cfg):
     assert cfg.tl_outdir.startswith('results/')
     cfg.tl_outdir_obs = os.path.join(cfg.root_obs, 'results', proj_dir, cfg.tl_outdir[8:])
     logger.info(f"tl_outdir_obs: {cfg.tl_outdir_obs}")
+
+    zip_code_file = cfg.get('zip_code_file', "code.zip")
+    if os.path.exists(zip_code_file):
+      unzip_file(zip_file=zip_code_file, dst_dir=f'{cfg.tl_outdir}/code_bak')
   except ModuleNotFoundError:
     import traceback
     traceback.print_exc()
