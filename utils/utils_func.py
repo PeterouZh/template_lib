@@ -39,6 +39,29 @@ color_beauty_dict = {
 }
 
 
+def make_zip(source_dir, output_filename):
+  import zipfile
+  zipf = zipfile.ZipFile(output_filename, 'w')
+  pre_len = len(os.path.dirname(source_dir))
+  for parent, dirnames, filenames in os.walk(source_dir):
+    for filename in filenames:
+      pathfile = os.path.join(parent, filename)
+      arcname = pathfile[pre_len:].strip(os.path.sep)   #相对路径
+      zipf.write(pathfile, arcname)
+  zipf.close()
+
+
+def unzip_file(zip_file, dst_dir):
+  import zipfile
+  assert zipfile.is_zipfile(zip_file)
+
+  fz = zipfile.ZipFile(zip_file, 'r')
+  for file in fz.namelist():
+    fz.extract(file, dst_dir)
+  fz.close()
+  print(f'Unzip {zip_file} to {dst_dir}')
+
+
 def time2string(elapsed):
   """
   elapsed = time.time() - time_start
