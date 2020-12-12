@@ -27,6 +27,7 @@ def main():
       print(f'=> Backup dir {cfg.s} to \n {dirname}')
       mox.file.copy_parallel(cfg.s, dirname)
       print(f'=> Backup {dirname} to \n {cfg.b}')
+      os.makedirs(os.path.dirname(cfg.b), exist_ok=True)
       make_zip(source_dir=dirname, output_filename=cfg.b)
 
   print('=> Copy file(s) from %s to %s ...' % (cfg.s, cfg.d))
