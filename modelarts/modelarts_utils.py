@@ -184,7 +184,7 @@ def start_process(func, args, myargs, loop=10):
       shutil.rmtree(args.outdir, ignore_errors=True)
 
 
-def modelarts_copy_data(datapath_obs, datapath, overwrite=False, download=True):
+def modelarts_copy_data(datapath_obs, datapath, overwrite=False, download=True, unzip=False):
   print(f'=== {"Downloading" if download else "Uploading"} dataset ===')
   try:
     import moxing as mox
@@ -205,13 +205,17 @@ def modelarts_copy_data(datapath_obs, datapath, overwrite=False, download=True):
         # disable info output
         logger.disabled = True
         # dir
-        print('Downloading dir [%s] \n to [%s]' % (datapath_obs, datapath))
+        print('Downloading dir [%s] \n to [%s]' % (datapath_obs, os.path.abspath(datapath)))
         mox.file.copy_parallel(datapath_obs, datapath)
       else:
         # file
-        print('Downloading file [%s] \n to [%s]' % (datapath_obs, datapath))
+        print('Downloading file [%s] \n to [%s]' % (datapath_obs, os.path.abspath(datapath)))
         mox.file.copy(datapath_obs, datapath)
-      print('End downloading [%s] \n to [%s]' % (datapath_obs, datapath))
+        if unzip:
+          from template_lib.utils import unzip_file
+          print('Unzipping file [%s] \n to [%s]' % (os.path.abspath(datapath), os.path.dirname(datapath)))
+          unzip_file(zip_file=datapath, dst_dir=os.path.dirname(datapath))
+      print('End downloading [%s] \n to [%s]' % (datapath_obs, os.path.abspath(datapath)))
     else:
       # print('=== Uploading dataset ===')
       if os.path.isdir(datapath):
