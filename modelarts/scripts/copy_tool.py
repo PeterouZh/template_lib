@@ -2,7 +2,6 @@ import os
 import shutil
 import argparse
 
-from template_lib.utils import make_zip
 
 parser = argparse.ArgumentParser(description='copy tool')
 parser.add_argument('-s', type=str)
@@ -23,6 +22,7 @@ def main():
 
   if cfg.b is not None:
     from tempfile import TemporaryDirectory
+    from template_lib.utils import make_zip
     with TemporaryDirectory() as dirname:
       print(f'=> Backup dir {cfg.s} to \n {dirname}')
       mox.file.copy_parallel(cfg.s, dirname)
