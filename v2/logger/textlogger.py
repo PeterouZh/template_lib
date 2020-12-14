@@ -122,9 +122,9 @@ class TextLogger(object):
 
 def summary_defaultdict2txtfig(default_dict, prefix, step,
                                textlogger=None, in_one_figure=True,
-                               log_txt=True, log_fig=True, save_fig_sec=100):
-  # if not comm.is_main_process():
-  #   return
+                               log_txt=True, log_fig=True, save_fig_sec=100, is_main_process=True):
+  if not is_main_process:
+    return
   if textlogger is not None:
     prefix_abb = get_prefix_abb(prefix=prefix)
     default_dict_copy = defaultdict(dict)
