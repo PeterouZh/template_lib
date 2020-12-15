@@ -1,3 +1,4 @@
+import shutil
 from easydict import EasyDict
 import numpy as np
 import os
@@ -38,6 +39,21 @@ color_beauty_dict = {
   'blue': '#1F5CFA'
 }
 
+
+class MaxToKeep(object):
+  def __init__(self, max_to_keep=None):
+    self.max_to_keep = max_to_keep
+    self.recent_checkpoints = []
+    pass
+
+  def step(self, file_path):
+    if self.max_to_keep is not None:
+      self.recent_checkpoints.append(file_path)
+      if len(self.recent_checkpoints) > self.max_to_keep:
+        file_to_delete = self.recent_checkpoints.pop(0)
+        if os.path.exists(file_to_delete):
+          os.remove(file_to_delete)
+    pass
 
 def make_zip(source_dir, output_filename):
   import zipfile
