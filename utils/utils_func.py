@@ -52,7 +52,10 @@ class MaxToKeep(object):
       if len(self.recent_checkpoints) > self.max_to_keep:
         file_to_delete = self.recent_checkpoints.pop(0)
         if os.path.exists(file_to_delete):
-          os.remove(file_to_delete)
+          if os.path.isdir(file_to_delete):
+            shutil.rmtree(file_to_delete)
+          else:
+            os.remove(file_to_delete)
     pass
 
 def make_zip(source_dir, output_filename):

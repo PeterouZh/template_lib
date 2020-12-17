@@ -73,9 +73,15 @@ class Testing_utils_func(unittest.TestCase):
     from template_lib.utils.utils_func import MaxToKeep
 
     max2keep = MaxToKeep(max_to_keep=2)
-
     for i in range(10):
       file_path = f"{outdir}/{i:03d}.txt"
       with open(file_path, 'w'):
         max2keep.step(file_path)
+    pass
+
+    max2keep = MaxToKeep(max_to_keep=2)
+    for i in range(10):
+      file_path = f"{outdir}/{i:03d}"
+      os.makedirs(file_path, exist_ok=True)
+      max2keep.step(file_path)
     pass
