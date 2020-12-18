@@ -218,6 +218,16 @@ class Testing_v2_cfgnode(unittest.TestCase):
   def test_ddp(self):
     """
     Usage:
+        python template_lib/modelarts/scripts/copy_tool.py \
+          -s s3://bucket-7001/ZhouPeng/pypi/torch1_7_0 -d /cache/pypi -t copytree
+        for filename in /cache/pypi/*.whl; do
+            pip install $filename
+        done
+        proj_root=moco-exp
+        python template_lib/modelarts/scripts/copy_tool.py \
+          -s s3://bucket-7001/ZhouPeng/codes/$proj_root -d /cache/$proj_root -t copytree -b /cache/$proj_root/code.zip
+        cd /cache/$proj_root
+        pip install -r requirements.txt
 
         export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
         export TIME_STR=1
