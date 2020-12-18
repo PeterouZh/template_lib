@@ -245,12 +245,13 @@ def modelarts_copy_data(datapath_obs, datapath, overwrite=False, download=True, 
 
 def prepare_dataset(modelarts_datasets, global_cfg=None, download=True):
   """
-    modelarts_datasets:
+    modelarts_download:
       dataset_root:
         datapath_obs: 'root_obs/keras/coco'
         datapath: './datasets/coco'
         overwrite: false
         eval: true
+        unzip: false
   :return:
   """
   for k, v in modelarts_datasets.items():
