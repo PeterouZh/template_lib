@@ -17,7 +17,7 @@ class DumpModule(nn.Module):
 class D2Checkpointer(object):
 
   def __init__(self, model_dict, optim_dict, ckptdir,
-               period, max_to_keep, maxsize=sys.maxsize, state_dict=None):
+               period, max_to_keep=5, maxsize=sys.maxsize, state_dict=None):
 
     self.period = period
     self.max_to_keep = max_to_keep
