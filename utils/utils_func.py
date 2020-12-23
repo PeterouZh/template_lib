@@ -144,18 +144,6 @@ def get_arc_from_file(arc_file, arc_idx, nrows=1, sep=' '):
   return sample_arc.squeeze()
 
 
-def get_imagenet_label():
-  cur_dir = os.path.dirname(__file__)
-  label_file = os.path.join(cur_dir, 'imagenet_label.txt')
-  labels = {}
-  with open(label_file) as f:
-    for label_str in f.readlines():
-      class_idx, name = label_str.strip('{ ,\n').split(':')
-      name = name.strip("' ")
-      labels[int(class_idx)] = name
-  return labels
-
-
 class average_precision_score(object):
   @staticmethod
   def accuracy_score(y_true, y_pred, normalize=True):

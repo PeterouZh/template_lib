@@ -1,5 +1,4 @@
-
-
+import os
 
 
 def get_subdir2name_dict(map_file=None):
@@ -15,3 +14,17 @@ def get_subdir2name_dict(map_file=None):
   return subdir2name_dict
 
 subdir2name_dict = get_subdir2name_dict()
+
+
+def get_imagenet_label():
+  cur_dir = os.path.dirname(__file__)
+  label_file = os.path.join(cur_dir, 'imagenet_label.txt')
+  labels = {}
+  with open(label_file) as f:
+    for label_str in f.readlines():
+      class_idx, name = label_str.strip('{ ,\n').split(':')
+      name = name.strip("' ")
+      labels[int(class_idx)] = name
+  return labels
+
+
