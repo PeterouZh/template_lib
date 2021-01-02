@@ -227,6 +227,7 @@ def modelarts_copy_data(datapath_obs, datapath, overwrite=False, download=True, 
       else:
         # file
         print('Uploading file [%s] \n to [%s]' % (datapath, datapath_obs))
+        assert datapath_obs.endswith(os.path.basename(datapath))
         mox.file.copy(datapath, datapath_obs)
       print('End uploading [%s] \n to [%s]' % (datapath, datapath_obs))
   except ModuleNotFoundError:
