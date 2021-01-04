@@ -75,6 +75,7 @@ def setup_outdir_and_yaml(argv_str=None, return_cfg=False):
     for k, v in vars(args).items():
       if k.startswith('tl_'):
         global_cfg.merge_from_dict({k: v})
+    command_cfg.merge_from_dict(global_cfg)
     return args, command_cfg
   else:
     return args
