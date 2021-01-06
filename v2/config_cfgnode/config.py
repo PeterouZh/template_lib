@@ -83,6 +83,12 @@ class TLCfgNode(_CfgNode):
       cfg = TLCfgNode(cfg_dict)
       self.update(cfg)
 
+    def dump_to_dict(self):
+      from omegaconf import OmegaConf
+      cfg_dict = OmegaConf.create(global_cfg.dump())
+      return cfg_dict
+
+
 global_cfg = TLCfgNode()
 
 def set_global_cfg(cfg: TLCfgNode) -> None:

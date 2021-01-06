@@ -80,7 +80,7 @@ def get_root_logger(filename, stream=True, level=logging.INFO):
   return logger
 
 
-def get_logger(filename, logger_names=['template_lib', 'tl'], stream=True, level=logging.DEBUG):
+def get_logger(filename, logger_names=['template_lib', 'tl'], stream=True, level=logging.DEBUG, mode='a'):
   """
 
   :param filename:
@@ -93,18 +93,23 @@ def get_logger(filename, logger_names=['template_lib', 'tl'], stream=True, level
     logger = logging.getLogger(name)
     logger.setLevel(level)
     logger.propagate = False
-    set_hander(logger=logger, filename=filename, stream=stream, level=level)
+    set_hander(logger=logger, filename=filename, stream=stream, level=level, mode=mode)
   return logger
 
 
-def set_hander(logger, filename, stream=True, level=logging.INFO):
+def get_file_logger(filename, mode='w'):
+  logger = get_logger(filename=filename, logger_names=[], stream=False, mode=mode)
+  return logger
+
+
+def set_hander(logger, filename, stream=True, level=logging.INFO, mode='a'):
   formatter = logging.Formatter(
     "[%(asctime)s] %(name)s:%(lineno)s %(levelname)s: %(message)s \t[%(filename)s:%(funcName)s():%(lineno)s]",
     datefmt="%m/%d %H:%M:%S"
   )
   # formatter = logging.Formatter(FORMAT, datefmt=DATEFMT)
 
-  file_hander = logging.FileHandler(filename=filename, mode='a')
+  file_hander = logging.FileHandler(filename=filename, mode=mode)
   file_hander.setLevel(level=level)
   file_hander.setFormatter(formatter)
   logger.addHandler(file_hander)
@@ -114,7 +119,7 @@ def set_hander(logger, filename, stream=True, level=logging.INFO):
     org_formatters = []
     for handler in logger.handlers:
       org_formatters.append(handler.formatter)
-      handler.setFormatter(logging.Formatter("  %(message)s"))
+      handler.setFormatter(logging.Formatter("%(message)s"))
 
     logger.info(*argv)
 

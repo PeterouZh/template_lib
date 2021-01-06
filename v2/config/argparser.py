@@ -149,7 +149,7 @@ def start_cmd_run(cmd_str):
   elif cmd[0] == 'bash':
     process = subprocess.Popen(['/bin/bash', '-o', 'xtrace', '-c', ' '.join(cmd[1:])], env=current_env)
   else:
-    assert 0
+    process = subprocess.Popen(cmd, env=current_env)
 
   process.wait()
   if process.returncode != 0:
