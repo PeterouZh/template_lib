@@ -40,6 +40,12 @@ color_beauty_dict = {
 }
 
 
+def get_filelist_recursive(directory, ext='*.png'):
+  from pathlib import Path
+  file_list = list(Path(directory).rglob(ext))
+  return file_list
+
+
 class MaxToKeep(object):
   def __init__(self, max_to_keep=None):
     self.max_to_keep = max_to_keep
