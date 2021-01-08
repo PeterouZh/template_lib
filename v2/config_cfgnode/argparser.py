@@ -12,7 +12,7 @@ from ..config.argparser import (get_command_and_outdir, _setup_outdir, get_dict_
                                 get_append_cmd_str, start_cmd_run, parser_set_defaults)
 
 
-def build_parser(parser=None):
+def build_parser(parser=None, append_local_rank=False):
   if not parser:
     parser = argparse.ArgumentParser()
   parser.add_argument('--tl_config_file', type=str, default='')
@@ -24,6 +24,8 @@ def build_parser(parser=None):
   parser.add_argument('--tl_debug', action='store_true', default=False)
 
   parser.add_argument('--tl_time_str', type=str, default='')
+  if append_local_rank:
+    parser.add_argument("--local_rank", type=int, default=0)
   return parser
 
 
@@ -110,8 +112,9 @@ def setup_logger_global_cfg_global_textlogger(args, tl_textdir, is_main_process=
     cfg = {}
   return cfg, tl_logfile
 
-def update_parser_defaults_from_yaml(parser, name='args', use_cfg_as_args=False, is_main_process=True):
-  parser = build_parser(parser)
+def update_parser_defaults_from_yaml(parser, name='args', use_cfg_as_args=False,
+                                     is_main_process=True, append_local_rank=False):
+  parser = build_parser(parser, append_local_rank=append_local_rank)
 
   args, _ = parser.parse_known_args()
   tl_ckptdir = f'{args.tl_outdir}/ckptdir'
