@@ -1,3 +1,4 @@
+from typing import List, Any, Dict
 import sys
 import yaml
 import logging
@@ -85,8 +86,19 @@ class TLCfgNode(_CfgNode):
 
     def dump_to_dict(self):
       from omegaconf import OmegaConf
-      cfg_dict = OmegaConf.create(global_cfg.dump())
+      cfg_dict = OmegaConf.create(self.dump())
       return cfg_dict
+
+    def to_dict(self) -> Dict:
+      result = {}
+
+      for key in self.keys():
+        if isinstance(self.get(key), TLCfgNode):
+          result[key] = self.get(key).to_dict()
+        else:
+          result[key] = self.get(key)
+
+      return result
 
 
 global_cfg = TLCfgNode()
