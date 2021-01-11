@@ -289,7 +289,7 @@ def get_attr_eval(obj, name, **kwargs):
   return value
 
 
-def get_attr_kwargs(obj, name, **kwargs):
+def get_attr_kwargs(obj, name, kwargs_priority=False, **kwargs):
   if hasattr(obj, name):
     value = getattr(obj, name)
     if isinstance(value, str) and value.startswith('kwargs['):
@@ -298,6 +298,9 @@ def get_attr_kwargs(obj, name, **kwargs):
     value = kwargs[name]
   else:
     value = kwargs['default']
+
+  if kwargs_priority:
+    value = kwargs.get(name, value)
   return value
 
 
