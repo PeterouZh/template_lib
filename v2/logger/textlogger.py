@@ -19,7 +19,7 @@ class TextLogger(object):
   def __init__(self, log_root, reinitialize=False, logstyle='%10.6f'):
     self.root = log_root
     if log_root and not os.path.exists(self.root):
-      os.mkdir(self.root)
+      os.makedirs(self.root)
     self.reinitialize = reinitialize
     self.metrics = []
     # One of '%3.3f' or like '%3.3e'
