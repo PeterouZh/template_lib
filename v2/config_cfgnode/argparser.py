@@ -3,6 +3,7 @@ import argparse
 import logging
 import os
 import time
+import importlib
 
 from easydict import EasyDict
 
@@ -141,4 +142,10 @@ def update_parser_defaults_from_yaml(parser, name='args', use_cfg_as_args=False,
   for k, v in vars(args).items():
     if k.startswith('tl_'):
       global_cfg.merge_from_dict({k: v})
+
+  if "register_modules" in global_cfg:
+    for module in global_cfg.register_modules:
+      importlib.import_module(module)
+      logging.getLogger('tl').info(f"Register {module}...")
+
   return parser
