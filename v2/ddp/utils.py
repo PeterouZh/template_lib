@@ -2,9 +2,7 @@ import numpy as np
 import os
 import argparse
 import torch
-
-from template_lib.d2.utils import comm
-
+import torch.distributed as dist
 
 
 def main():
@@ -24,7 +22,8 @@ def main():
   if args.distributed:
     torch.cuda.set_device(args.local_rank)
     torch.distributed.init_process_group(backend="nccl", init_method="env://")
-    comm.synchronize()
+    # comm.synchronize()
+    dist.barrier()
 
   # eval(args.run_func)()
   return args
@@ -50,19 +49,24 @@ def ddp_init():
   if args.distributed:
     torch.cuda.set_device(args.local_rank)
     torch.distributed.init_process_group(backend="nccl", init_method="env://")
-    comm.synchronize()
+    # comm.synchronize()
+    dist.barrier()
 
   # eval(args.run_func)()
   return args
 
 
 def gather_tensor_of_master(tensor):
+  from template_lib.d2.utils import comm
+
   tensor_list = comm.all_gather(tensor)
   tensor = tensor_list[0].to(tensor.device)
   return tensor
 
 
 def gather_tensor(data):
+  from template_lib.d2.utils import comm
+
   data_list = comm.gather(data=data)
   if len(data_list) > 0:
     if isinstance(data, np.ndarray):
@@ -72,3 +76,9 @@ def gather_tensor(data):
   else:
     data = None
   return data
+
+def parser_local_rank():
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--local_rank", type=int, default=0)
+  args, _ = parser.parse_known_args()
+  return args.local_rank
