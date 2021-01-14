@@ -4,6 +4,7 @@ from torch import nn
 
 from detectron2.utils.logger import setup_logger
 from detectron2.checkpoint import Checkpointer, PeriodicCheckpointer
+import fvcore.common.checkpoint as fv_ckpt
 
 
 class DumpModule(nn.Module):
@@ -51,3 +52,46 @@ class D2Checkpointer(object):
 
   def save(self, name, **kwargs):
     self.periodic_checkpointer.save(name=name, **self.state_dict, **kwargs)
+
+
+class VisualModelCkpt(Checkpointer):
+  def __init__(self, model):
+    setup_logger(name='fvcore')
+    super(VisualModelCkpt, self).__init__(model, save_to_disk=False)
+    pass
+
+  def _load_from_path(self, checkpoint):
+
+    checkpoint_state_dict = checkpoint
+    self._convert_ndarray_to_tensor(checkpoint_state_dict)
+
+    # if the state_dict comes from a model that was wrapped in a
+    # DataParallel or DistributedDataParallel during serialization,
+    # remove the "module" prefix before performing the matching.
+    fv_ckpt._strip_prefix_if_present(checkpoint_state_dict, "module.")
+
+    # work around https://github.com/pytorch/pytorch/issues/24139
+    model_state_dict = self.model.state_dict()
+    incorrect_shapes = []
+    for k in list(checkpoint_state_dict.keys()):
+      if k in model_state_dict:
+        shape_model = tuple(model_state_dict[k].shape)
+        shape_checkpoint = tuple(checkpoint_state_dict[k].shape)
+        if shape_model != shape_checkpoint:
+          incorrect_shapes.append((k, shape_checkpoint, shape_model))
+          checkpoint_state_dict.pop(k)
+    # pyre-ignore
+    incompatible = self.model.load_state_dict(checkpoint_state_dict, strict=False)
+    return fv_ckpt._IncompatibleKeys(
+      missing_keys=incompatible.missing_keys,
+      unexpected_keys=incompatible.unexpected_keys,
+      incorrect_shapes=incorrect_shapes,
+    )
+
+  def load_from_path(self, path):
+    self.logger.info("Loading checkpoint from {}".format(path))
+    checkpoint = self._load_file(path)
+    incompatible = self._load_from_path(checkpoint)
+    if (incompatible is not None):  # handle some existing subclasses that returns None
+      self._log_incompatible_keys(incompatible)
+    return checkpoint
