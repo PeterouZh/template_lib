@@ -11,5 +11,5 @@ def build_GAN_metric(cfg, **kwargs):
     Note that it does not load any weights from ``cfg``.
     """
 
-    metric = GAN_METRIC_REGISTRY.get(cfg.name)(cfg=cfg, **kwargs)
-    return metric
+    return GAN_METRIC_REGISTRY.get(cfg.name)(cfg=cfg, **kwargs)
+
