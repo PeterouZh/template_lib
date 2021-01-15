@@ -38,6 +38,8 @@ class TestingTFFIDISScore(unittest.TestCase):
     """
     Usage:
         export LD_LIBRARY_PATH=$HOME/.keras/envs/cuda-10.0/lib64:$HOME/.keras/envs/cudnn-10.0-linux-x64-v7.6.5.32/lib64
+        export LD_LIBRARY_PATH=/usr/local/cuda-10.0/lib64
+
         export CUDA_VISIBLE_DEVICES=2
         export TIME_STR=0
         export PYTHONPATH=./
@@ -55,15 +57,17 @@ class TestingTFFIDISScore(unittest.TestCase):
 
     command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
     argv_str = f"""
-                --tl_config_file template_lib/v2/tests/configs/TFFIDISScore.yaml
+                --tl_config_file template_lib/v2/GAN/configs/TFFIDISScore.yaml
                 --tl_command {command}
                 --tl_outdir {outdir}
                 """
     args = setup_outdir_and_yaml(argv_str)
 
+    os.environ['LD_LIBRARY_PATH'] = '/usr/local/cuda-10.0/lib64'
+
     n_gpus = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
     cmd_str = f"""
-        python template_lib/v2/GAN/evaluation/tf_FID_IS_score.py
+        python template_lib/v2/GAN/scripts/calculate_fid_stat_CIFAR.py
         {get_append_cmd_str(args)}
         --tl_opts OUTPUT_DIR {args.tl_outdir}/detectron2
         """
