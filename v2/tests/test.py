@@ -215,7 +215,7 @@ class Testing_v2(unittest.TestCase):
 
 class Testing_v2_cfgnode(unittest.TestCase):
 
-  def test_ddp(self):
+  def test_ddp(self, debug=True):
     """
     Usage:
         python template_lib/modelarts/scripts/copy_tool.py \
@@ -260,8 +260,16 @@ class Testing_v2_cfgnode(unittest.TestCase):
         python -m torch.distributed.launch --nproc_per_node={n_gpus} --master_port=8888 
         template_lib/v2/ddp/train.py
         {get_append_cmd_str(args)}
-        --tl_opts {tl_opts}
         """
+    if debug:
+      cmd_str += f"""
+                  --tl_debug
+                  --tl_opts 
+                  """
+    else:
+      cmd_str += f"""
+                  --tl_opts {tl_opts}
+                  """
     start_cmd_run(cmd_str)
     # from template_lib.v2.config_cfgnode import update_parser_defaults_from_yaml, global_cfg
     # from template_lib.modelarts import modelarts_utils

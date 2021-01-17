@@ -22,7 +22,7 @@ def _convert_dict_2_CfgNode(config):
     else:
       val = config[k]
       if isinstance(config[k], list):
-        if isinstance(config[k][0], dict):
+        if len(config[k]) > 0 and isinstance(config[k][0], dict):
           temp = list(map(dict, config[k]))
           val = temp
           pass
