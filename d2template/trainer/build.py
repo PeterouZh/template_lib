@@ -15,5 +15,4 @@ def build_trainer(cfg, **kwargs):
     Build the whole model architecture, defined by ``cfg.MODEL.META_ARCHITECTURE``.
     Note that it does not load any weights from ``cfg``.
     """
-    name = cfg.trainer.name
-    return TRAINER_REGISTRY.get(name)(cfg=cfg, **kwargs)
+    return TRAINER_REGISTRY.get(cfg.name)(cfg=cfg, **kwargs)

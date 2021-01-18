@@ -12,7 +12,6 @@ def build_optimizer(cfg, **kwargs):
     Build the whole model architecture, defined by ``cfg.MODEL.META_ARCHITECTURE``.
     Note that it does not load any weights from ``cfg``.
     """
-    name = cfg.name
-    return OPTIMIZER_REGISTRY.get(name)(cfg, **kwargs)
+    return OPTIMIZER_REGISTRY.get(cfg.name)(cfg, **kwargs)
 
 

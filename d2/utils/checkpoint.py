@@ -1,6 +1,7 @@
 import sys
 import torch
 from torch import nn
+from torch.nn.parallel import DistributedDataParallel
 
 from detectron2.utils.logger import setup_logger
 from detectron2.checkpoint import Checkpointer, PeriodicCheckpointer
@@ -10,7 +11,10 @@ import fvcore.common.checkpoint as fv_ckpt
 class DumpModule(nn.Module):
   def __init__(self, model_dict):
     super(DumpModule, self).__init__()
+
     for name, model in model_dict.items():
+      if isinstance(model, DistributedDataParallel):
+        model = model.module
       setattr(self, name, model)
     pass
 
