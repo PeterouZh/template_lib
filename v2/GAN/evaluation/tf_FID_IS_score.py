@@ -688,7 +688,6 @@ class TFFIDISScore(object):
     from template_lib.d2template.trainer.base_trainer import build_detection_test_loader
     from template_lib.v2.GAN.evaluation import build_GAN_metric
     from template_lib.d2.utils.d2_utils import D2Utils
-    from template_lib.d2.data import build_cifar10, build_cifar100
     from template_lib.v2.config_cfgnode import global_cfg
 
     from detectron2.utils import logger
