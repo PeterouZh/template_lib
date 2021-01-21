@@ -1,3 +1,4 @@
+import pprint
 import logging
 import sys
 import torch
@@ -7,8 +8,6 @@ from torch.nn.parallel import DistributedDataParallel
 from detectron2.utils.logger import setup_logger
 from detectron2.checkpoint import Checkpointer, PeriodicCheckpointer
 import fvcore.common.checkpoint as fv_ckpt
-
-from template_lib.utils import MaxToKeep
 
 
 class DumpModule(nn.Module):
@@ -67,6 +66,14 @@ class D2Checkpointer(object):
 
   def save(self, name, **kwargs):
     self.periodic_checkpointer.save(name=name, **self.state_dict, **kwargs)
+
+  def resume_or_load(self, path, resume=True):
+    loaded_dict = self.checkpointer.resume_or_load(path=path, resume=resume)
+    self.logger.info("Loading state_dict: \n" + pprint.pformat(loaded_dict))
+    for k in self.state_dict.keys():
+      if k in loaded_dict:
+        self.state_dict[k] = loaded_dict[k]
+    return loaded_dict
 
 
 class VisualModelCkpt(Checkpointer):
