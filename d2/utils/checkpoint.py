@@ -8,6 +8,8 @@ from detectron2.utils.logger import setup_logger
 from detectron2.checkpoint import Checkpointer, PeriodicCheckpointer
 import fvcore.common.checkpoint as fv_ckpt
 
+from template_lib.utils import MaxToKeep
+
 
 class DumpModule(nn.Module):
   def __init__(self, model_dict):
@@ -23,11 +25,12 @@ class DumpModule(nn.Module):
 class D2Checkpointer(object):
 
   def __init__(self, model_dict, optim_dict, ckptdir,
-               period, max_to_keep=5, maxsize=sys.maxsize, state_dict=None):
+               period, max_to_keep=5, maxsize=sys.maxsize, state_dict=None, save_circle=False):
 
-    self.period = period
+    self.period = 1
     self.max_to_keep = max_to_keep
     self.maxsize = maxsize
+    self.save_circle = save_circle
 
     self.state_dict = state_dict if state_dict is not None else {}
 
@@ -35,6 +38,7 @@ class D2Checkpointer(object):
 
     self.checkpointer = self.get_d2_checkpointer(model_dict=model_dict, optim_dict=optim_dict, ckptdir=ckptdir)
     self.periodic_checkpointer = self.get_d2_periodic_checkpointer()
+
     pass
 
   @staticmethod
@@ -53,7 +57,13 @@ class D2Checkpointer(object):
     return periodic_checkpointer
 
   def step(self, itr, **kwargs):
-    self.periodic_checkpointer.step(itr, **self.state_dict, **kwargs)
+    if self.save_circle:
+      itr = itr % self.max_to_keep
+      saved_name = f"model_{itr:08d}"
+      self.periodic_checkpointer.save(name=saved_name, **self.state_dict, **kwargs)
+    else:
+      self.periodic_checkpointer.step(itr, **self.state_dict, **kwargs)
+    pass
 
   def save(self, name, **kwargs):
     self.periodic_checkpointer.save(name=name, **self.state_dict, **kwargs)
