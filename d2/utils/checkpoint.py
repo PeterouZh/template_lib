@@ -1,3 +1,4 @@
+import logging
 import sys
 import torch
 from torch import nn
@@ -60,7 +61,9 @@ class D2Checkpointer(object):
 
 class VisualModelCkpt(Checkpointer):
   def __init__(self, model):
-    setup_logger(name='fvcore')
+    logger = logging.getLogger('fvcore')
+    if len(logger.handlers) == 0:
+      setup_logger(name='fvcore')
     super(VisualModelCkpt, self).__init__(model, save_to_disk=False)
     pass
 

@@ -65,7 +65,7 @@ def setup_outdir_and_yaml(argv_str=None, return_cfg=False):
   logger.info('\nargs:\n' + args_str)
 
   # git
-  get_git_hash(logger)
+  # get_git_hash(logger)
 
   if args.tl_command.lower() == 'none':
     return args
