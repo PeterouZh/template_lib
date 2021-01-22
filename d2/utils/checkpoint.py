@@ -9,6 +9,8 @@ from detectron2.utils.logger import setup_logger
 from detectron2.checkpoint import Checkpointer, PeriodicCheckpointer
 import fvcore.common.checkpoint as fv_ckpt
 
+from template_lib.utils import print_number_params
+
 
 class DumpModule(nn.Module):
   def __init__(self, model_dict):
@@ -35,6 +37,9 @@ class D2Checkpointer(object):
 
     self.logger = setup_logger(output=ckptdir, name='fvcore')
 
+    for k, v in model_dict.items():
+      self.logger.info(f"{k}:\n{v}")
+    print_number_params(model_dict, logger=self.logger)
     self.checkpointer = self.get_d2_checkpointer(model_dict=model_dict, optim_dict=optim_dict, ckptdir=ckptdir)
     self.periodic_checkpointer = self.get_d2_periodic_checkpointer()
 

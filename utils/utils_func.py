@@ -248,12 +248,16 @@ class AverageMeter():
     self.avg = self.sum / self.count
 
 
-def print_number_params(models_dict):
-  logger = logging.getLogger('tl')
+def print_number_params(models_dict, logger=None):
+  if logger is None:
+    logger = logging.getLogger('tl')
   for label, model in models_dict.items():
-    logger.info('Number of params in {}:\t {}M'.format(
-      label, sum([p.data.nelement() for p in model.parameters()])/1e6
-    ))
+    if model is None:
+      logger.info(f'Number of params in {label}:\t 0M')
+    else:
+      logger.info('Number of params in {}:\t {}M'.format(
+        label, sum([p.data.nelement() for p in model.parameters()])/1e6
+      ))
 
 
 def get_ddp_attr(obj, attr=None, **kwargs):
