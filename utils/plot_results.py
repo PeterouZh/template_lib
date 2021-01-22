@@ -1,3 +1,4 @@
+import pickle
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
@@ -106,52 +107,7 @@ class PlotResults(object):
 
 class TestingPlot(unittest.TestCase):
 
-  def test_plot_FID_CBN_location(self):
-    """
-
-    """
-    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
-      os.environ['CUDA_VISIBLE_DEVICES'] = '3'
-    if 'PORT' not in os.environ:
-      os.environ['PORT'] = '6006'
-    if 'TIME_STR' not in os.environ:
-      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
-    # func name
-    assert sys._getframe().f_code.co_name.startswith('test_')
-    command = sys._getframe().f_code.co_name[5:]
-    class_name = self.__class__.__name__[7:] \
-      if self.__class__.__name__.startswith('Testing') \
-      else self.__class__.__name__
-    outdir = f'results/{class_name}/{command}'
-
-    from datetime import datetime
-    TIME_STR = bool(int(os.getenv('TIME_STR', 0)))
-    time_str = datetime.now().strftime("%Y%m%d-%H_%M_%S_%f")[:-3]
-    outdir = outdir if not TIME_STR else (outdir + '_' + time_str)
-
-    from template_lib.utils.plot_results import PlotResults
-    import collections, shutil
-
-    shutil.rmtree(outdir, ignore_errors=True)
-    os.makedirs(outdir, exist_ok=True)
-
-    outfigure = os.path.join(outdir, 'top1.jpg')
-    default_dicts = []
-    show_max = []
-
-    top1 = collections.defaultdict(dict)
-    top1['results/CIFAR10/train_cifar10_20200410-13_41_09_498'] = \
-      {'CBN_all_blocks': 'textlog/evaltf.ma0.FID_tf.log', }
-    top1['properties'] = {'title': 'top1', }
-    default_dicts.append(top1)
-    show_max.append(False)
-
-    plotobs = PlotResults()
-    label2datas_list = plotobs.plot_defaultdicts(
-      outfigure=outfigure, default_dicts=default_dicts, show_max=show_max, figsize_wh=(16, 7.2))
-    pass
-
-  def test_plot_FID_cifar10_style_position(self):
+  def test_plot_figures_template(self):
     """
     python -c "from exp.tests.test_styleganv2 import Testing_stylegan2_style_position;\
       Testing_stylegan2_style_position().test_plot_FID_cifar10_style_position()"
@@ -174,6 +130,7 @@ class TestingPlot(unittest.TestCase):
 
     from template_lib.utils.plot_results import PlotResults
     import collections
+    import pickle
 
     outfigure = os.path.join(outdir, 'FID.jpg')
     default_dicts = []
@@ -194,4 +151,11 @@ class TestingPlot(unittest.TestCase):
     label2datas_list = plotobs.plot_defaultdicts(
       outfigure=outfigure, default_dicts=default_dicts, show_max=show_max, figsize_wh=(16, 7.2))
     print(f'Save to {outfigure}.')
+
+    saved_data = '__'.join(outdir.split('/')[-2:])
+    saved_data = f"{outdir}/{saved_data}.pkl"
+    with open(saved_data, 'wb') as f:
+        pickle.dump(label2datas_list, f)
+    print(f"Save data to {saved_data}")
     pass
+
