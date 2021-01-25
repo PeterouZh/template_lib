@@ -39,10 +39,11 @@ def setup_config(config_file, args):
   cfg.dump_to_file(args.tl_saved_config_file)
 
   command_cfg = TLCfgNode.load_yaml_with_command(config_file, command=args.tl_command)
-  saved_command_cfg = TLCfgNode(new_allowed=True)
-  setattr(saved_command_cfg, args.tl_command, command_cfg)
-  saved_command_cfg.dump_to_file(args.tl_saved_config_command_file)
-
+  command_cfg.dump_to_file_with_command(saved_file=args.tl_saved_config_command_file,
+                                        command=args.tl_command)
+  # saved_command_cfg = TLCfgNode(new_allowed=True)
+  # setattr(saved_command_cfg, args.tl_command, command_cfg)
+  # saved_command_cfg.dump_to_file(args.tl_saved_config_command_file)
   return cfg, command_cfg
 
 
@@ -101,14 +102,16 @@ def setup_logger_global_cfg_global_textlogger(args, tl_textdir, is_main_process=
     assert os.path.exists(args.tl_config_file)
     cfg = TLCfgNode.load_yaml_with_command(args.tl_config_file, args.tl_command)
     cfg.merge_from_list(args.tl_opts)
+
+    cfg.tl_saved_config_file = f"{args.tl_outdir}/config_command.yaml"
     set_global_cfg(cfg)
     logging.getLogger('tl').info("\nglobal_cfg: \n" + get_dict_str(global_cfg))
-    saved_command_cfg = TLCfgNode(new_allowed=True)
-    setattr(saved_command_cfg, args.tl_command, cfg)
-    global_cfg.tl_saved_config_file = f"{args.tl_outdir}/config_command.yaml"
     time.sleep(0.1)
     if is_main_process:
-      saved_command_cfg.dump_to_file(global_cfg.tl_saved_config_file)
+      cfg.dump_to_file_with_command(saved_file=global_cfg.tl_saved_config_file, command=args.tl_command)
+      # saved_command_cfg = TLCfgNode(new_allowed=True)
+      # setattr(saved_command_cfg, args.tl_command, cfg)
+      # saved_command_cfg.dump_to_file(global_cfg.tl_saved_config_file)
   else:
     cfg = {}
   return cfg, tl_logfile
