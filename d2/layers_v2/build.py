@@ -9,5 +9,4 @@ def build_d2layer_v2(cfg, **kwargs):
     Build the whole model architecture, defined by ``cfg.MODEL.META_ARCHITECTURE``.
     Note that it does not load any weights from ``cfg``.
     """
-    name = cfg.name
-    return D2LAYERv2_REGISTRY.get(name)(cfg=cfg, **kwargs)
+    return D2LAYERv2_REGISTRY.get(cfg.name)(cfg=cfg, **kwargs)

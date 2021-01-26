@@ -46,6 +46,13 @@ def setup_config(config_file, args):
   return cfg, command_cfg
 
 
+def register_modules():
+  if "register_modules" in global_cfg:
+    for module in global_cfg.register_modules:
+      importlib.import_module(module)
+      logging.getLogger('tl').info(f"Register {module}...")
+
+
 def setup_outdir_and_yaml(argv_str=None, return_cfg=False):
   """
   Usage:
@@ -75,6 +82,7 @@ def setup_outdir_and_yaml(argv_str=None, return_cfg=False):
   logger.info(f"\nThe cfg: \n{get_dict_str(command_cfg)}")
   if return_cfg:
     global_cfg.merge_from_dict(command_cfg)
+    register_modules()
     for k, v in vars(args).items():
       if k.startswith('tl_'):
         global_cfg.merge_from_dict({k: v})

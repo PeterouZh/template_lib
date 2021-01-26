@@ -13,10 +13,9 @@ class Adam(optim.Adam):
   params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
                  weight_decay=0, amsgrad=False
   """
-  def __init__(self, cfg, **kwargs):
+  def __init__(self, cfg, params, **kwargs):
 
     # fmt: off
-    params            = kwargs['params']
     lr                = get_attr_kwargs(cfg, 'lr', default=1e-3, **kwargs)
     betas             = get_attr_kwargs(cfg, 'betas', default=(0.9, 0.999), **kwargs)
     eps               = get_attr_kwargs(cfg, 'eps', default=1e-8, **kwargs)

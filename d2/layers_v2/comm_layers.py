@@ -2,7 +2,10 @@ import torch.nn as nn
 
 from template_lib.utils import get_attr_kwargs
 
+from .build import D2LAYERv2_REGISTRY
 
+
+@D2LAYERv2_REGISTRY.register()
 class Linear(nn.Linear):
   def __init__(self, cfg, **kwargs):
 
@@ -17,6 +20,7 @@ class Linear(nn.Linear):
     pass
 
 
+@D2LAYERv2_REGISTRY.register()
 class ReLU(nn.ReLU):
   def __init__(self, cfg, **kwargs):
 
@@ -28,6 +32,7 @@ class ReLU(nn.ReLU):
     pass
 
 
+@D2LAYERv2_REGISTRY.register()
 class LeakyReLU(nn.LeakyReLU):
   def __init__(self, cfg, **kwargs):
     # fmt: off
