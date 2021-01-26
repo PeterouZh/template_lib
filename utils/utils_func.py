@@ -1,7 +1,9 @@
+import importlib
 import shutil
 from easydict import EasyDict
 import numpy as np
 import os
+import sys
 import re
 import logging
 from numpy import array_equal
@@ -38,6 +40,16 @@ color_beauty_dict = {
   'light_blue': '#0CE6DA',
   'blue': '#1F5CFA'
 }
+
+
+def register_modules(register_modules):
+  for module in register_modules:
+    if module not in sys.modules:
+      imported_module = importlib.import_module(module)
+    else:
+      importlib.reload(sys.modules[module])
+    logging.getLogger('tl').info(f"  Register {module}")
+  pass
 
 
 def get_filelist_recursive(directory, ext='*.png'):
