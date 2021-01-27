@@ -1,4 +1,6 @@
-from .build import build_d2distributions
+from .build import build_distributions, DISTRIBUTIONS_REGISTRY
 
-# from .distributions import Normal, Categorical, CategoricalUniform, Uniform
-# from .fairnas_noise_sample import FairNASNormal, FairNASCategoricalUniform
+
+
+
+

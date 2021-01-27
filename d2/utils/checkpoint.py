@@ -35,7 +35,9 @@ class D2Checkpointer(object):
 
     self.state_dict = state_dict if state_dict is not None else {}
 
-    self.logger = setup_logger(output=ckptdir, name='fvcore')
+    self.logger = logging.getLogger('fvcore')
+    if len(self.logger.handlers) == 0:
+      self.logger = setup_logger(output=ckptdir, name='fvcore')
 
     for k, v in model_dict.items():
       self.logger.info(f"{k}:\n{v}")
