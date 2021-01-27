@@ -47,14 +47,22 @@ def setup_config(config_file, args):
   return cfg, command_cfg
 
 
+def _register_modules(register_modules):
+  for module in register_modules:
+    if module not in sys.modules:
+      imported_module = importlib.import_module(module)
+    else:
+      importlib.reload(sys.modules[module])
+    logging.getLogger('tl').info(f"  Register {module}")
+  pass
+
 def register_modules():
   if "register_modules" in global_cfg:
-    for module in global_cfg.register_modules:
-      importlib.import_module(module)
-      logging.getLogger('tl').info(f"Register {module}...")
+    _register_modules(register_modules=global_cfg.register_modules)
+  pass
 
 
-def setup_outdir_and_yaml(argv_str=None, return_cfg=False):
+def setup_outdir_and_yaml(argv_str=None, return_cfg=False, register_module=False):
   """
   Usage:
 
@@ -83,7 +91,8 @@ def setup_outdir_and_yaml(argv_str=None, return_cfg=False):
   logger.info(f"\nThe cfg: \n{get_dict_str(command_cfg)}")
   if return_cfg:
     global_cfg.merge_from_dict(command_cfg)
-    register_modules()
+    if register_module:
+      register_modules()
     for k, v in vars(args).items():
       if k.startswith('tl_'):
         global_cfg.merge_from_dict({k: v})
