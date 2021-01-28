@@ -26,14 +26,14 @@ class DumpModule(nn.Module):
 class D2Checkpointer(object):
 
   def __init__(self, model_dict, optim_dict, ckptdir,
-               period, max_to_keep=5, maxsize=sys.maxsize, state_dict=None, save_circle=False):
+               period=1, max_to_keep=5, maxsize=sys.maxsize, state_dict=None, save_circle=False):
 
     self.period = 1
     self.max_to_keep = max_to_keep
     self.maxsize = maxsize
     self.save_circle = save_circle
 
-    self.state_dict = state_dict if state_dict is not None else {}
+    self.state_dict = state_dict if state_dict is not None else {'itr': 0, 'epoch': 0}
 
     self.logger = logging.getLogger('fvcore')
     if len(self.logger.handlers) == 0:
@@ -76,10 +76,11 @@ class D2Checkpointer(object):
 
   def resume_or_load(self, path, resume=True):
     loaded_dict = self.checkpointer.resume_or_load(path=path, resume=resume)
-    self.logger.info("Loading state_dict: \n" + pprint.pformat(loaded_dict))
+    self.logger.info("Unloaded keys: \n" + pprint.pformat(list(loaded_dict.keys())))
     for k in self.state_dict.keys():
       if k in loaded_dict:
         self.state_dict[k] = loaded_dict[k]
+    self.logger.info("Loaded state_dict: \n" + pprint.pformat(self.state_dict))
     return loaded_dict
 
 
