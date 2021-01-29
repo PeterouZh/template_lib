@@ -2,30 +2,34 @@ import torch
 from torch import  distributions
 
 from template_lib.utils import get_attr_kwargs
-from .build import D2DISTRIBUTIONS_REGISTRY
+from .build import DISTRIBUTIONS_REGISTRY
 
 
-@D2DISTRIBUTIONS_REGISTRY.register()
+@DISTRIBUTIONS_REGISTRY.register()
 class Normal(distributions.normal.Normal):
 
   def __init__(self, cfg, **kwargs):
-
+    # fmt: off
     loc                                 = get_attr_kwargs(cfg, 'loc', default=0, **kwargs)
     scale                               = get_attr_kwargs(cfg, 'scale', default=1, **kwargs)
     self.sample_shape                   = get_attr_kwargs(cfg, 'sample_shape', default=None, **kwargs)
+    # fmt: on
 
     super(Normal, self).__init__(loc=loc, scale=scale)
+
     pass
 
   def sample(self, sample_shape=None):
     if sample_shape is None:
-      sample = super(Normal, self).sample(sample_shape=self.sample_shape)
+      sample = distributions.normal.Normal.sample(self, self.sample_shape)
+      # sample = super(Normal, self).sample(sample_shape=self.sample_shape)
     else:
-      sample = super(Normal, self).sample(sample_shape=sample_shape)
+      sample = distributions.normal.Normal.sample(self, sample_shape)
+      # sample = super(Normal, self).sample(sample_shape=sample_shape)
     return sample
 
 
-@D2DISTRIBUTIONS_REGISTRY.register()
+@DISTRIBUTIONS_REGISTRY.register()
 class Categorical(distributions.Categorical):
 
   def __init__(self, cfg, **kwargs):
@@ -49,14 +53,15 @@ class Categorical(distributions.Categorical):
     return sample
 
 
-@D2DISTRIBUTIONS_REGISTRY.register()
+@DISTRIBUTIONS_REGISTRY.register()
 class CategoricalUniform(distributions.Categorical):
 
   def __init__(self, cfg, **kwargs):
-
+    # fmt: off
     n_classes                             = get_attr_kwargs(cfg, 'n_classes', **kwargs)
     validate_args                         = get_attr_kwargs(cfg, 'validate_args', default=None, **kwargs)
     self.sample_shape                     = get_attr_kwargs(cfg, 'sample_shape', default=None, **kwargs)
+    # fmt: on
 
     if isinstance(self.sample_shape, int):
       self.sample_shape = [self.sample_shape, ]
@@ -67,13 +72,15 @@ class CategoricalUniform(distributions.Categorical):
 
   def sample(self, sample_shape=None):
     if sample_shape is None:
-      sample = super(CategoricalUniform, self).sample(sample_shape=self.sample_shape)
+      sample = distributions.Categorical.sample(self, sample_shape=self.sample_shape)
+      # sample = super(CategoricalUniform, self).sample(sample_shape=self.sample_shape)
     else:
-      sample = super(CategoricalUniform, self).sample(sample_shape=sample_shape)
+      sample = distributions.Categorical.sample(self, sample_shape=sample_shape)
+      # sample = super(CategoricalUniform, self).sample(sample_shape=sample_shape)
     return sample
 
 
-@D2DISTRIBUTIONS_REGISTRY.register()
+@DISTRIBUTIONS_REGISTRY.register()
 class ConstantValue(object):
 
   def __init__(self, cfg, **kwargs):
@@ -93,7 +100,7 @@ class ConstantValue(object):
     return sample
 
 
-@D2DISTRIBUTIONS_REGISTRY.register()
+@DISTRIBUTIONS_REGISTRY.register()
 class Uniform(distributions.uniform.Uniform):
 
   def __init__(self, cfg, **kwargs):

@@ -42,16 +42,6 @@ color_beauty_dict = {
 }
 
 
-def register_modules(register_modules):
-  for module in register_modules:
-    if module not in sys.modules:
-      imported_module = importlib.import_module(module)
-    else:
-      importlib.reload(sys.modules[module])
-    logging.getLogger('tl').info(f"  Register {module}")
-  pass
-
-
 def get_filelist_recursive(directory, ext='*.png'):
   from pathlib import Path
   file_list = list(Path(directory).rglob(ext))

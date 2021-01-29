@@ -3,11 +3,9 @@ from .utils_func import (is_debugging, get_prefix_abb, get_eval_attr, get_ddp_at
                          get_ddp_module, rawgencount, array_eq_in_list,
                          get_arc_from_file, topk_errors, array2string,
                          print_exceptions, get_git_hash, colors_dict, color_beauty_dict, time2string,
-                         make_zip, unzip_file, MaxToKeep, get_filelist_recursive, register_modules)
+                         make_zip, unzip_file, MaxToKeep, get_filelist_recursive, )
 
-# from . import config
-# from . import args_parser
-# from .logging_utils import TextLogger
-#
-# from .config import update_config
+from template_lib.v2.utils import (register_modules, reload_module, )
+
+
 

@@ -7,6 +7,7 @@ from torchvision import transforms
 
 from template_lib.d2.data_v2 import DATASET_REGISTRY, DATALOADER_REGISTRY, build_dataset, build_dataloader
 from template_lib.utils import get_attr_kwargs
+from template_lib.v2.utils import get_dict_str
 
 
 @DATASET_REGISTRY.register()
@@ -42,8 +43,9 @@ class DDPDataLoaderCIFAR10(DataLoader_base):
     num_workers               = get_attr_kwargs(cfg, 'num_workers', default=0, **kwargs)
     pin_memory                = get_attr_kwargs(cfg, 'pin_memory', default=True, **kwargs)
 
-
     # fmt: on
+    kwargs_dict = dict(distributed=distributed, batch_size=batch_size, shuffle=shuffle)
+    logging.getLogger('tl').info(f"kwargs: \n {get_dict_str(kwargs_dict)}")
 
     train_transform = transforms.Compose([
       transforms.ToTensor(),
@@ -56,7 +58,7 @@ class DDPDataLoaderCIFAR10(DataLoader_base):
         dataset, shuffle=shuffle, seed=seed, drop_last=drop_last)
       super(DDPDataLoaderCIFAR10, self).__init__(
         dataset, batch_size=batch_size, shuffle=False, sampler=self.ddp_sampler,
-        num_workers=num_workers, pin_memory=pin_memory)
+        num_workers=num_workers, pin_memory=pin_memory, drop_last=drop_last)
     else:
       super(DDPDataLoaderCIFAR10, self).__init__(
         dataset, batch_size=batch_size, shuffle=shuffle,

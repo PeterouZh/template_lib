@@ -12,6 +12,7 @@ import yaml
 from easydict import EasyDict
 
 from .config import setup_config, set_global_cfg
+from ..utils import get_dict_str
 
 from template_lib.v2.logger import get_logger, set_global_textlogger, TextLogger
 from template_lib.utils import get_git_hash
@@ -157,14 +158,6 @@ def start_cmd_run(cmd_str):
   if process.returncode != 0:
     raise subprocess.CalledProcessError(returncode=process.returncode, cmd=cmd)
   pass
-
-
-def get_dict_str(dict_obj):
-  message = ''
-  message += '----------------- start ---------------\n'
-  message += json.dumps(dict_obj, indent=2)
-  message += '----------------- End -------------------'
-  return message
 
 
 def setup_outdir_and_yaml(argv_str=None, return_cfg=False):
