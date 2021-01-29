@@ -19,8 +19,9 @@ from torch.nn.parallel import DistributedDataParallel
 
 from template_lib.d2.utils import comm
 from template_lib.v2.config import update_config
-
+from template_lib.utils import get_attr_kwargs
 from template_lib.v2.GAN.evaluation import GAN_METRIC_REGISTRY
+
 
 __all__ = ['PyTorchFIDISScore']
 
@@ -250,16 +251,16 @@ def calculate_inception_score(pred, num_splits=10):
 @GAN_METRIC_REGISTRY.register()
 class PyTorchFIDISScore(object):
 
-  def __init__(self, cfg):
+  def __init__(self, cfg, **kwargs):
     """
 
     """
     # fmt: off
     self.torch_fid_stat                   = cfg.torch_fid_stat
-    self.num_inception_images             = getattr(cfg, 'num_inception_images', 50000)
-    self.IS_splits                        = getattr(cfg, 'IS_splits', 10)
-    self.calculate_FID_use_torch          = getattr(cfg, 'calculate_FID_use_torch', False)
-    self.no_FID                           = getattr(cfg, 'no_FID', False)
+    self.num_inception_images             = get_attr_kwargs(cfg, 'num_inception_images', default=50000, **kwargs)
+    self.IS_splits                        = get_attr_kwargs(cfg, 'IS_splits', default=10, **kwargs)
+    self.calculate_FID_use_torch          = get_attr_kwargs(cfg, 'calculate_FID_use_torch', default=False, **kwargs)
+    self.no_FID                           = get_attr_kwargs(cfg, 'no_FID', default=False, **kwargs)
     # fmt: on
 
     self.logger = logging.getLogger('tl')
@@ -356,8 +357,8 @@ class PyTorchFIDISScore(object):
     comm.synchronize()
     return IS_mean_torch, IS_std_torch, FID_torch
 
-  def calculate_fid_stat_of_dataloader(self, data_loader, sample_func=None, return_fid_stat=False, num_images=float('inf'),
-                                       stdout=sys.stdout):
+  def calculate_fid_stat_of_dataloader(
+        self, data_loader, sample_func=None, return_fid_stat=False, num_images=float('inf'), save_fid_stat=True):
     if sample_func is None:
       class SampleClass(object):
         def __init__(self, data_loader):
@@ -367,16 +368,18 @@ class PyTorchFIDISScore(object):
           :return: images: [-1, 1]
           """
           inputs = next(self.data_iter)
-          images = [x["image"].to('cuda') for x in inputs]
-          images = torch.stack(images)
+          # images = [x["image"].to('cuda') for x in inputs]
+          # images = torch.stack(images)
+          images, labels = inputs
+          images = images.to('cuda')
           return images
       sample_func = SampleClass(data_loader)
 
-    num_inception_images = len(next(iter(data_loader))) * len(data_loader)
+    data, label = next(iter(data_loader))
+    num_inception_images = len(data) * len(data_loader)
     num_inception_images = min(num_images, num_inception_images)
     pool, logits = self._accumulate_inception_activations(
-      sample_func, net=self.inception_net, num_inception_images=num_inception_images,
-      as_numpy=True, stdout=stdout)
+      sample_func, net=self.inception_net, num_inception_images=num_inception_images, as_numpy=True)
 
     pool = self._gather_data(pool[:num_inception_images], is_numpy=True)
     logits = self._gather_data(logits[:num_inception_images], is_numpy=True)
@@ -394,10 +397,11 @@ class PyTorchFIDISScore(object):
       IS_mean, IS_std = calculate_inception_score(logits, self.IS_splits)
       self.logger.info(f'dataset IS_mean: {IS_mean:.3f} +- {IS_std}')
 
-      mu, sigma = self._get_FID_stat(pool=pool)
-      self.logger.info(f'Saving torch_fid_stat to {self.torch_fid_stat}')
-      os.makedirs(os.path.dirname(self.torch_fid_stat), exist_ok=True)
-      np.savez(self.torch_fid_stat, **{'mu': mu, 'sigma': sigma})
+      if save_fid_stat:
+        mu, sigma = self._get_FID_stat(pool=pool)
+        self.logger.info(f'Saving torch_fid_stat to {self.torch_fid_stat}')
+        os.makedirs(os.path.dirname(self.torch_fid_stat), exist_ok=True)
+        np.savez(self.torch_fid_stat, **{'mu': mu, 'sigma': sigma})
     comm.synchronize()
 
   def _get_FID_stat(self, pool):
@@ -473,22 +477,6 @@ class PyTorchFIDISScore(object):
       return G_z
 
   @staticmethod
-  def update_cfg(cfg):
-    if not getattr(cfg, 'update_cfg', False):
-      return cfg
-
-    cfg_str = """
-                GAN_metric:
-                  name: PyTorchFIDISScore
-                  torch_fid_stat: "datasets/tf_fid_stat_{dataset_name}_{img_size}.npz"
-                  num_inception_images: 50000
-
-                """
-    default_cfg = EasyDict(yaml.safe_load(cfg_str))
-    cfg = update_config(default_cfg, cfg)
-    return cfg
-
-  @staticmethod
   def test_case_evaluate_FID_IS():
     import torch
     from template_lib.v2.GAN.evaluation import build_GAN_metric
@@ -528,9 +516,3 @@ class PyTorchFIDISScore(object):
     pass
 
 
-if __name__ == '__main__':
-  from template_lib.v2.ddp import main
-  args = main()
-
-  eval(args.run_func)()
-  pass
