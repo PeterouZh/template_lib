@@ -1,0 +1,16 @@
+ddp_calculate_fid_stat_CIFAR10:
+  update_cfg: true
+  dataset_name: "cifar10_train"
+  IMS_PER_BATCH: 32
+  img_size: 32
+  NUM_WORKERS: 0
+  dataset_mapper_cfg:
+    name: CIFAR10DatasetMapper
+  GAN_metric:
+    name: PyTorchFIDISScore
+    torch_fid_stat: "datasets/fid_stats_torch_cifar10.npz"
+    num_inception_images: 50000
+
+
+
+

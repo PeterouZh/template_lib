@@ -34,12 +34,12 @@ def ddp_init():
   use config_cfgnode
   """
   from template_lib.v2.config_cfgnode import update_parser_defaults_from_yaml
+  from template_lib.v2.ddp import parser_local_rank
 
-  parser = argparse.ArgumentParser()
-  parser.add_argument("--local_rank", type=int, default=0)
-  parser.add_argument("--run_func", type=str)
+  rank = parser_local_rank()
 
-  update_parser_defaults_from_yaml(parser)
+  parser = update_parser_defaults_from_yaml(parser=None, append_local_rank=True,
+                                            is_main_process=(rank==0))
 
   args = parser.parse_args()
 
