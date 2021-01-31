@@ -355,7 +355,7 @@ class PyTorchFIDISScore(object):
     self.logger.info('Elapsed time: %s' % (time_str))
     del pool, logits
     comm.synchronize()
-    return IS_mean_torch, IS_std_torch, FID_torch
+    return FID_torch, IS_mean_torch, IS_std_torch
 
   def calculate_fid_stat_of_dataloader(
         self, data_loader, sample_func=None, return_fid_stat=False, num_images=float('inf'), save_fid_stat=True):
