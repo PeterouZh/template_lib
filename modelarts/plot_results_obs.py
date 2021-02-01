@@ -112,6 +112,7 @@ class PlotResultsObs(object):
           label2datas[label] = data
       axes[idx].legend(prop={'size': legend_size})
       axes[idx].set(**default_dict['properties'])
+      axes[idx].grid(b=True, which='major', color='#666666', linestyle='--', alpha=0.2)
 
       label2datas_list.append(label2datas)
 
