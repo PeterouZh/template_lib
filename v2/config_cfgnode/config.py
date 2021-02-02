@@ -100,6 +100,14 @@ class TLCfgNode(_CfgNode):
 
       return result
 
+    @staticmethod
+    def load_yaml_file(cfg_filename: str, allow_unsafe=False):
+      """
+      """
+      loaded_cfg = TLCfgNode.load_yaml_with_base(cfg_filename, allow_unsafe=allow_unsafe)
+      cfg = TLCfgNode(loaded_cfg)
+      return cfg
+
 
 global_cfg = TLCfgNode()
 

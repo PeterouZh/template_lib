@@ -15,7 +15,7 @@ from .config import setup_config, set_global_cfg
 from ..utils import get_dict_str
 
 from template_lib.v2.logger import get_logger, set_global_textlogger, TextLogger
-from template_lib.utils import get_git_hash
+from template_lib.v2.utils import get_git_hash
 
 
 def get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__):

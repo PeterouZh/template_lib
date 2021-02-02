@@ -6,9 +6,8 @@ import logging, os
 import datetime
 import sys
 
-from template_lib.utils import get_prefix_abb
-from template_lib.utils.plot_utils import plot_figure, plot_defaultdict2figure
-
+from template_lib.v2.utils.plot_utils import plot_figure, plot_defaultdict2figure
+from template_lib.v2.utils import get_prefix_abb
 
 class TextLogger(object):
   """
