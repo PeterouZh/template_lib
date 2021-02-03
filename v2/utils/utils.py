@@ -23,7 +23,8 @@ def reload_module(module):
 
 def register_modules(register_modules):
   for module in register_modules:
-    reload_module(module=module)
+    importlib.import_module(module)
+    # reload_module(module=module)
     logging.getLogger('tl').info(f"  Register {module}")
   pass
 
@@ -56,3 +57,5 @@ def get_git_hash(logger=None):
     print(traceback.format_exc())
   os.chdir(cwd)
   return sha
+
+
