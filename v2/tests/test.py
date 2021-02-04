@@ -244,6 +244,9 @@ class Testing_v2_cfgnode(unittest.TestCase):
     from template_lib.v2.config_cfgnode.argparser import \
       (get_command_and_outdir, setup_outdir_and_yaml, get_append_cmd_str, start_cmd_run)
 
+    tl_opts = ' '.join(sys.argv[sys.argv.index('--tl_opts') + 1:]) if '--tl_opts' in sys.argv else ''
+    print(f'tl_opts:\n {tl_opts}')
+
     command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
     argv_str = f"""
                 --tl_config_file template_lib/v2/tests/configs/config.yaml
@@ -251,9 +254,6 @@ class Testing_v2_cfgnode(unittest.TestCase):
                 --tl_outdir {outdir}
                 """
     args = setup_outdir_and_yaml(argv_str)
-
-    tl_opts = ' '.join(sys.argv[sys.argv.index('--tl_opts') + 1:]) if '--tl_opts' in sys.argv else ''
-    print(f'tl_opts:\n {tl_opts}')
 
     n_gpus = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
     cmd_str = f"""

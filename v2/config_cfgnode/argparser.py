@@ -39,6 +39,7 @@ def setup_config(config_file, args):
   cfg.dump_to_file(args.tl_saved_config_file)
 
   command_cfg = TLCfgNode.load_yaml_with_command(config_file, command=args.tl_command)
+  command_cfg.merge_from_list(args.tl_opts)
   command_cfg.dump_to_file_with_command(saved_file=args.tl_saved_config_command_file,
                                         command=args.tl_command)
   # saved_command_cfg = TLCfgNode(new_allowed=True)
@@ -77,8 +78,7 @@ def setup_outdir_and_yaml(argv_str=None, return_cfg=False, register_module=False
 
   # get logger
   logger = get_logger(filename=args.tl_logfile, logger_names=['template_lib', 'tl'], stream=True)
-  args_str = get_dict_str(args)
-  logger.info('\nargs:\n' + args_str)
+  logger.info('\nargs:\n' + get_dict_str(args))
 
   # git
   # get_git_hash(logger)
@@ -91,8 +91,8 @@ def setup_outdir_and_yaml(argv_str=None, return_cfg=False, register_module=False
   logger.info(f"\nThe cfg: \n{get_dict_str(command_cfg)}")
   if return_cfg:
     global_cfg.merge_from_dict(command_cfg)
-    if register_module:
-      register_modules()
+    # if register_module:
+    #   register_modules()
     for k, v in vars(args).items():
       if k.startswith('tl_'):
         global_cfg.merge_from_dict({k: v})
