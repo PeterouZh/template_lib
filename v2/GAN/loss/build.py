@@ -15,9 +15,10 @@
 #
 
 import logging
-from fvcore.common.registry import Registry
+# from fvcore.common.registry import Registry
 
 from template_lib.utils import register_modules
+from template_lib.v2.utils.registry import Registry
 
 
 REGISTRY = Registry("GAN_LOSS_REGISTRY")  # noqa F401 isort:skip
@@ -30,7 +31,7 @@ def _build(cfg, **kwargs):
     logging.getLogger('tl').info(f"Building {cfg.name} ...")
     register_modules(register_modules=cfg.get('register_modules', {}))
     ret = REGISTRY.get(cfg.name)(cfg=cfg, **kwargs)
-    REGISTRY._obj_map.clear()
+    # REGISTRY._obj_map.clear()
     return ret
 
 def build_GAN_loss(cfg, **kwargs):

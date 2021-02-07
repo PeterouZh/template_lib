@@ -253,7 +253,7 @@ class Testing_v2_cfgnode(unittest.TestCase):
                 --tl_command {command}
                 --tl_outdir {outdir}
                 """
-    args = setup_outdir_and_yaml(argv_str)
+    args, cfg = setup_outdir_and_yaml(argv_str, return_cfg=True)
 
     n_gpus = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
     cmd_str = f"""
