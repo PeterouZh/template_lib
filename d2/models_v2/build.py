@@ -18,10 +18,10 @@ def _build(cfg, **kwargs):
     # REGISTRY._obj_map.clear()
     return ret
 
-def build_model(cfg, **kwargs):
+def build_model(cfg, kwargs_priority=False, **kwargs):
     """
     Build the whole model architecture, defined by ``cfg.MODEL.META_ARCHITECTURE``.
     Note that it does not load any weights from ``cfg``.
     """
-    return _build(cfg, **kwargs)
+    return _build(cfg, kwargs_priority=kwargs_priority, **kwargs)
 
