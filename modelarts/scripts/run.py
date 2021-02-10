@@ -198,15 +198,26 @@ if __name__ == '__main__':
     time_str = ''
 
   # setup sys.argv
+  print(f"sys.argv in: ")
+  pprint.pprint(sys.argv)
   argv = [sys.argv[0], ]
   for v in sys.argv[1:]:
-    argv.extend(v.split('='))
+    if '=' in v:
+      name, value = v.split('=')
+      if name == '--tl_opts':
+        argv.append(name)
+        argv.extend(value.split(' '))
+      else:
+        argv.extend([name, value])
+    else:
+      argv.append(v)
   sys.argv.clear()
   sys.argv.extend(argv)
 
   sys.argv[sys.argv.index('--tl_outdir') + 1] = f"{sys.argv[sys.argv.index('--tl_outdir') + 1]}-{time_str}_{tmp_args.number:02d}"
   shutil.rmtree(sys.argv[sys.argv.index('--tl_outdir') + 1], ignore_errors=True)
 
+  print(f"sys.argv processed: ")
   pprint.pprint(sys.argv)
   parser = update_parser_defaults_from_yaml(parser=parser, use_cfg_as_args=True)
   logger = logging.getLogger('tl')

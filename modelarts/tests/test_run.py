@@ -19,6 +19,17 @@ class TestingRun(unittest.TestCase):
           --tl_command run \
           --tl_outdir results/Run/run \
           --number 1
+
+        # default image
+        /bucket-8280/ZhouPeng/codes/Omni-GAN-ImageNet/template_lib/modelarts/scripts/run.py
+          number = 3
+          tl_outdir = results/Run/run
+          tl_config_file = template_lib/modelarts/tests/configs/run.yaml
+          tl_opts = root_obs s3://bucket-8280/liulin/ZhouPeng/
+          tl_command = run
+
+        # self defined image
+        bash /home/work/run_train.sh python /home/work/user-job-dir/Omni-GAN-ImageNet/template_lib/modelarts/scripts/run.py --tl_outdir=results/Run/run --tl_config_file=/home/work/user-job-dir/Omni-GAN-ImageNet/template_lib/modelarts/tests/configs/run.yaml --tl_command=run --tl_opts=root_obs s3://bucket-8280/liulin/ZhouPeng/ --number=2
     :return:
     """
     if 'CUDA_VISIBLE_DEVICES' not in os.environ:
