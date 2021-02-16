@@ -14,6 +14,7 @@ REGISTRY.__doc__ = """
 def _build(cfg, **kwargs):
     logging.getLogger('tl').info(f"Building {cfg.name} ...")
     register_modules(register_modules=cfg.get('register_modules', {}))
+    print("")
     ret = REGISTRY.get(cfg.name)(cfg=cfg, **kwargs)
     # REGISTRY._obj_map.clear()
     return ret
