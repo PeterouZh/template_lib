@@ -252,6 +252,7 @@ class Testing_v2_cfgnode(unittest.TestCase):
                 --tl_config_file template_lib/v2/tests/configs/config.yaml
                 --tl_command {command}
                 --tl_outdir {outdir}
+                --tl_opts {tl_opts}
                 """
     args, cfg = setup_outdir_and_yaml(argv_str, return_cfg=True)
 
