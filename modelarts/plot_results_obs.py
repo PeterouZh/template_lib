@@ -119,23 +119,39 @@ class PlotResultsObs(object):
     return label2datas_list
 
 
-def test():
-  import collections, os
+import unittest
+class Testing_plot_results_obs(unittest.TestCase):
 
-  default_dicts = []
-  show_max = []
+  def test_plot_results(self, ):
+    import collections, os
 
-  top1_val = collections.defaultdict(dict)
-  title = 'top1_val'
-  log_file = 'textdir/epochVal.ma1.ValTop1.log'
-  dd = eval(title)
-  dd['results/proj/CIFAR10/train_R56_cifar10_20200923-23_55_05_422/'] = \
-    {'23_55_05_422-resnet-R56': log_file, }
+    default_dicts = []
+    show_max = []
 
-  dd['properties'] = {'title': title, 'ylim': [0, 80]}
-  default_dicts.append(dd)
-  show_max.append(False)
+    FID = collections.defaultdict(dict)
+    title = 'FID'
+    log_file = 'textdir/evaltorch.ma2.FID.log'
+    dd = eval(title)
+    dd['results/Omni-GAN-ImageNet/OmniInrGAN_ImageNet256/train_ImageNet256-20210126_161550_248'] = \
+      {'20210126_161550_248-OmniInrGAN256-Gwd.1e-4-nd.2-bs.128x2': log_file, }
 
-  plotobs = PlotResultsObs()
-  plotobs.plot_defaultdicts(default_dicts=default_dicts, show_max=show_max, bucket='7001', figsize_wh=(16, 7.2))
-  pass
+    dd['properties'] = {'title': title, }
+    default_dicts.append(dd)
+    show_max.append(False)
+
+
+    plotobs = PlotResultsObs()
+    label2datas_list = plotobs.plot_defaultdicts(default_dicts=default_dicts, show_max=show_max, bucket='7001',
+                                                 figsize_wh=(16, 7.2))
+    pass
+
+  def test_save_results_list(self):
+    import moxing as mox
+    import pickle
+
+    obs_path = "s3://bucket-7001/ZhouPeng/results/Omni-GAN-ImageNet/data"
+    saved_data = 'OmniGAN_ImageNet128_results.pkl'
+    with open(saved_data, 'wb') as f:
+      pickle.dump(label2datas_list, f)
+    mox.file.copy(saved_data, f'{obs_path}/{saved_data}')
+    pass
