@@ -32,4 +32,15 @@ def main():
 
 
 if __name__ == '__main__':
+  """
+  python template_lib/modelarts/scripts/copy_file_list.py \
+          -s s3://bucket-7001/ZhouPeng/results/Omni-GAN-ImageNet/OmniInrGAN_ImageNet256/train_ImageNet256-20210214_134020_858 \
+          -d /cache/Omni-GAN-ImageNet/results/OmniInrGAN_ImageNet256/train_ImageNet256-20210214_134020_858 \
+          -l  biggan/weights \
+              biggan/logs \
+              config_command.yaml \
+              config.yaml \
+              log.txt \
+              textdir/
+  """
   main()
