@@ -16,7 +16,7 @@ def get_subdir2name_dict(map_file=None):
 subdir2name_dict = get_subdir2name_dict()
 
 
-def get_imagenet_label():
+def get_imagenet_id2class_for_classification():
   cur_dir = os.path.dirname(__file__)
   label_file = os.path.join(cur_dir, 'imagenet_label.txt')
   id_to_label = {}
