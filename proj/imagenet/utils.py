@@ -1,7 +1,7 @@
 import os
 
 
-def get_subdir2name_dict(map_file=None):
+def _get_subdir2name_dict(map_file=None):
   if map_file is None:
     map_file = "template_lib/proj/imagenet/map_subdir2name.txt"
   with open(map_file, 'r') as f:
@@ -13,7 +13,13 @@ def get_subdir2name_dict(map_file=None):
     subdir2name_dict[subdir] = name
   return subdir2name_dict
 
-subdir2name_dict = get_subdir2name_dict()
+subdir2name_dict = _get_subdir2name_dict()
+
+def get_subdir2name_dict(map_file=None):
+  if map_file is None:
+    return subdir2name_dict
+  else:
+    return _get_subdir2name_dict(map_file=map_file)
 
 
 def get_imagenet_id2class_for_classification():
