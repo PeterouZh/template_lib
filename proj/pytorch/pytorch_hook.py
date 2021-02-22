@@ -1,12 +1,71 @@
-import os
-import subprocess
-import sys
+from typing import Dict, Iterable, Callable
+import copy
 import unittest
-import argparse
 
-from template_lib.examples import test_bash
-from template_lib import utils
-from template_lib.nni import update_nni_config_file
+import torch
+from torch import nn, Tensor
+
+__all__ = ["VerboseModel", "FeatureExtractor", ]
+
+class VerboseModel(nn.Module):
+  def __init__(self, model: nn.Module, submodels=None):
+    super().__init__()
+    self.model = copy.deepcopy(model)
+
+    # Register a hook for each layer
+    for name, layer in self.model.named_children():
+      layer.__name__ = name
+      layer.register_forward_hook(self._hook())
+
+    if submodels is not None:
+      if not isinstance(submodels, (list, tuple)):
+        submodels = list(submodels)
+      for submodel in submodels:
+        for name, layer in getattr(self.model, submodel).named_children():
+          layer.__name__ = f"{submodel}.{name}"
+          layer.register_forward_hook(self._hook())
+    pass
+
+  def _hook(self, ) -> Callable:
+    def fn(layer, input, output):
+      if hasattr(input[0], 'shape'):
+        input_shape = str(list(input[0].shape))
+      else:
+        input_shape = str(type(input[0]))
+
+      if hasattr(output, 'shape'):
+        output_shape = str(list(output.shape))
+      else:
+        output_shape = str(type(output))
+      print(f"{layer.__name__:<30}: {input_shape:<30}->{output_shape}")
+
+    return fn
+
+  def forward(self, x: Tensor) -> Tensor:
+    return self.model(x)
+
+
+class FeatureExtractor(nn.Module):
+  def __init__(self, model: nn.Module, layers: Iterable[str]):
+    super().__init__()
+    self.model = model
+    self.layers = layers
+    self._features = {layer: torch.empty(0) for layer in layers}
+
+    for layer_id in layers:
+      layer = dict([*self.model.named_modules()])[layer_id]
+      layer.register_forward_hook(self.save_outputs_hook(layer_id))
+    pass
+
+  def save_outputs_hook(self, layer_id: str) -> Callable:
+    def fn(_, __, output):
+      self._features[layer_id] = output
+    return fn
+
+  def forward(self, x: Tensor) -> Dict[str, Tensor]:
+    self._features.clear()
+    _ = self.model(x)
+    return self._features
 
 
 class PytorchHook(unittest.TestCase):
@@ -88,6 +147,35 @@ class PytorchHook(unittest.TestCase):
       print(forward_return - hook_record[0])
 
     pass
+
+  def test_VerboseModel(self):
+
+    from torchvision.models.segmentation import deeplabv3_resnet101
+
+    verbose_resnet = VerboseModel(deeplabv3_resnet101(pretrained=True), submodels=['backbone', 'classifier', ])
+    dummy_input = torch.ones(10, 3, 256, 256)
+    _ = verbose_resnet(dummy_input)
+
+    pass
+
+  def test_FeatureExtractor(self):
+
+    from torchvision.models import resnet50
+
+    verbose_resnet = VerboseModel(resnet50())
+    dummy_input = torch.ones(10, 3, 224, 224)
+
+    resnet_features = FeatureExtractor(resnet50(), layers=["layer4", "avgpool", ])
+    features = resnet_features(dummy_input)
+
+    print({name: output.shape for name, output in features.items()})
+
+    pass
+
+
+
+
+
 
 
 
