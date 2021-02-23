@@ -276,6 +276,12 @@ def get_attr_eval(obj, name, **kwargs):
 
 
 def get_attr_kwargs(obj, name, kwargs_priority=False, tl_ret_kwargs={}, **kwargs):
+  """
+  kwargs['tl_ret_kwargs'] = {}
+  if verbose:
+    logging.getLogger('tl').info(f"  {self.__class__.__name__} kwargs: {get_dict_str(kwargs['tl_ret_kwargs'])}")
+
+  """
   if hasattr(obj, name):
     value = getattr(obj, name)
     if isinstance(value, str) and value.startswith('kwargs['):
