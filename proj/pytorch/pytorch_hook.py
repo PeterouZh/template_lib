@@ -5,7 +5,7 @@ import unittest
 import torch
 from torch import nn, Tensor
 
-__all__ = ["VerboseModel", "FeatureExtractor", ]
+__all__ = ["VerboseModel", "FeatureExtractor", "GradExtractor", ]
 
 class VerboseModel(nn.Module):
   def __init__(self, model: nn.Module, submodels=None):
@@ -66,6 +66,32 @@ class FeatureExtractor(nn.Module):
     self._features.clear()
     _ = self.model(x)
     return self._features
+
+
+class GradExtractor(nn.Module):
+  def __init__(self, model: nn.Module, param_names: Iterable[str]=[]):
+    super().__init__()
+    self.model = model
+    self.param_names = param_names
+    self._grads = {}
+
+    for name, param in model.named_parameters():
+      print(f"{name:<30}: {list(param.shape)}")
+      if name in self.param_names:
+        param.register_hook(hook=self._hook(name))
+    pass
+
+  def _hook(self, name: str) -> Callable:
+    def fn(grad):
+      self._grads[name] = grad.clone()
+      return grad
+    return fn
+
+  def forward(self, x: Tensor) -> Dict[str, Tensor]:
+    self._grads.clear()
+    out = self.model(x)
+    return out
+
 
 
 class PytorchHook(unittest.TestCase):
@@ -171,6 +197,22 @@ class PytorchHook(unittest.TestCase):
     print({name: output.shape for name, output in features.items()})
 
     pass
+
+  def test_GradExtractor(self):
+
+    from torchvision.models import resnet50
+
+    resnet_grad = GradExtractor(resnet50(), param_names=['fc.weight', 'conv1.weight'])
+    dummy_input = torch.ones(10, 3, 224, 224)
+
+    out = resnet_grad(dummy_input)
+    loss = out.mean()
+    loss.backward()
+    grads = resnet_grad._grads
+    print({name: output.mean() for name, output in grads.items()})
+
+    pass
+
 
 
 
