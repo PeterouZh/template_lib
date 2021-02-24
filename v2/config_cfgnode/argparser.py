@@ -130,7 +130,14 @@ def setup_logger_global_cfg_global_textlogger(args, tl_textdir, is_main_process=
       # setattr(saved_command_cfg, args.tl_command, cfg)
       # saved_command_cfg.dump_to_file(global_cfg.tl_saved_config_file)
   else:
-    cfg = {}
+    cfg = TLCfgNode()
+    cfg.merge_from_list(args.tl_opts, new_allowed=True)
+
+    cfg.tl_saved_config_file = f"{args.tl_outdir}/config_command.yaml"
+    set_global_cfg(cfg)
+    logging.getLogger('tl').info("\nglobal_cfg: \n" + get_dict_str(global_cfg))
+    if is_main_process:
+      cfg.dump_to_file_with_command(saved_file=global_cfg.tl_saved_config_file, command=args.tl_command)
   return cfg, tl_logfile
 
 def update_parser_defaults_from_yaml(parser, name='args', use_cfg_as_args=False,
