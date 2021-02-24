@@ -4,13 +4,18 @@ import logging
 import sys
 import importlib
 import json
+import pprint
+import collections
 
 
-def get_dict_str(dict_obj):
+def get_dict_str(dict_obj, use_pprint=True):
   message = ''
   message += '----------------- start ---------------\n'
-  message += json.dumps(dict_obj, indent=2)
-  message += '----------------- End -------------------'
+  if use_pprint:
+    message += pprint.pformat(collections.OrderedDict(dict_obj))
+  else:
+    message += json.dumps(dict_obj, indent=2)
+  message += '\n----------------- End -------------------'
   return message
 
 
