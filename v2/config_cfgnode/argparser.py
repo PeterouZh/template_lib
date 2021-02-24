@@ -84,7 +84,8 @@ def setup_outdir_and_yaml(argv_str=None, return_cfg=False, register_module=False
   # get_git_hash(logger)
 
   if args.tl_command.lower() == 'none':
-    return args
+    if return_cfg: return args, None
+    else: return args
 
   # Load yaml
   cfg, command_cfg = setup_config(config_file=args.tl_config_file, args=args)
