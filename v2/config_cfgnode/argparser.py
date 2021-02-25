@@ -78,7 +78,7 @@ def setup_outdir_and_yaml(argv_str=None, return_cfg=False, register_module=False
 
   # get logger
   logger = get_logger(filename=args.tl_logfile, logger_names=['template_lib', 'tl'], stream=True)
-  logger.info('\nargs:\n' + get_dict_str(args))
+  logger.info('\nargs:\n' + get_dict_str(args, use_pprint=False))
 
   # git
   # get_git_hash(logger)
@@ -123,7 +123,7 @@ def setup_logger_global_cfg_global_textlogger(args, tl_textdir, is_main_process=
 
     cfg.tl_saved_config_file = f"{args.tl_outdir}/config_command.yaml"
     set_global_cfg(cfg)
-    logging.getLogger('tl').info("\nglobal_cfg: \n" + get_dict_str(global_cfg))
+    logging.getLogger('tl').info("\nglobal_cfg: \n" + get_dict_str(global_cfg, use_pprint=False))
     time.sleep(0.1)
     if is_main_process:
       cfg.dump_to_file_with_command(saved_file=global_cfg.tl_saved_config_file, command=args.tl_command)
