@@ -44,7 +44,11 @@ color_beauty_dict = {
 
 def get_filelist_recursive(directory, ext='*.png'):
   from pathlib import Path
-  file_list = list(Path(directory).rglob(ext))
+  if not isinstance(ext, list):
+    ext = [ext]
+  file_list = []
+  for _ext in ext:
+    file_list.extend(list(Path(directory).rglob(_ext)))
   return file_list
 
 
