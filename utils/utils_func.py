@@ -42,6 +42,31 @@ color_beauty_dict = {
 }
 
 
+def merge_image_pil(image_list, nrow: int = 8, saved_file=None) -> None:
+  from PIL import Image
+
+  max_h, max_w = 0, 0
+  image_list_np = []
+  for img in image_list:
+    img_np = np.array(img)
+    image_list_np.append(img_np)
+    max_h = max(max_h, img_np.shape[0])
+    max_w = max(max_w, img_np.shape[1])
+
+  ncol = (len(image_list) + nrow - 1) // nrow
+  merged_img_np = np.zeros(shape=(ncol * max_h, nrow * max_w, 3))
+  for idx, img_np in enumerate(image_list_np):
+    row = idx // nrow
+    col = idx % nrow
+    merged_img_np[row * max_h:(row * max_h + img_np.shape[0]),
+    col * max_w:(col * max_w + img_np.shape[1]), :] = img_np
+
+  img_pil = Image.fromarray(merged_img_np.astype(np.uint8))
+  if saved_file is not None:
+    img_pil.save(saved_file)
+  return img_pil
+
+
 def get_filelist_recursive(directory, ext='*.png'):
   from pathlib import Path
   if not isinstance(ext, list):
