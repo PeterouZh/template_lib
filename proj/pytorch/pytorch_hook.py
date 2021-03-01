@@ -1,12 +1,17 @@
+from operator import attrgetter
 import pickle
 from typing import Dict, Iterable, Callable
 import copy
 import unittest
+from termcolor import cprint
 
 import torch
 from torch import nn, Tensor
 
+from template_lib.utils import TermColor
+
 __all__ = ["VerboseModel", "FeatureExtractor", "GradExtractor", ]
+
 
 class VerboseModel(nn.Module):
   def __init__(self, model: nn.Module, submodels=None):
@@ -16,17 +21,23 @@ class VerboseModel(nn.Module):
     except:
       self.model = pickle.loads(pickle.dumps(model))
 
+    term_color = TermColor()
+
     # Register a hook for each layer
     for name, layer in self.model.named_children():
       layer.__name__ = name
+      layer.__term_color__ = term_color.black
       layer.register_forward_hook(self._hook())
 
     if submodels is not None:
       if not isinstance(submodels, (list, tuple)):
         submodels = list(submodels)
       for submodel in submodels:
-        for name, layer in getattr(self.model, submodel).named_children():
+        color = term_color.get_a_color()
+        sub_module = attrgetter(submodel)(self.model)
+        for name, layer in sub_module.named_children():
           layer.__name__ = f"{submodel}.{name}"
+          layer.__term_color__ = color
           layer.register_forward_hook(self._hook())
     pass
 
@@ -42,7 +53,8 @@ class VerboseModel(nn.Module):
       else:
         output_shape = str(type(output))
       num_params = sum([p.data.nelement() for p in layer.parameters()])/1e6
-      print(f"{layer.__name__:<30}: {input_shape:<30}->{output_shape:<20} {num_params}M")
+      cprint(f"{layer.__name__:<30}: {input_shape:<30}->{output_shape:<20} {num_params}M",
+             color=layer.__term_color__)
 
     return fn
 

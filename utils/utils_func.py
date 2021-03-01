@@ -42,6 +42,23 @@ color_beauty_dict = {
 }
 
 
+class TermColor(object):
+  """
+  export ANSI_COLORS_DISABLED=1
+  """
+  def __init__(self):
+    from termcolor import colored, COLORS
+    self.black = 'grey'
+    self.colors = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan']
+    self.cur_color = 0
+    pass
+
+  def get_a_color(self):
+    color = self.colors[self.cur_color]
+    self.cur_color += 1
+    return color
+
+
 def merge_image_pil(image_list, nrow: int = 8, saved_file=None) -> None:
   from PIL import Image
 
