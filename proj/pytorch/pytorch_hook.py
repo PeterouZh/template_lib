@@ -1,3 +1,4 @@
+import pickle
 from typing import Dict, Iterable, Callable
 import copy
 import unittest
@@ -10,7 +11,10 @@ __all__ = ["VerboseModel", "FeatureExtractor", "GradExtractor", ]
 class VerboseModel(nn.Module):
   def __init__(self, model: nn.Module, submodels=None):
     super().__init__()
-    self.model = copy.deepcopy(model)
+    try:
+      self.model = copy.deepcopy(model)
+    except:
+      self.model = pickle.loads(pickle.dumps(model))
 
     # Register a hook for each layer
     for name, layer in self.model.named_children():
@@ -37,12 +41,13 @@ class VerboseModel(nn.Module):
         output_shape = str(list(output.shape))
       else:
         output_shape = str(type(output))
-      print(f"{layer.__name__:<30}: {input_shape:<30}->{output_shape}")
+      num_params = sum([p.data.nelement() for p in layer.parameters()])/1e6
+      print(f"{layer.__name__:<30}: {input_shape:<30}->{output_shape:<20} {num_params}M")
 
     return fn
 
-  def forward(self, x: Tensor) -> Tensor:
-    return self.model(x)
+  def forward(self, *args, **kwargs) -> Tensor:
+    return self.model(*args, **kwargs)
 
 
 class FeatureExtractor(nn.Module):
