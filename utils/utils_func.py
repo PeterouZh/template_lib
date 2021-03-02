@@ -42,6 +42,19 @@ color_beauty_dict = {
 }
 
 
+class CircleNumber(object):
+  def __init__(self, max_to_keep=4):
+    self.max_to_keep = max_to_keep
+    self.cur_num = -1
+    pass
+
+  def get_number(self, ):
+    self.cur_num += 1
+    self.cur_num = self.cur_num % self.max_to_keep
+    number = f"{self.cur_num:02d}"
+    return number
+
+
 class TermColor(object):
   """
   export ANSI_COLORS_DISABLED=1

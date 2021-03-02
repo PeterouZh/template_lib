@@ -56,8 +56,14 @@ class OmniLoss(object):
       one_hot.scatter_(dim=1, index=label.view(-1, 1), value=filled_value)
     return one_hot
 
-  def __call__(self, pred, positive=None, negative=None,
-               default_label=None, margin=None, gamma=None, return_logits=False):
+  def __call__(self,
+               pred,
+               positive=None,
+               negative=None,
+               default_label=None,
+               margin=None,
+               gamma=None,
+               return_logits=False):
     default_label = self.default_label if default_label is None else default_label
     margin = self.margin if margin is None else margin
     gamma = self.gamma if gamma is None else gamma

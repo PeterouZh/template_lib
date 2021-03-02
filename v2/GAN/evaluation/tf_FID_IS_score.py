@@ -369,7 +369,7 @@ def sqrt_newton_schulz(A, numIters, dtype=None):
   return sA
 
 
-@GAN_METRIC_REGISTRY.register()
+@GAN_METRIC_REGISTRY.register(name_prefix=__name__)
 class TFFIDISScore(object):
   def __init__(self, cfg, **kwargs):
 
