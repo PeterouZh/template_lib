@@ -614,7 +614,7 @@ class Testing_scheduler(unittest.TestCase):
 
     pass
 
-  def test_CosineAnnealingLR(self, debug=True):
+  def test_CosineAnnealingWarmRestarts(self, debug=True):
     """
     Usage:
         python template_lib/modelarts/scripts/copy_tool.py \
