@@ -40,6 +40,15 @@ def setup_config(config_file, args):
 
   command_cfg = TLCfgNode.load_yaml_with_command(config_file, command=args.tl_command)
   command_cfg.merge_from_list(args.tl_opts)
+
+  if args.tl_resume:
+    temp_cfg = TLCfgNode.load_yaml_file(args.tl_config_file_resume)
+    assert len(temp_cfg) == 1
+    resume_cfg = list(temp_cfg.values())[0]
+    resume_cfg.update(command_cfg)
+    command_cfg = resume_cfg
+    logging.getLogger('tl').info(f"Merging resume_cfg: {args.tl_config_file_resume}")
+
   command_cfg.dump_to_file_with_command(saved_file=args.tl_saved_config_command_file,
                                         command=args.tl_command)
   # saved_command_cfg = TLCfgNode(new_allowed=True)
@@ -88,7 +97,7 @@ def setup_outdir_and_yaml(argv_str=None, return_cfg=False, register_module=False
     else: return args
 
   # Load yaml
-  cfg, command_cfg = setup_config(config_file=args.tl_config_file, args=args)
+  _, command_cfg = setup_config(config_file=args.tl_config_file, args=args)
   logger.info(f"\nThe cfg: \n{get_dict_str(command_cfg)}")
   if return_cfg:
     global_cfg.merge_from_dict(command_cfg)

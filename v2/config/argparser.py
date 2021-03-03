@@ -112,7 +112,7 @@ def update_parser_defaults_from_yaml(parser, name='args', use_cfg_as_args=False)
 def _setup_outdir(args, resume):
   if resume:
     args.tl_outdir = args.tl_resumedir
-    args.tl_config_file = os.path.join(args.tl_outdir, "config_command.yaml")
+    args.tl_config_file_resume = os.path.join(args.tl_outdir, "config_command.yaml")
     args.tl_time_str = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
   else:
     TIME_STR = bool(int(os.getenv('TIME_STR', 0)))
