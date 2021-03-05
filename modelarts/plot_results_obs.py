@@ -64,8 +64,8 @@ class PlotResultsObs(object):
     import os
     import moxing as mox
     import tempfile
-    if not isinstance(default_dicts, list):
-      default_dicts = [default_dicts]
+    assert isinstance(default_dicts, dict)
+
     if not isinstance(show_max, list):
       show_max = [show_max]
     assert len(show_max) == len(default_dicts)
@@ -75,8 +75,8 @@ class PlotResultsObs(object):
     bucket = self.root_obs_dict[bucket]
     root_dir = os.path.expanduser('~/results')
 
-    label2datas_list = []
-    for idx, default_dict in enumerate(default_dicts):
+    label2datas_list = {}
+    for idx, (dict_name, default_dict) in enumerate(default_dicts.items()):
       data_xlim = None
       axes_prop = default_dict.get('properties')
       if axes_prop is not None:
@@ -114,7 +114,7 @@ class PlotResultsObs(object):
       axes[idx].set(**default_dict['properties'])
       axes[idx].grid(b=True, which='major', color='#666666', linestyle='--', alpha=0.2)
 
-      label2datas_list.append(label2datas)
+      label2datas_list[dict_name] = label2datas
 
     return label2datas_list
 
@@ -125,7 +125,7 @@ class Testing_plot_results_obs(unittest.TestCase):
   def test_plot_results(self, ):
     import collections, os
 
-    default_dicts = []
+    default_dicts = collections.OrderedDict()
     show_max = []
 
     FID = collections.defaultdict(dict)
@@ -136,7 +136,7 @@ class Testing_plot_results_obs(unittest.TestCase):
       {'20210126_161550_248-OmniInrGAN256-Gwd.1e-4-nd.2-bs.128x2': log_file, }
 
     dd['properties'] = {'title': title, }
-    default_dicts.append(dd)
+    default_dicts[title] = dd
     show_max.append(False)
 
 
