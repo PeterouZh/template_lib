@@ -1,6 +1,6 @@
 import pickle
 import matplotlib
-matplotlib.use('agg')
+# matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -32,7 +32,8 @@ class PlotResults(object):
     
     def get_fig_axes(self, rows, cols, figsize_wh=(15, 7)):
         import matplotlib.pyplot as plt
-        plt.style.use('ggplot')
+        # plt.style.use('ggplot')
+        plt.style.use('seaborn-whitegrid')
         plt.rcParams['axes.prop_cycle'] = plt.cycler(
             color=['blue', 'green', 'red', 'cyan', 'magenta', 'black', 'orange', 'lime', 'tan', 'salmon', 'gold', 'darkred', 'darkblue'])
         fig, axes = plt.subplots(rows, cols, figsize=(figsize_wh[0]*cols, figsize_wh[1]*rows))
@@ -56,16 +57,14 @@ class PlotResults(object):
                           dpi=500, ):
 
         import tempfile
-        if not isinstance(default_dicts, list):
-            default_dicts = [default_dicts]
         if not isinstance(show_max, list):
             show_max = [show_max]
         assert len(show_max) == len(default_dicts)
 
         fig, axes = self.get_fig_axes(rows=len(default_dicts), cols=1, figsize_wh=figsize_wh)
 
-        label2datas_list = []
-        for idx, default_dict in enumerate(default_dicts):
+        label2datas_list = {}
+        for idx, (dict_name, default_dict) in enumerate(default_dicts.items()):
             data_xlim = None
             axes_prop = default_dict.get('properties')
             if axes_prop is not None:
@@ -99,9 +98,11 @@ class PlotResults(object):
                     label2datas[label] = data
             axes[idx].legend(prop={'size': legend_size})
             axes[idx].set(**default_dict['properties'])
+            axes[idx].grid(b=True, which='major', color='#666666', linestyle='--', alpha=0.2)
                     
-            label2datas_list.append(label2datas)
+            label2datas_list[dict_name] = label2datas
         fig.savefig(outfigure, dpi=dpi, bbox_inches='tight', pad_inches=0.1)
+        fig.show()
         return label2datas_list
 
 
@@ -132,24 +133,24 @@ class TestingPlot(unittest.TestCase):
     import collections
     import pickle
 
-    outfigure = os.path.join(outdir, 'FID.jpg')
-    default_dicts = []
+    outfigure = os.path.join(outdir, 'IS.jpg')
+    default_dicts = collections.OrderedDict()
     show_max = []
 
-    top1_randomlabel = collections.defaultdict(dict)
-    title = 'top1_randomlabel'
-    log_file = 'textdir/evaltf.ma0.FID_tf.log'
+    IS_GAN_cGANs_CIFAR100 = collections.defaultdict(dict)
+    title = 'IS_GAN_cGANs_CIFAR100'
+    log_file = 'textdir/evaltf.ma1.IS_mean_tf.log'
     dd = eval(title)
-    dd['results/CIFAR10/train_R56_cifar10_20200923-23_55_05_422/'] = \
-      {'23_55_05_422-resnet-R56': log_file, }
+    dd['results/stylegan2/train_cifar100-20201030_2234_241'] = \
+        {'20201030_2234_241-stylegan': "textdir/eval.ma1.IS_mean_tf.log", }
 
-    dd['properties'] = {'title': title, 'ylim': [0, 80]}
-    default_dicts.append(dd)
-    show_max.append(False)
+    dd['properties'] = {'title': title, }
+    default_dicts[title] = dd
+    show_max.append(True)
 
     plotobs = PlotResults()
     label2datas_list = plotobs.plot_defaultdicts(
-      outfigure=outfigure, default_dicts=default_dicts, show_max=show_max, figsize_wh=(16, 7.2))
+        outfigure=outfigure, default_dicts=default_dicts, show_max=show_max, figsize_wh=(16, 7.2))
     print(f'Save to {outfigure}.')
 
     saved_data = '__'.join(outdir.split('/')[-2:])
