@@ -422,12 +422,11 @@ class Testing_v2_cfgnode(unittest.TestCase):
 
     properties = cfg.get('properties', {})
     ax.set(**properties)
-    with open(cfg.data_pickle, 'rb') as f:
-      data_list = pickle.load(f)
-    load_data_dict = data_list[cfg.data_index]
 
     for idx, (_, data_dict) in enumerate(cfg.lines.items()):
-      data = load_data_dict[data_dict.key]
+      with open(data_dict.data_pkl, 'rb') as f:
+        loaded_data = pickle.load(f)
+      data = loaded_data[data_dict.dict_index][data_dict.data_index]
 
       if 'clip_x' in cfg:
         data_xlim = cfg.clip_x[-1]
@@ -448,6 +447,6 @@ class Testing_v2_cfgnode(unittest.TestCase):
     ax.legend(prop={'size': cfg.fontsize.legend_size}, ncol=1)
     fig.show()
     saved_file = os.path.join(args.tl_outdir, cfg.saved_file)
-    fig.savefig(saved_file, bbox_inches='tight', pad_inches=0.01)
+    fig.savefig(saved_file, bbox_inches='tight', pad_inches=0.0)
     print(f'Save to {saved_file}')
     pass
