@@ -427,6 +427,9 @@ class Testing_v2_cfgnode(unittest.TestCase):
       with open(data_dict.data_pkl, 'rb') as f:
         loaded_data = pickle.load(f)
       data = loaded_data[data_dict.dict_index][data_dict.data_index]
+      if 'xlim' in data_dict:
+        data_idx = np.logical_and(data[:, 0] < data_dict.xlim[1], data[:, 0] > data_dict.xlim[0])
+        data = data[data_idx]
 
       if 'clip_x' in cfg:
         data_xlim = cfg.clip_x[-1]
