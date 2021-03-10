@@ -1,3 +1,4 @@
+import copy
 from typing import Dict, Optional
 import logging
 from fvcore.common.registry import Registry as Registry_base
@@ -35,3 +36,31 @@ class Registry(Registry_base):
         return func_or_class
 
       return deco
+
+
+def build_from_cfg(cfg, registry, kwargs_priority, default_args=None):
+
+  if not isinstance(cfg, dict):
+    raise TypeError(f'cfg must be a dict, but got {type(cfg)}')
+  if 'name' not in cfg:
+    if default_args is None or 'type' not in default_args:
+      raise KeyError(
+        '`cfg` or `default_args` must contain the key "type", '
+        f'but got {cfg}\n{default_args}')
+  if not isinstance(registry, Registry):
+    raise TypeError('registry must be an Registry object, '
+                    f'but got {type(registry)}')
+  if not (isinstance(default_args, dict) or default_args is None):
+    raise TypeError('default_args must be a dict or None, '
+                    f'but got {type(default_args)}')
+
+  # cfg = cfg.clone()
+  cfg = copy.deepcopy(cfg)
+  if kwargs_priority:
+    args = {**cfg, **default_args}
+  else:
+    args = {**default_args, **cfg}
+
+  obj_type = args.pop('name')
+  obj_cls = registry.get(obj_type)
+  return obj_cls(**args)
