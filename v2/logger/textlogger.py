@@ -51,7 +51,7 @@ class TextLogger(object):
           self.reinit(arg)
         self.metrics += [arg]
       with open(file_path, 'a') as f:
-        f.write('%3d: %s\n' % (itr, self.logstyle % kwargs[arg]))
+        f.write('%3.4f: %s\n' % (itr, self.logstyle % kwargs[arg]))
 
   def log_axes(self, **kwargs):
     names = []
