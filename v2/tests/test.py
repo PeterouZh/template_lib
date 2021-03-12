@@ -414,6 +414,7 @@ class Testing_v2_cfgnode(unittest.TestCase):
     import pickle
     from template_lib.utils import colors_dict
 
+    plt.style.use('seaborn-whitegrid')
     fig, ax = plt.subplots()
     # ax.set_xticks(range(0, 600, 100))
     ax.tick_params(labelsize=cfg.fontsize.tick_fs)
@@ -447,6 +448,7 @@ class Testing_v2_cfgnode(unittest.TestCase):
       ax.plot(data[:, 0], data[:, 1], color=colors_dict[data_dict.color], **data_dict.properties)
       pass
 
+    ax.grid(b=True, which='major', color='#666666', linestyle='--', alpha=0.2)
     ax.legend(prop={'size': cfg.fontsize.legend_size}, ncol=1)
     fig.show()
     saved_file = os.path.join(args.tl_outdir, cfg.saved_file)
