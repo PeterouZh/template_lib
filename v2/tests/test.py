@@ -399,7 +399,6 @@ class Testing_v2_cfgnode(unittest.TestCase):
     from template_lib.v2.config_cfgnode.argparser import get_command_and_outdir, setup_outdir_and_yaml, \
       get_append_cmd_str, start_cmd_run
     from template_lib.v2.matplot import set_font
-    set_font()
 
     command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
     argv_str = f"""
@@ -415,6 +414,7 @@ class Testing_v2_cfgnode(unittest.TestCase):
     from template_lib.utils import colors_dict
 
     plt.style.use('seaborn-whitegrid')
+    set_font()
     fig, ax = plt.subplots()
     # ax.set_xticks(range(0, 600, 100))
     ax.tick_params(labelsize=cfg.fontsize.tick_fs)
