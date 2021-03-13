@@ -227,6 +227,54 @@ class Testing_PrepareImageNet(unittest.TestCase):
     modelarts_utils.modelarts_sync_results_dir(global_cfg, join=True)
     pass
 
+  def test_extract_imagenet_val_for_selection(self):
+    """
+    Usage:
+        proj_root=moco-exp
+        python template_lib/modelarts/scripts/copy_tool.py \
+          -s s3://bucket-7001/ZhouPeng/codes/$proj_root -d /cache/$proj_root -t copytree
+        cd /cache/$proj_root
+
+        export CUDA_VISIBLE_DEVICES=0
+        export TIME_STR=0
+        export PYTHONPATH=./
+        python -c "from template_lib.proj.imagenet.tests.test_imagenet import Testing_PrepareImageNet;\
+          Testing_PrepareImageNet().test_extract_imagenet_val_for_selection()"
+
+    :return:
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+    from template_lib.v2.config_cfgnode.argparser import \
+      (get_command_and_outdir, setup_outdir_and_yaml, get_append_cmd_str, start_cmd_run)
+    from template_lib.v2.config_cfgnode import update_parser_defaults_from_yaml, global_cfg
+    from template_lib.modelarts import modelarts_utils
+    from distutils.dir_util import copy_tree
+
+    command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
+    argv_str = f"""
+                --tl_config_file none
+                --tl_command none
+                --tl_outdir {outdir}
+                """
+    args, cfg = setup_outdir_and_yaml(argv_str, return_cfg=True)
+
+    import shutil
+    import tqdm
+    from template_lib.utils import get_filelist_recursive
+
+    val_dir = "datasets/ImageNet/val"
+    saved_dir = "datasets/ImageNet/imagenet_val_selection"
+    os.makedirs(saved_dir, exist_ok=True)
+
+    image_list = get_filelist_recursive(val_dir, ext='*.JPEG')
+    for image_path in tqdm.tqdm(image_list):
+      saved_file = f"{saved_dir}/{image_path.parent.name}_{image_path.name}"
+      shutil.copyfile(image_path, saved_file)
+
+    pass
 
 class Testing_utils(unittest.TestCase):
 
