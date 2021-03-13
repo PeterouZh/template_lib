@@ -42,12 +42,25 @@ def setup_config(config_file, args):
   command_cfg.merge_from_list(args.tl_opts)
 
   if args.tl_resume:
-    temp_cfg = TLCfgNode.load_yaml_file(args.tl_config_file_resume)
+    from deepdiff import DeepDiff
+
+    resume_cfg_file = f"{os.path.dirname(args.tl_config_file_resume)}/config_resume.yaml"
+    if not os.path.exists(resume_cfg_file):
+      temp_cfg = TLCfgNode.load_yaml_file(args.tl_config_file_resume)
+      temp_cfg.dump_to_file(resume_cfg_file)
+    else:
+      temp_cfg = TLCfgNode.load_yaml_file(resume_cfg_file)
     assert len(temp_cfg) == 1
     resume_cfg = list(temp_cfg.values())[0]
-    resume_cfg.update(command_cfg)
-    command_cfg = resume_cfg
-    logging.getLogger('tl').info(f"Merging resume_cfg: {args.tl_config_file_resume}")
+
+    logging.getLogger('tl').info(f"Updating resume_cfg: {args.tl_config_file_resume}")
+    resume_cfg_clone = resume_cfg.clone()
+    resume_cfg_clone.update(command_cfg)
+    command_cfg =resume_cfg_clone
+
+    ddiff = DeepDiff(resume_cfg, command_cfg)
+    logging.getLogger('tl').info(f"diff between resume_cfg and cfg: \n{ddiff.pretty()}")
+
 
   command_cfg.dump_to_file_with_command(saved_file=args.tl_saved_config_command_file,
                                         command=args.tl_command)
