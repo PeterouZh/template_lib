@@ -1,3 +1,4 @@
+import os
 import pprint
 import logging
 import sys
@@ -42,6 +43,7 @@ class D2Checkpointer(object):
     for k, v in model_dict.items():
       self.logger.info(f"{k}:\n{v}")
     print_number_params(model_dict, logger=self.logger)
+    os.makedirs(ckptdir, exist_ok=True)
     self.checkpointer = self.get_d2_checkpointer(model_dict=model_dict, optim_dict=optim_dict, ckptdir=ckptdir)
     self.periodic_checkpointer = self.get_d2_periodic_checkpointer()
 
