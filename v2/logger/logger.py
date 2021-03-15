@@ -97,8 +97,8 @@ def get_logger(filename, logger_names=['template_lib', 'tl'], stream=True, level
   return logger
 
 
-def get_file_logger(filename, mode='w'):
-  logger = get_logger(filename=filename, logger_names=[], stream=False, mode=mode)
+def get_file_logger(filename, mode='w', logger_names=[]):
+  logger = get_logger(filename=filename, logger_names=logger_names, stream=False, mode=mode)
   return logger
 
 
