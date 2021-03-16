@@ -42,6 +42,20 @@ color_beauty_dict = {
 }
 
 
+def read_image_list_from_files(image_list_file):
+  if not isinstance(image_list_file, (list, tuple)):
+    image_list_file = [image_list_file, ]
+
+  all_image_list = []
+  for image_file in image_list_file:
+    with open(image_file) as f:
+      image_list = f.readlines()
+    image_list = [v.strip().split(' ') for v in image_list]
+    all_image_list.extend(image_list)
+  return all_image_list
+
+
+
 class CircleNumber(object):
   def __init__(self, max_to_keep=4):
     self.max_to_keep = max_to_keep

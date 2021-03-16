@@ -38,6 +38,10 @@ class TLCfgNode(_CfgNode):
         TLCfgNode.merge_a_into_b(cfg, base_cfg)
         cfg.clear()
         cfg.update(base_cfg)
+      for sub_key in cfg:
+        sub_cfg = cfg.get(sub_key)
+        if isinstance(sub_cfg, dict):
+          TLCfgNode._merge_base_cfg(sub_cfg, loaded_cfg)
 
     @staticmethod
     def load_yaml_with_command(cfg_filename: str, command: str, allow_unsafe: bool = False):
