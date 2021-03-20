@@ -4,13 +4,33 @@ import unittest
 from PIL import Image, ImageDraw, ImageFont
 import matplotlib.pyplot as plt
 import copy
+import numpy as np
 
 from template_lib import utils
 
-
-# __all__ = ['add_text_in_tensor', ]
-
 _font = r'template_lib/datasets/sans-serif.ttf'
+
+def merge_image_pil(image_list, nrow: int = 8, saved_file=None, pad=0, pad_color='black') -> None:
+
+  max_h, max_w = 0, 0
+  ncol = (len(image_list) + nrow - 1) // nrow
+  for img in image_list:
+    max_h = max(max_h, img.size[1])
+    max_w = max(max_w, img.size[0])
+
+  H = ncol * max_h + pad * (ncol - 1)
+  W = nrow * max_w + pad * (nrow - 1)
+  merged_image = Image.new(mode='RGB', size=(W, H), color=pad_color)
+
+  for idx, img in enumerate(image_list):
+    row = idx // nrow
+    col = idx % nrow
+    merged_image.paste(img, (col * (max_w + pad), row * (max_h + pad)))
+
+  if saved_file is not None:
+    merged_image.save(saved_file)
+  return merged_image
+
 
 def get_size(w, h, dst_size, for_min_edge=True):
   if for_min_edge:
@@ -21,6 +41,17 @@ def get_size(w, h, dst_size, for_min_edge=True):
   w = int(dst_size / edge * w)
   h = int(dst_size / edge * h)
   return w, h
+
+
+def add_text(img,
+             text,
+             xy=(0, 0),
+             size=16,
+             color=(255, 0, 0)):
+  font = ImageFont.truetype(font=_font, size=size)
+  draw = ImageDraw.Draw(img)
+  draw.text(xy=xy, text=text, fill=color, font=font)
+  return img
 
 
 def add_text_in_tensor(img_tensor,
@@ -398,4 +429,47 @@ class Testing_pil_utils(unittest.TestCase):
     fig, axes = plt.subplots()
     axes.imshow(img_pil)
     fig.show()
+    pass
+
+  def test_merge_image_pil(self, debug=True):
+    """
+    Usage:
+        export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+        export TIME_STR=1
+        export PYTHONPATH=./exp:./stylegan2-pytorch:./
+        python 	-c "from exp.tests.test_styleganv2 import Testing_stylegan2;\
+          Testing_stylegan2().test_train_ffhq_128()"
+
+    :return:
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+    from template_lib.v2.config_cfgnode.argparser import \
+      (get_command_and_outdir, setup_outdir_and_yaml, get_append_cmd_str, start_cmd_run)
+
+    tl_opts = ' '.join(sys.argv[sys.argv.index('--tl_opts') + 1:]) if '--tl_opts' in sys.argv else ''
+    print(f'tl_opts:\n {tl_opts}')
+
+    command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
+    argv_str = f"""
+                --tl_config_file none
+                --tl_command none
+                --tl_outdir {outdir}
+                --tl_opts {tl_opts}
+                """
+    args, cfg = setup_outdir_and_yaml(argv_str, return_cfg=True)
+
+    img_path = "template_lib/datasets/images/zebra_GT_target_origin.png"
+    pad = 2
+    pad_color = 'white'
+
+    img = Image.open(img_path)
+
+    image_list = [img, ] * 5
+    merged_img = merge_image_pil(image_list=image_list, nrow=3, pad=pad, pad_color=pad_color)
+
+    plt.imshow(merged_img)
+    plt.show()
     pass

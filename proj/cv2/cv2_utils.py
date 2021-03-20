@@ -12,6 +12,8 @@ from template_lib import utils
 
 class VideoWriter(object):
   def __init__(self, outfile, w, h, fps):
+    self.w = w
+    self.h = h
     out_size = (w, h)
     self.video = cv2.VideoWriter(outfile, cv2.VideoWriter_fourcc(*'mp4v'), fps, out_size)
     pass
@@ -24,6 +26,7 @@ class VideoWriter(object):
     if rgb:
       image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
+    assert image.shape[:2] == (self.h, self.w)
     self.video.write(image)
     pass
 
