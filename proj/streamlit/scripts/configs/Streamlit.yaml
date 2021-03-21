@@ -1,0 +1,14 @@
+run_web:
+  port: 8501
+  sidebar:
+    sidebar_name: "Streamlit"
+  image_list:
+    image_list_file:
+      - "template_lib/datasets/images/image_list.txt"
+    columns: ['path', ]
+    default_index: 0
+
+
+
+
+
