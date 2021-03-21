@@ -21,9 +21,12 @@ def parse_list_from_st_text_input(label, value):
 
 
 def read_image_list_and_show_in_st(image_list_file, columns=['path', 'class_id']):
+  if not isinstance(image_list_file, (list, tuple)):
+    image_list_file = [image_list_file, ]
+
   st.header("Image list file: ")
-  header = ",\n ".join(image_list_file)
-  st.write(header)
+  for image_file in image_list_file:
+    st.write(image_file)
 
   all_image_list = read_image_list_from_files(image_list_file)
   image_list_df = pd.DataFrame(all_image_list, columns=columns)
