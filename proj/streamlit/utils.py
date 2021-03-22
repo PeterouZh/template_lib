@@ -7,6 +7,22 @@ import pandas as pd
 from template_lib.utils import read_image_list_from_files
 
 
+def selectbox(label, options, index=0):
+  ret = st.selectbox(label=label, options=options, index=index)
+  logging.getLogger('st').info(f"{label}={ret}")
+  print(f"{label}={ret}")
+  return ret
+
+def number_input(label,
+                 value,
+                 min_value=None,
+                 **kwargs):
+  ret = st.number_input(label=f"{label}: {value}", value=value, min_value=min_value, **kwargs)
+  logging.getLogger('st').info(f"{label}={ret}")
+  print(f"{label}={ret}")
+  return ret
+
+
 def parse_list_from_st_text_input(label, value):
   """
   return: list

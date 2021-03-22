@@ -1,3 +1,5 @@
+import string
+import random
 import importlib
 import shutil
 from easydict import EasyDict
@@ -41,6 +43,9 @@ color_beauty_dict = {
   'blue': '#1F5CFA'
 }
 
+
+def generate_random_string(size=6, chars=string.ascii_uppercase + string.digits):
+  return ''.join(random.choice(chars) for _ in range(size))
 
 def read_image_list_from_files(image_list_file):
   if not isinstance(image_list_file, (list, tuple)):

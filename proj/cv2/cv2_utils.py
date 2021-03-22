@@ -35,6 +35,21 @@ class VideoWriter(object):
     pass
 
 
+class ImageioVideoWriter(object):
+  def __init__(self, outfile, fps, **kwargs):
+    import imageio
+    self.video = imageio.get_writer(outfile, fps=fps)
+    pass
+
+  def write(self, image, **kwargs):
+    self.video.append_data(np.array(image))
+    pass
+
+  def release(self):
+    self.video.close()
+    pass
+
+
 class Testing_cv2_utils(unittest.TestCase):
 
   def test_zoom_in_video_writer(self, debug=True):

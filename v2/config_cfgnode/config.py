@@ -44,6 +44,14 @@ class TLCfgNode(_CfgNode):
           TLCfgNode._merge_base_cfg(sub_cfg, loaded_cfg)
 
     @staticmethod
+    def load_yaml_file(cfg_filename: str, allow_unsafe=False):
+      """
+      """
+      loaded_cfg = TLCfgNode.load_yaml_with_base(cfg_filename, allow_unsafe=allow_unsafe)
+      cfg = TLCfgNode(loaded_cfg)
+      return cfg
+
+    @staticmethod
     def load_yaml_with_command(cfg_filename: str, command: str, allow_unsafe: bool = False):
       """
       """
@@ -64,6 +72,10 @@ class TLCfgNode(_CfgNode):
       setattr(command_cfg, command, self)
       with open(saved_file, "w") as f:
         command_cfg.dump(stream=f, sort_keys=False, indent=2)
+
+    def dump(self, sort_keys=False, **kwargs):
+      dump_str = super(TLCfgNode, self).dump(sort_keys=False, **kwargs)
+      return dump_str
 
     def merge_from_list(self, opt_list, new_allowed=False):
 
@@ -104,13 +116,7 @@ class TLCfgNode(_CfgNode):
 
       return result
 
-    @staticmethod
-    def load_yaml_file(cfg_filename: str, allow_unsafe=False):
-      """
-      """
-      loaded_cfg = TLCfgNode.load_yaml_with_base(cfg_filename, allow_unsafe=allow_unsafe)
-      cfg = TLCfgNode(loaded_cfg)
-      return cfg
+
 
 
 global_cfg = TLCfgNode()
