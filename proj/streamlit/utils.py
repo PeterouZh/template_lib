@@ -23,6 +23,15 @@ def number_input(label,
   return ret
 
 
+def text_input(label,
+               value,
+               **kwargs):
+  ret = st.text_input(label=f"{label}: {value}", value=value, key=label)
+  logging.getLogger('st').info(f"{label}={ret}")
+  print(f"{label}={ret}")
+  return ret
+
+
 def parse_list_from_st_text_input(label, value):
   """
   return: list

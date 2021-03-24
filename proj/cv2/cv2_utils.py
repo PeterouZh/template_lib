@@ -10,6 +10,18 @@ import copy
 from template_lib import utils
 
 
+def open_video(video_file):
+  cap = cv2.VideoCapture(str(video_file))
+  ret_success, frame = cap.read()
+  return ret_success, frame
+
+
+def cv2_to_pil(img):
+  img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+  im_pil = Image.fromarray(img)
+  return im_pil
+
+
 class VideoWriter(object):
   def __init__(self, outfile, w, h, fps):
     self.w = w

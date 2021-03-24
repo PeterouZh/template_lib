@@ -1,3 +1,4 @@
+import datetime
 import string
 import random
 import importlib
@@ -42,6 +43,10 @@ color_beauty_dict = {
   'light_blue': '#0CE6DA',
   'blue': '#1F5CFA'
 }
+
+def get_time_str():
+  time_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+  return time_str
 
 
 def generate_random_string(size=6, chars=string.ascii_uppercase + string.digits):
