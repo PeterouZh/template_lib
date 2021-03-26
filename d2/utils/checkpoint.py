@@ -36,6 +36,7 @@ class D2Checkpointer(object):
 
     self.state_dict = state_dict if state_dict is not None else {'itr': 0, 'epoch': 0}
 
+    os.makedirs(ckptdir, exist_ok=True)
     self.logger = logging.getLogger('fvcore')
     if len(self.logger.handlers) == 0:
       self.logger = setup_logger(output=ckptdir, name='fvcore')
@@ -43,7 +44,7 @@ class D2Checkpointer(object):
     for k, v in model_dict.items():
       self.logger.info(f"{k}:\n{v}")
     print_number_params(model_dict, logger=self.logger)
-    os.makedirs(ckptdir, exist_ok=True)
+
     self.checkpointer = self.get_d2_checkpointer(model_dict=model_dict, optim_dict=optim_dict, ckptdir=ckptdir)
     self.periodic_checkpointer = self.get_d2_periodic_checkpointer()
 

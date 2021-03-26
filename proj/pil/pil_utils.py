@@ -10,6 +10,23 @@ from template_lib import utils
 
 _font = r'template_lib/datasets/sans-serif.ttf'
 
+
+def merge_image_np(image_list, nrow: int = 8, saved_file=None, pad=0, pad_color='black',
+                   channel_first=False, range01=False) -> None:
+  images_pil = []
+  for img_np in image_list:
+    if channel_first:
+      img_np = img_np.transpose(1, 2, 0)
+    if range01:
+      img_np = (img_np * 255).astype(np.uint8)
+    img_pil = Image.fromarray(img_np)
+    images_pil.append(img_pil)
+
+  merged_image = merge_image_pil(
+    image_list=images_pil, nrow=nrow, saved_file=saved_file, pad=pad, pad_color=pad_color)
+  return merged_image
+
+
 def merge_image_pil(image_list, nrow: int = 8, saved_file=None, pad=0, pad_color='black') -> None:
 
   max_h, max_w = 0, 0

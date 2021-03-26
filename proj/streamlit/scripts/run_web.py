@@ -66,12 +66,12 @@ def main():
   else:
     saved_suffix = 0
   st_saved_suffix = st.empty()
-  st.header(f"Outdir: ")
+  st.sidebar.header(f"Outdir: ")
   saved_suffix = st_saved_suffix.number_input(label="Saved dir suffix: ", min_value=0,
                                               value=saved_suffix)
 
   outdir = f"{global_cfg.tl_outdir}/exp/{image_path.stem}_{saved_suffix:04d}"
-  st.write(outdir)
+  st.sidebar.write(outdir)
   os.makedirs(outdir, exist_ok=True)
   image_pil.save(f"{outdir}/{image_path.name}")
   get_file_logger(filename=f"{outdir}/log.txt", logger_names=['st'])

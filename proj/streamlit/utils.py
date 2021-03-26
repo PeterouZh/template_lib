@@ -17,7 +17,8 @@ def number_input(label,
                  value,
                  min_value=None,
                  **kwargs):
-  ret = st.number_input(label=f"{label}: {value}", value=value, min_value=min_value, **kwargs)
+  st_empty = st.empty()
+  ret = st_empty.number_input(label=f"{label}: {value}", value=value, min_value=min_value, **kwargs)
   logging.getLogger('st').info(f"{label}={ret}")
   print(f"{label}={ret}")
   return ret

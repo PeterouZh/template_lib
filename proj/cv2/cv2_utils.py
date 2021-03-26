@@ -49,17 +49,34 @@ class VideoWriter(object):
 
 class ImageioVideoWriter(object):
   def __init__(self, outfile, fps, **kwargs):
+    """
+    pip install imageio-ffmpeg opencv-python
+
+    """
     import imageio
     self.video = imageio.get_writer(outfile, fps=fps)
     pass
 
-  def write(self, image, **kwargs):
+  def write(self, image, dst_size=None, **kwargs):
+    if dst_size is not None:
+      w, h = self._get_size(w=image.size[0], h=image.size[1], dst_size=dst_size, for_min_edge=False)
+      image = image.resize((w, h), Image.LANCZOS)
     self.video.append_data(np.array(image))
     pass
 
   def release(self):
     self.video.close()
     pass
+
+  def _get_size(self, w, h, dst_size, for_min_edge=True):
+    if for_min_edge:
+      edge = min(w, h)
+    else:
+      edge = max(w, h)
+
+    w = int(dst_size / edge * w)
+    h = int(dst_size / edge * h)
+    return w, h
 
 
 class Testing_cv2_utils(unittest.TestCase):
