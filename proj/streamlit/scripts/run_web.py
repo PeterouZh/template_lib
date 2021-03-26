@@ -18,6 +18,7 @@ from template_lib.proj.streamlit.utils import parse_list_from_st_text_input
 from template_lib.proj.streamlit import SessionState
 from template_lib.v2.logger.logger import get_file_logger
 from template_lib.proj.streamlit.utils import read_image_list_and_show_in_st
+import template_lib.proj.streamlit.utils as st_utils
 
 # sys.path.insert(0, f"{os.getcwd()}/DGP_lib")
 # from DGP_lib import utils
@@ -30,11 +31,26 @@ def build_sidebar():
   pass
 
 
+class STModel(object):
+  def __init__(self):
+
+    pass
+
+  def test_web(self, mode, outdir, saved_suffix_state=None):
+    # self.factor = st_utils.number_input(label='factor', value=self.factor)
+
+    if st.button("sr_optim") or not global_cfg.start_web:
+      if saved_suffix_state is not None:
+        saved_suffix_state.saved_suffix = saved_suffix_state.saved_suffix + 1
+
+    pass
+
+
 # @st.cache(allow_output_mutation=True, suppress_st_warning=True)
 def build_model_st():
   # dgp = build_model(dgp_cfg, config=config)
-
-  return None
+  model = STModel()
+  return model
 
 
 def main():
@@ -60,9 +76,11 @@ def main():
   st.write(f"{image_path}")
 
   # outdir
-  if not global_cfg.tl_debug:
+  kwargs = {}
+  if global_cfg.start_web:
     saved_suffix_state = SessionState.get(saved_suffix=0)
     saved_suffix = saved_suffix_state.saved_suffix
+    kwargs.update({'saved_suffix_state': saved_suffix_state})
   else:
     saved_suffix = 0
   st_saved_suffix = st.empty()
@@ -71,6 +89,7 @@ def main():
                                               value=saved_suffix)
 
   outdir = f"{global_cfg.tl_outdir}/exp/{image_path.stem}_{saved_suffix:04d}"
+  kwargs['outdir'] = outdir
   st.sidebar.write(outdir)
   os.makedirs(outdir, exist_ok=True)
   image_pil.save(f"{outdir}/{image_path.name}")
@@ -80,13 +99,8 @@ def main():
 
   st_model = build_model_st()
 
-  if st.button("Run") or global_cfg.tl_debug:
-    if not global_cfg.tl_debug:
-      saved_suffix_state.saved_suffix = saved_suffix + 1
-
-    textlogger = TextLogger(log_root=f"{outdir}/textdir")
-    state_dict = {'itr': 0, "outdir": outdir, "textlogger": textlogger}
-    st_model
+  mode = st_utils.selectbox(label='mode', options=global_cfg.mode)
+  getattr(st_model, mode)(mode=mode, **kwargs)
 
   pass
 

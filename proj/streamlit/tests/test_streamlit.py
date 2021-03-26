@@ -16,7 +16,7 @@ class Testing_Streamlit(unittest.TestCase):
         export PYTHONPATH=./
         python -c "from template_lib.proj.streamlit.tests.test_streamlit import Testing_Streamlit;\
           Testing_Streamlit().test_run_web(debug=False)" \
-          --tl_opts port 8502
+          --tl_opts port 8502 start_web True
 
     :return:
     """
@@ -41,19 +41,26 @@ class Testing_Streamlit(unittest.TestCase):
 
     n_gpus = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
 
+    script = "template_lib/proj/streamlit/scripts/run_web.py"
     if debug:
       cmd_str = f"""
           python 
-            template_lib/proj/streamlit/scripts/run_web.py
+            {script}
             {get_append_cmd_str(args)}
             --tl_debug
             --tl_opts
               """
     else:
+      if cfg.start_web:
+        cmd_str_prefix = f"""
+                {os.path.dirname(sys.executable)}/streamlit run --server.port {cfg.port} 
+                {script}
+                --
+              """
+      else:
+        cmd_str_prefix = f"python {script}"
       cmd_str = f"""
-          {os.path.dirname(sys.executable)}/streamlit run --server.port {cfg.port}
-            template_lib/proj/streamlit/scripts/run_web.py
-            --
+          {cmd_str_prefix}
             {get_append_cmd_str(args)}
             --tl_opts {tl_opts}
         """
