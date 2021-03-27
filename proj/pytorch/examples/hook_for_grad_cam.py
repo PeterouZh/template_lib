@@ -7,24 +7,31 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 
+from template_lib.proj.pytorch.pytorch_hook import VerboseModel
+
 
 class Net(nn.Module):
   def __init__(self):
     super(Net, self).__init__()
     self.conv1 = nn.Conv2d(3, 6, 5)
+    self.relu1 = nn.ReLU()
     self.pool1 = nn.MaxPool2d(2, 2)
     self.conv2 = nn.Conv2d(6, 16, 5)
+    self.relu2 = nn.ReLU()
     self.pool2 = nn.MaxPool2d(2, 2)
     self.fc1 = nn.Linear(16 * 5 * 5, 120)
+    self.fc1_relu = nn.ReLU()
     self.fc2 = nn.Linear(120, 84)
+    self.fc2_relu = nn.ReLU()
     self.fc3 = nn.Linear(84, 10)
+    pass
 
   def forward(self, x):
-    x = self.pool1(F.relu(self.conv1(x)))
-    x = self.pool1(F.relu(self.conv2(x)))
+    x = self.pool1(self.relu1(self.conv1(x)))
+    x = self.pool2(self.relu2(self.conv2(x)))
     x = x.view(-1, 16 * 5 * 5)
-    x = F.relu(self.fc1(x))
-    x = F.relu(self.fc2(x))
+    x = self.fc1_relu(self.fc1(x))
+    x = self.fc2_relu(self.fc2(x))
     x = self.fc3(x)
     return x
 
@@ -124,10 +131,13 @@ def gen_cam(feature_map, grads):
 
 
 if __name__ == '__main__':
+  from template_lib.v2.config_cfgnode import update_parser_defaults_from_yaml, global_cfg
+  update_parser_defaults_from_yaml(parser=None)
+
   BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-  path_img = os.path.join(BASE_DIR, "..", "..", "Data", "cam_img", "test_img_8.png")
-  path_net = os.path.join(BASE_DIR, "..", "..", "Data", "net_params_72p.pkl")
-  output_dir = os.path.join(BASE_DIR, "..", "..", "Result", "backward_hook_cam")
+  path_img = os.path.join(BASE_DIR, "cam_img", "test_img_8.png")
+  path_net = os.path.join(BASE_DIR, "cam_img", "net_params_72p.pkl")
+  output_dir = global_cfg.tl_outdir
 
   classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
   fmap_block = list()
@@ -137,7 +147,12 @@ if __name__ == '__main__':
   img = cv2.imread(path_img, 1)  # H*W*C
   img_input = img_preprocess(img)
   net = Net()
-  net.load_state_dict(torch.load(path_net))
+
+  ret = net.load_state_dict(torch.load(path_net))
+
+  net_verbose = VerboseModel(net)
+  net_verbose(img_input)
+  del net_verbose
 
   # 注册hook
   net.conv2.register_forward_hook(farward_hook)
