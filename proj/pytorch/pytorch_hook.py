@@ -230,9 +230,48 @@ class PytorchHook(unittest.TestCase):
 
     pass
 
+  def test_register_hook_grad(self):
+
+    import torch
+
+    y_grad = list()
+    def grad_hook(grad):
+      y_grad.append(grad)
+
+    x = torch.tensor([2., 2., 2., 2.], requires_grad=True)
+    y = torch.pow(x, 2)
+    z = torch.mean(y)
+
+    h = y.register_hook(grad_hook)
+
+    z.backward()
+    print("y.grad: ", y.grad)
+    print("y_grad[0]: ", y_grad[0])
+    h.remove()  # removes the hook
+    pass
+
+  def test_register_hook_scale_grad(self):
+
+    import torch
+
+    def grad_hook(grad):
+      grad *= 2
+
+    x = torch.tensor([2., 2., 2., 2.], requires_grad=True)
+    y = torch.pow(x, 2)
+    z = torch.mean(y)
+    h = x.register_hook(grad_hook)
+    z.backward()
+    print(x.grad)
+    h.remove()  # removes the hook
+
+    pass
+
+  def test_register_backward_hook_grad_cam(self):
 
 
 
+    pass
 
 
 
