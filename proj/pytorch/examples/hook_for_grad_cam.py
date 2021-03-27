@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import cv2
 import os
 import numpy as np
@@ -8,6 +9,7 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 
 from template_lib.proj.pytorch.pytorch_hook import VerboseModel
+from template_lib.proj.pil.pil_utils import merge_image_np
 
 
 class Net(nn.Module):
@@ -24,7 +26,22 @@ class Net(nn.Module):
     self.fc2 = nn.Linear(120, 84)
     self.fc2_relu = nn.ReLU()
     self.fc3 = nn.Linear(84, 10)
+
+    self.fmap_block = list()
+    self.grad_block = list()
     pass
+
+  def forward_hook(self):
+
+    def forward_hook_(module, input, output):
+      self.fmap_block.append(output)
+    return forward_hook_
+
+  def backward_hook(self):
+
+    def backward_hook_(module, grad_in, grad_out):
+      self.grad_block.append(grad_out[0].detach())
+    return backward_hook_
 
   def forward(self, x):
     x = self.pool1(self.relu1(self.conv1(x)))
@@ -66,12 +83,10 @@ def img_preprocess(img_in):
   return img_input
 
 
-def backward_hook(module, grad_in, grad_out):
-  grad_block.append(grad_out[0].detach())
 
 
-def farward_hook(module, input, output):
-  fmap_block.append(output)
+
+
 
 
 def show_cam_on_image(img, mask, out_dir):
@@ -86,6 +101,7 @@ def show_cam_on_image(img, mask, out_dir):
     os.makedirs(out_dir)
   cv2.imwrite(path_cam_img, np.uint8(255 * cam))
   cv2.imwrite(path_raw_img, np.uint8(255 * img))
+  return img[:,:, ::-1], cam[:,:,::-1]
 
 
 def comp_class_vec(ouput_vec, index=None):
@@ -140,8 +156,7 @@ if __name__ == '__main__':
   output_dir = global_cfg.tl_outdir
 
   classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-  fmap_block = list()
-  grad_block = list()
+
 
   # 图片读取；网络加载
   img = cv2.imread(path_img, 1)  # H*W*C
@@ -155,8 +170,8 @@ if __name__ == '__main__':
   del net_verbose
 
   # 注册hook
-  net.conv2.register_forward_hook(farward_hook)
-  net.conv2.register_backward_hook(backward_hook)
+  ret = net.conv2.register_forward_hook(net.forward_hook())
+  ret = net.conv2.register_backward_hook(net.backward_hook())
 
   # forward
   output = net(img_input)
@@ -165,17 +180,23 @@ if __name__ == '__main__':
 
   # backward
   net.zero_grad()
-  class_loss = comp_class_vec(output)
+  # class_loss = comp_class_vec(output)
+  class_loss = output[0, idx]
   class_loss.backward()
 
   # 生成cam
-  grads_val = grad_block[0].cpu().data.numpy().squeeze()
-  fmap = fmap_block[0].cpu().data.numpy().squeeze()
+  grads_val = net.grad_block[0].cpu().data.numpy().squeeze()
+  fmap = net.fmap_block[0].cpu().data.numpy().squeeze()
   cam = gen_cam(fmap, grads_val)
 
   # 保存cam图片
   img_show = np.float32(cv2.resize(img, (32, 32))) / 255
-  show_cam_on_image(img_show, cam, output_dir)
+  raw_img, img_cam = show_cam_on_image(img_show, cam, output_dir)
 
+
+  merged_img = merge_image_np([raw_img, img_cam], nrow=2, pad=1, range01=True)
+
+  plt.imshow(merged_img)
+  plt.show()
   pass
 
