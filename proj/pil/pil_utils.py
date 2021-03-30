@@ -27,7 +27,7 @@ def merge_image_np(image_list, nrow: int = 8, saved_file=None, pad=0, pad_color=
   return merged_image
 
 
-def merge_image_pil(image_list, nrow: int = 8, saved_file=None, pad=0, pad_color='black') -> None:
+def merge_image_pil(image_list, nrow: int = 8, saved_file=None, pad=0, pad_color='black', dst_size=None) -> None:
 
   max_h, max_w = 0, 0
   ncol = (len(image_list) + nrow - 1) // nrow
@@ -43,6 +43,10 @@ def merge_image_pil(image_list, nrow: int = 8, saved_file=None, pad=0, pad_color
     row = idx // nrow
     col = idx % nrow
     merged_image.paste(img, (col * (max_w + pad), row * (max_h + pad)))
+
+  if dst_size is not None:
+    out_w, out_h = get_size(w=merged_image.size[0], h=merged_image.size[1], dst_size=dst_size, for_min_edge=False)
+    merged_image = merged_image.resize((out_w, out_h), Image.LANCZOS)
 
   if saved_file is not None:
     merged_image.save(saved_file)

@@ -27,7 +27,7 @@ class DumpModule(nn.Module):
 class D2Checkpointer(object):
 
   def __init__(self, model_dict, optim_dict, ckptdir,
-               period=1, max_to_keep=5, maxsize=sys.maxsize, state_dict=None, save_circle=False):
+               period=1, max_to_keep=5, maxsize=sys.maxsize, state_dict=None, save_circle=False, verbose=True):
 
     self.period = 1
     self.max_to_keep = max_to_keep
@@ -41,8 +41,9 @@ class D2Checkpointer(object):
     if len(self.logger.handlers) == 0:
       self.logger = setup_logger(output=ckptdir, name='fvcore')
 
-    for k, v in model_dict.items():
-      self.logger.info(f"{k}:\n{v}")
+    if verbose:
+      for k, v in model_dict.items():
+        self.logger.info(f"{k}:\n{v}")
     print_number_params(model_dict, logger=self.logger)
 
     self.checkpointer = self.get_d2_checkpointer(model_dict=model_dict, optim_dict=optim_dict, ckptdir=ckptdir)
