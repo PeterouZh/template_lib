@@ -34,8 +34,11 @@ class LineChart(object):
 
 
 
-def selectbox(label, options, index=0):
-  ret = st.selectbox(label=label, options=options, index=index)
+def selectbox(label, options, index=0, sidebar=False):
+  if sidebar:
+    ret = st.sidebar.selectbox(label=label, options=options, index=index)
+  else:
+    ret = st.selectbox(label=label, options=options, index=index)
   logging.getLogger('st').info(f"{label}={ret}")
   print(f"{label}={ret}")
   return ret
@@ -45,8 +48,12 @@ def number_input(label,
                  min_value=None,
                  step=None,
                  format=None, # "%.8f"
+                 sidebar=False,
                  **kwargs):
-  st_empty = st.empty()
+  if sidebar:
+    st_empty = st.sidebar.empty()
+  else:
+    st_empty = st.empty()
   ret = st_empty.number_input(label=f"{label}: {value}", value=value, min_value=min_value,
                               step=step, format=format, **kwargs)
   logging.getLogger('st').info(f"{label}={ret}")
@@ -54,9 +61,11 @@ def number_input(label,
   return ret
 
 
-def checkbox(label,
-             value):
-  st_empty = st.empty()
+def checkbox(label, value, sidebar=True):
+  if sidebar:
+    st_empty = st.sidebar.empty()
+  else:
+    st_empty = st.empty()
   ret = st_empty.checkbox(label=f"{label}: {value}", value=value)
   logging.getLogger('st').info(f"{label}={ret}")
   print(f"{label}={ret}")
@@ -72,12 +81,15 @@ def text_input(label,
   return ret
 
 
-def parse_list_from_st_text_input(label, value):
+def parse_list_from_st_text_input(label, value, sidebar=False):
   """
   return: list
   """
   value = str(value)
-  st_text_input = st.empty()
+  if sidebar:
+    st_text_input = st.sidebar.empty()
+  else:
+    st_text_input = st.empty()
   st_value = st_text_input.text_input(label=f"{label}: {value}", value=value, key=label)
 
   parsed_value = ast.literal_eval(st_value)

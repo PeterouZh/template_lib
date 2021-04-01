@@ -5,12 +5,17 @@ run_web:
     sidebar_name: "Streamlit"
   image_list:
     image_list_file:
-      - "template_lib/datasets/images/image_list.txt"
+      - ""
     columns: ['path', ]
     default_index: 0
+  model_cfg:
+    register_modules:
+      - test
+    name: test
   mode:
-    - test_web
-
+    - run_web
+  run_web:
+    test: test
 
 
 
