@@ -111,7 +111,7 @@ def setup_outdir_and_yaml(argv_str=None, return_cfg=False, register_module=False
 
   # Load yaml
   _, command_cfg = setup_config(config_file=args.tl_config_file, args=args)
-  logger.info(f"\nThe cfg: \n{get_dict_str(command_cfg)}")
+  logger.info(f"\nThe cfg: \n{command_cfg.dump()}")
   if return_cfg:
     global_cfg.merge_from_dict(command_cfg)
     # if register_module:

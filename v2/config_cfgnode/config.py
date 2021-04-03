@@ -31,6 +31,11 @@ class TLCfgNode(_CfgNode):
 
     @staticmethod
     def _merge_base_cfg(cfg, loaded_cfg):
+      for sub_key in cfg:
+        sub_cfg = cfg.get(sub_key)
+        if isinstance(sub_cfg, dict):
+          TLCfgNode._merge_base_cfg(sub_cfg, loaded_cfg)
+
       if BASE_KEY in cfg:
         base_cfg = loaded_cfg.get(cfg[BASE_KEY])
         del cfg[BASE_KEY]
@@ -38,10 +43,7 @@ class TLCfgNode(_CfgNode):
         TLCfgNode.merge_a_into_b(cfg, base_cfg)
         cfg.clear()
         cfg.update(base_cfg)
-      for sub_key in cfg:
-        sub_cfg = cfg.get(sub_key)
-        if isinstance(sub_cfg, dict):
-          TLCfgNode._merge_base_cfg(sub_cfg, loaded_cfg)
+
 
     @staticmethod
     def load_yaml_file(cfg_filename: str, allow_unsafe=False):
