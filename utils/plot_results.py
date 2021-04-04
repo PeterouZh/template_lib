@@ -53,8 +53,13 @@ class PlotResults(object):
             val = data[:, 1].min()
             return f'itr.{itr:06d}_minv.{val:.3f}'
 
+    def _data_load_func(self, filepath):
+        data = np.loadtxt(filepath, delimiter=':')
+        data = data.reshape(-1, 2)
+        return data
+
     def plot_defaultdicts(self, outfigure, default_dicts, show_max=True, figsize_wh=(15, 8), legend_size=12,
-                          dpi=500, ):
+                          dpi=500, data_load_func=None):
 
         import tempfile
         if not isinstance(show_max, list):
@@ -85,8 +90,11 @@ class PlotResults(object):
                     # get modified time
                     modi_minutes = self.get_last_md_inter_time(filepath)
 
-                    data = np.loadtxt(filepath, delimiter=':')
-                    data = data.reshape(-1, 2)
+                    if data_load_func is None:
+                        data_load_func = self._data_load_func
+                    data = data_load_func(filepath)
+                    # data = np.loadtxt(filepath, delimiter=':')
+                    # data = data.reshape(-1, 2)
                     # limit x in a range
                     if data_xlim:
                       data = data[data[:, 0] <= data_xlim]

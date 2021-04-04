@@ -55,7 +55,14 @@ class PlotResultsObs(object):
       val = data[:, 1].min()
       return f'itr.{itr:06d}_minv.{val:.3f}'
 
-  def plot_defaultdicts(self, default_dicts, show_max=True, bucket='huanan', figsize_wh=(15, 8), legend_size=12):
+  def _data_load_func(self, filepath):
+    import numpy as np
+    data = np.loadtxt(filepath, delimiter=':')
+    data = data.reshape(-1, 2)
+    return data
+
+  def plot_defaultdicts(self, default_dicts, show_max=True, bucket='huanan', figsize_wh=(15, 8), legend_size=12,
+                        data_load_func=None):
     import matplotlib.pyplot as plt
     % matplotlib inline
     import numpy as np
@@ -99,8 +106,11 @@ class PlotResultsObs(object):
           # get modified time
           modi_minutes = self.get_last_md_inter_time(filepath_obs)
 
-          data = np.loadtxt(filepath, delimiter=':')
-          data = data.reshape(-1, 2)
+          if data_load_func is None:
+            data_load_func = self._data_load_func
+          data = data_load_func(filepath)
+          # data = np.loadtxt(filepath, delimiter=':')
+          # data = data.reshape(-1, 2)
           # limit x in a range
           if data_xlim:
               data = data[data[:, 0] <= data_xlim]
