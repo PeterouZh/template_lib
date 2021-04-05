@@ -118,6 +118,13 @@ class TLCfgNode(_CfgNode):
 
       return result
 
+    def del_tl_prefix(self, prefix='tl_'):
+      kwargs = {}
+      cfg = self.clone()
+      for k in cfg:
+        if not k.startswith(prefix):
+          kwargs[k] = cfg.get(k)
+      return kwargs
 
 
 
