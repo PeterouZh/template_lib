@@ -33,6 +33,15 @@ class LineChart(object):
     pass
 
 
+def multiselect(label, options, default=None, sidebar=False):
+  if sidebar:
+    ret = st.sidebar.multiselect(label=label, options=options, default=default)
+  else:
+    ret = st.multiselect(label=label, options=options, default=default)
+  logging.getLogger('st').info(f"{label}={ret}")
+  print(f"{label}={ret}")
+  return ret
+
 
 def selectbox(label, options, index=0, sidebar=False):
   if sidebar:
