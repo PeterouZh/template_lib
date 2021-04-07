@@ -53,6 +53,7 @@ class ImageioVideoWriter(object):
     pip install imageio-ffmpeg opencv-python
 
     """
+    self.video_file = outfile
     import imageio
     self.video = imageio.get_writer(outfile, fps=fps)
     pass
@@ -64,8 +65,11 @@ class ImageioVideoWriter(object):
     self.video.append_data(np.array(image))
     pass
 
-  def release(self):
+  def release(self, st_video=False):
     self.video.close()
+    if st_video:
+      import streamlit as st
+      st.video(self.video_file)
     pass
 
   def _get_size(self, w, h, dst_size, for_min_edge=True):
