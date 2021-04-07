@@ -12,7 +12,7 @@ _font = r'template_lib/datasets/sans-serif.ttf'
 
 
 def merge_image_np(image_list, nrow: int = 8, saved_file=None, pad=0, pad_color='black',
-                   channel_first=False, range01=False) -> None:
+                   channel_first=False, range01=False, dst_size=None) -> None:
   images_pil = []
   for img_np in image_list:
     if channel_first:
@@ -23,7 +23,7 @@ def merge_image_np(image_list, nrow: int = 8, saved_file=None, pad=0, pad_color=
     images_pil.append(img_pil)
 
   merged_image = merge_image_pil(
-    image_list=images_pil, nrow=nrow, saved_file=saved_file, pad=pad, pad_color=pad_color)
+    image_list=images_pil, nrow=nrow, saved_file=saved_file, pad=pad, pad_color=pad_color, dst_size=dst_size)
   return merged_image
 
 
