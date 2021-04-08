@@ -9,6 +9,7 @@ from template_lib.v2.logger.logger import get_file_logger
 def main():
 
   file_list = get_filelist_recursive(directory=args.source_dir, ext=args.ext, sort=True)
+  print(f"number of items: {len(file_list)}")
 
   out_f = get_file_logger(args.outfile)
   for path in file_list:
