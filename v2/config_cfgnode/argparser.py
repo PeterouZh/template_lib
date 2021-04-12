@@ -145,7 +145,8 @@ def setup_logger_global_cfg_global_textlogger(args, tl_textdir, is_main_process=
 
     cfg.tl_saved_config_file = f"{args.tl_outdir}/config_command.yaml"
     set_global_cfg(cfg)
-    logging.getLogger('tl').info("\nglobal_cfg: \n" + get_dict_str(global_cfg, use_pprint=False))
+    # logging.getLogger('tl').info("\nglobal_cfg: \n" + get_dict_str(global_cfg, use_pprint=False))
+    logging.getLogger('tl').info("\nglobal_cfg: \n" + global_cfg.dump())
     time.sleep(0.1)
     if is_main_process:
       cfg.dump_to_file_with_command(saved_file=global_cfg.tl_saved_config_file, command=args.tl_command)
