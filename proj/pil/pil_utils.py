@@ -11,6 +11,12 @@ from template_lib import utils
 _font = r'template_lib/datasets/sans-serif.ttf'
 
 
+def imshow_pil(img_pil):
+  import matplotlib.pyplot as plt
+  plt.imshow(img_pil)
+  plt.show()
+
+
 def merge_image_np(image_list, nrow: int = 8, saved_file=None, pad=0, pad_color='black',
                    channel_first=False, range01=False, dst_size=None) -> None:
   images_pil = []
