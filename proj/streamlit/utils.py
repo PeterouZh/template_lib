@@ -1,3 +1,5 @@
+from PIL import Image
+from pathlib import Path
 import logging
 import json
 import ast
@@ -5,6 +7,7 @@ import streamlit as st
 import pandas as pd
 
 from template_lib.utils import read_image_list_from_files
+from template_lib.utils import generate_random_string
 from . import SessionState
 
 def is_init():
@@ -13,6 +16,18 @@ def is_init():
   except:
     return False
   return True
+
+
+def radio(label, options, index=0, sidebar=False):
+  if sidebar:
+    ret = st.sidebar.radio(label=label, options=list(options), index=index)
+  else:
+    ret = st.radio(label=label, options=list(options), index=index)
+  logging.getLogger('st').info(f"{label}={ret}")
+  print(f"{label}={ret}")
+  return ret
+
+
 
 class LineChart(object):
   def __init__(self, x_label, y_label):
@@ -107,11 +122,15 @@ def parse_list_from_st_text_input(label, value, sidebar=False):
   return parsed_value
 
 
-def read_image_list_and_show_in_st(image_list_file, columns=['path', 'class_id']):
+def read_image_list_and_show_in_st(image_list_file, columns=['path', 'class_id'], header=None):
   if not isinstance(image_list_file, (list, tuple)):
     image_list_file = [image_list_file, ]
 
-  st.header("Image list file: ")
+  if not header:
+    header = "Image list file: "
+
+  if len(image_list_file) > 0 and image_list_file[0]:
+    st.header(header)
   for image_file in image_list_file:
     st.write(image_file)
 
@@ -119,6 +138,20 @@ def read_image_list_and_show_in_st(image_list_file, columns=['path', 'class_id']
   image_list_df = pd.DataFrame(all_image_list, columns=columns)
   st.dataframe(image_list_df)
   return all_image_list
+
+
+def parse_image_list(image_list_file, header, columns=['path', ]):
+  image_list = read_image_list_and_show_in_st(image_list_file=image_list_file, columns=columns, header=header)
+
+  default_index = st.number_input(f"selected index (0~{len(image_list) - 1})", value=0,
+                                  min_value=0, max_value=len(image_list) - 1, key=header)
+  image_path = image_list[default_index][0]
+  image_path = Path(image_path)
+
+  image_pil = Image.open(image_path)
+  st.image(image_pil, caption=f"{image_path.name, image_pil.size}", width=256)
+  st.write(f"{image_path}")
+  return image_path
 
 
 def parse_dict_from_st_text_input(label, value):
