@@ -99,8 +99,12 @@ def checkbox(label, value, sidebar=True):
 
 def text_input(label,
                value,
+               sidebar=False,
                **kwargs):
-  ret = st.text_input(label=f"{label}: {value}", value=value, key=label)
+  if sidebar:
+    ret = st.sidebar.text_input(label=f"{label}: {value}", value=value, key=label)
+  else:
+    ret = st.text_input(label=f"{label}: {value}", value=value, key=label)
   logging.getLogger('st').info(f"{label}={ret}")
   print(f"{label}={ret}")
   return ret
@@ -158,6 +162,11 @@ def parse_image_list(image_list_file, header, columns=['path', ]):
 
 
 def parse_dict_from_st_text_input(label, value):
+  to_list = False
+  if isinstance(value, list):
+    value = {str(k): v for k, v in enumerate(value)}
+    to_list = True
+
   if isinstance(value, dict):
     value = json.dumps(value)
   st_text_input = st.empty()
@@ -165,6 +174,9 @@ def parse_dict_from_st_text_input(label, value):
   parse_value = json.loads(st_value)
   print(f"{label}: {parse_value}")
   logging.getLogger('st').info(f"label: {parse_value}")
+  if to_list:
+    parse_value = list(parse_value.values())
+    print(f"{label}={parse_value}")
   return parse_value
 
 

@@ -70,6 +70,7 @@ class ImageioVideoWriter(object):
     if st_video:
       import streamlit as st
       st.video(self.video_file)
+      st.write(self.video_file)
     pass
 
   def _get_size(self, w, h, dst_size, for_min_edge=True):

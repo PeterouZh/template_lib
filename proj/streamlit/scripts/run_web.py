@@ -29,20 +29,28 @@ class STModel(object):
 
     pass
 
-  def run_web(self,
-               mode,
-               outdir,
-               saved_suffix_state=None,
-               **kwargs):
-    # from template_lib.proj.streamlit import st_utils
+  def show_video(self,
+                 mode,
+                 outdir,
+                 num_video,
+                 saved_suffix_state=None,
+                 **kwargs):
+    from template_lib.proj.streamlit import st_utils
 
-    if global_cfg.start_web:
-      if not st.button("run_web"):
-        return
+    num_video = st_utils.number_input('num_video', num_video, sidebar=True)
+    for idx in range(num_video):
+      tag = st_utils.text_input(f"tag {idx}", "", sidebar=True)
+      video_path = st_utils.text_input(f"video {idx} ", "", sidebar=True)
+      if video_path and os.path.isfile(video_path):
+        st.subheader(f"tag {idx}: {tag}")
+        st.video(video_path)
+        st.write(video_path)
+
+    if not st.button("run_web"):
+      return
 
     if saved_suffix_state is not None:
       saved_suffix_state.saved_suffix = saved_suffix_state.saved_suffix + 1
-
 
     pass
 
@@ -87,14 +95,17 @@ def main():
   try:
     # image list
     image_list = st_utils.read_image_list_and_show_in_st(
-      image_list_file=global_cfg.image_list.image_list_file, columns=global_cfg.image_list.columns)
+      image_list_file=global_cfg.image_list.image_list_file, columns=global_cfg.image_list.columns,
+      show_dataframe=global_cfg.image_list.show_dataframe)
 
-    default_index = st.sidebar.number_input(
-      f"default index (0~{len(image_list) - 1})", value=global_cfg.image_list.default_index,
+    default_index = st.number_input(
+      f"default index (0~{len(image_list) - 1})",
+      value=global_cfg.image_list.default_index,
       min_value=0, max_value=len(image_list) - 1)
     image_path = image_list[default_index][0]
     image_path = Path(image_path)
 
+    kwargs['image_path'] = image_path
     image_pil = Image.open(image_path)
     st.image(image_pil, caption=f"{image_path.name, image_pil.size}", use_column_width=False)
     st.write(f"{image_path}")
