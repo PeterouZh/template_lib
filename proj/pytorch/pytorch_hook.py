@@ -56,7 +56,9 @@ class VerboseModel(nn.Module):
       else:
         output_shape = str(type(output))
       num_params = sum([p.data.nelement() for p in layer.parameters()])/1e6
-      cprint(f"{layer.__name__:<30}: {input_shape:<30}->{output_shape:<20} {num_params}M",
+      num_bufs = sum([p.data.nelement() for p in layer.buffers()])
+      cprint(f"{layer.__name__:<30}: {input_shape:<25}->  {output_shape:<25} "
+             f"paras {str(num_params) + 'M':<15} bufs {num_bufs}",
              color=layer.__term_color__)
 
     return fn
@@ -82,9 +84,9 @@ class FeatureExtractor(nn.Module):
       self._features[layer_id] = output
     return fn
 
-  def forward(self, x: Tensor) -> Dict[str, Tensor]:
+  def forward(self, *args, **kwargs) -> Dict[str, Tensor]:
     self._features.clear()
-    _ = self.model(x)
+    _ = self.model(*args, **kwargs)
     return self._features
 
 
@@ -208,10 +210,11 @@ class PytorchHook(unittest.TestCase):
 
     from torchvision.models import resnet50
 
-    verbose_resnet = VerboseModel(resnet50())
+    verbose_resnet = VerboseModel(resnet50(), submodels=['layer1', 'layer4', 'layer4.2'])
     dummy_input = torch.ones(10, 3, 224, 224)
+    verbose_resnet(dummy_input)
 
-    resnet_features = FeatureExtractor(resnet50(), layers=["layer4", "avgpool", ])
+    resnet_features = FeatureExtractor(resnet50(), layers=["layer4.2.relu", "avgpool", ])
     features = resnet_features(dummy_input)
 
     print({name: output.shape for name, output in features.items()})
