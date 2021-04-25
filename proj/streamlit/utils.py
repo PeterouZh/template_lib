@@ -146,12 +146,12 @@ def read_image_list_and_show_in_st(image_list_file, columns=['path', 'class_id']
   return all_image_list
 
 
-def parse_image_list(image_list_file, header, columns=['path', ]):
+def parse_image_list(image_list_file, header='selected index', columns=['path', ]):
   image_list = read_image_list_and_show_in_st(image_list_file=image_list_file, columns=columns, header=header,
                                               show_dataframe=False)
 
-  default_index = st.number_input(f"selected index (0~{len(image_list) - 1})", value=0,
-                                  min_value=0, max_value=len(image_list) - 1, key=header)
+  default_index = st.sidebar.number_input(f"{header} (0~{len(image_list) - 1})", value=0,
+                                          min_value=0, max_value=len(image_list) - 1, key=header)
   image_path = image_list[default_index][0]
   image_path = Path(image_path)
 
