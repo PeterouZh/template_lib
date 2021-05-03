@@ -17,6 +17,11 @@ show_video:
     - show_video
   show_video:
     num_video: 7
+  image_list_files:
+    image_list_files:
+      image_list:
+        image_list_file: datasets/image_list.txt
+
 
 
 

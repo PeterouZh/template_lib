@@ -46,8 +46,47 @@ class STModel(object):
         st.video(video_path)
         st.write(video_path)
 
-    if not st.button("run_web"):
-      return
+    if not global_cfg.tl_debug:
+      if not st.sidebar.button("run_web"):
+        return
+
+    if saved_suffix_state is not None:
+      saved_suffix_state.saved_suffix = saved_suffix_state.saved_suffix + 1
+
+    pass
+
+  def image_list_files(self,
+                       mode,
+                       outdir,
+                       cfg,
+                       saved_suffix_state=None,
+                       **kwargs):
+    import collections
+    from template_lib.proj.streamlit import st_utils
+    from template_lib.proj.pil import pil_utils
+
+    image_list_kwargs = collections.defaultdict(dict)
+    for k, v in cfg.image_list_files.items():
+      header = f"{k}_s"
+      image_path = st_utils.parse_image_list(image_list_file=v.image_list_file, header=header, )
+      image_list_kwargs[header]['image_path'] = image_path
+      header = f"{k}_t"
+      image_path = st_utils.parse_image_list(image_list_file=v.image_list_file, header=header, )
+      image_list_kwargs[header]['image_path'] = image_path
+    source_k = st_utils.radio('source', options=image_list_kwargs.keys(), index=0, sidebar=True)
+    target_k = st_utils.radio('target', options=image_list_kwargs.keys(), index=1, sidebar=True)
+
+    image_path_s = image_list_kwargs[source_k]['image_path']
+    image_path_t = image_list_kwargs[target_k]['image_path']
+
+    img_pil_s = Image.open(image_path_s)
+    img_pil_t = Image.open(image_path_t)
+    img_pil_s_t = pil_utils.merge_image_pil([img_pil_s, img_pil_t], nrow=2, pad=1, dst_size=2048)
+    st.image(img_pil_s_t, caption=f"source: {img_pil_s.size}, target: {img_pil_t.size}", use_column_width=True)
+
+    if not global_cfg.tl_debug:
+      if not st.sidebar.button("run_web"):
+        return
 
     if saved_suffix_state is not None:
       saved_suffix_state.saved_suffix = saved_suffix_state.saved_suffix + 1

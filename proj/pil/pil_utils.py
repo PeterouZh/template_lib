@@ -17,6 +17,19 @@ def imshow_pil(img_pil):
   plt.show()
 
 
+def np_to_pil(img_np, channel_first=False, range01=False, scale=False):
+  if channel_first:
+    img_np = img_np.transpose(1, 2, 0)
+  if range01:
+    img_np = (img_np * 255)
+  if img_np.dtype != np.uint8:
+    if scale:
+      img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min()) * 255.
+    img_np = img_np.astype(np.uint8)
+  img_pil = Image.fromarray(img_np)
+  return img_pil
+
+
 def merge_image_np(image_list, nrow: int = 8, saved_file=None, pad=0, pad_color='black',
                    channel_first=False, range01=False, dst_size=None) -> None:
   images_pil = []
@@ -24,7 +37,9 @@ def merge_image_np(image_list, nrow: int = 8, saved_file=None, pad=0, pad_color=
     if channel_first:
       img_np = img_np.transpose(1, 2, 0)
     if range01:
-      img_np = (img_np * 255).astype(np.uint8)
+      img_np = (img_np * 255)
+    if img_np.dtype != np.uint8:
+      img_np = img_np.astype(np.uint8)
     img_pil = Image.fromarray(img_np)
     images_pil.append(img_pil)
 
