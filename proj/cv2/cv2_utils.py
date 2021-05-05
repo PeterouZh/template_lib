@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 import sys
 import unittest
@@ -48,25 +49,37 @@ class VideoWriter(object):
 
 
 class ImageioVideoWriter(object):
-  def __init__(self, outfile, fps, **kwargs):
+  def __init__(self, outfile, fps, save_gif=False, **kwargs):
     """
     pip install imageio-ffmpeg opencv-python
 
     """
     self.video_file = outfile
+    self.save_gif = save_gif
+
     import imageio
     self.video = imageio.get_writer(outfile, fps=fps)
+
+    if self.save_gif:
+      outfile = Path(outfile)
+      self.gif_out = imageio.get_writer(f"{outfile.parent}/{outfile.stem}.gif", fps=fps)
+
     pass
 
   def write(self, image, dst_size=None, **kwargs):
     if dst_size is not None:
       w, h = self._get_size(w=image.size[0], h=image.size[1], dst_size=dst_size, for_min_edge=False)
       image = image.resize((w, h), Image.LANCZOS)
-    self.video.append_data(np.array(image))
+    img_np = np.array(image)
+    self.video.append_data(img_np)
+    if self.save_gif:
+      self.gif_out.append_data(img_np)
     pass
 
   def release(self, st_video=False):
     self.video.close()
+    if self.save_gif:
+      self.gif_out.close()
     if st_video:
       import streamlit as st
       st.video(self.video_file)

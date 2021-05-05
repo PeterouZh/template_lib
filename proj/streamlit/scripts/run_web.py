@@ -155,7 +155,7 @@ def main():
   st_model = build_model_st()
 
   mode = st_utils.selectbox(label='mode', options=global_cfg.mode, sidebar=True)
-  getattr(st_model, mode)(mode=mode, **global_cfg.get(mode, {}), **kwargs)
+  getattr(st_model, mode)(mode=mode, cfg=global_cfg.get(mode, {}), **global_cfg.get(mode, {}), **kwargs)
 
   pass
 
