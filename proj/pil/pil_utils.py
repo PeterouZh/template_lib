@@ -5,11 +5,18 @@ from PIL import Image, ImageDraw, ImageFont
 import matplotlib.pyplot as plt
 import copy
 import numpy as np
+from pathlib import Path
 
 from template_lib import utils
 
 _font = r'template_lib/datasets/sans-serif.ttf'
 
+
+def pil_save(img_pil, image_path, exts=['.png', '.jpg']):
+  image_path = Path(image_path)
+  path_prefix = f"{image_path.parent}/{image_path.stem}"
+  for ext in exts:
+    img_pil.save(f"{path_prefix}{ext}")
 
 def imshow_pil(img_pil):
   import matplotlib.pyplot as plt
