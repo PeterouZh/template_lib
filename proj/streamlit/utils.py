@@ -59,6 +59,7 @@ def multiselect(label, options, default=None, sidebar=False):
 
 
 def selectbox(label, options, index=0, sidebar=False):
+  options = list(options)
   if sidebar:
     ret = st.sidebar.selectbox(label=label, options=options, index=index)
   else:

@@ -11,12 +11,12 @@ class Testing_Streamlit(unittest.TestCase):
     """
     Usage:
 
-        export CUDA_VISIBLE_DEVICES=0
-        export TIME_STR=0
+        export CUDA_VISIBLE_DEVICES=7
+        export TIME_STR=1
         export PYTHONPATH=./
         python -c "from template_lib.proj.streamlit.tests.test_streamlit import Testing_Streamlit;\
           Testing_Streamlit().test_show_video(debug=False)" \
-          --tl_opts port 8527 start_web True show_video.num_video 7
+          --tl_opts port 8530 start_web True show_video.num_video 7
 
     :return:
     """
