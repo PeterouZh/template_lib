@@ -130,6 +130,42 @@ def add_text_in_tensor(img_tensor,
   return img_tensor
 
 
+def merge_original_image_and_patches_horizon(image,
+                                             lefts,
+                                             uppers,
+                                             w,
+                                             h,
+                                             pad=3,
+                                             width=2,
+                                             patch_width=1,
+                                             outlines=('#ff0000', '#0000ff')):
+  """
+  lefts, uppers: []
+  """
+  image = copy.deepcopy(image)
+  im_w, im_h = image.size
+  # resized_w = im_w // 2 - pad // 2
+  # resized_h = int((resized_w / w) * h)
+  resized_h = im_h // 2 - pad // 2
+  resized_w = int((resized_h / h) * w)
+
+  # out_size = (im_w, im_h + pad + resized_h)
+  out_size = (im_w + pad + resized_w, im_h)
+  out_image = Image.new('RGB', out_size, "white")
+
+  start_h = 0
+  for left, upper, outline in zip(lefts, uppers, outlines):
+    # Add rectangle on image
+    patch = draw_rectangle_and_return_crop(
+      image=image, left=left, upper=upper, w=w, h=h, width=width, patch_width=patch_width,
+      outline=outline)
+
+    resized_patch = patch.resize((resized_w, resized_h), resample=Image.NEAREST)
+    out_image.paste(resized_patch, (im_w + pad, start_h))
+    start_h = im_h - resized_h
+  out_image.paste(image, (0, 0))
+  return out_image
+
 def sr_merge_original_image_and_patches(image,
                                         lefts,
                                         uppers,
@@ -358,6 +394,57 @@ class Testing_pil_utils(unittest.TestCase):
 
     out_image = sr_merge_original_image_and_patches(image=image, lefts=left, uppers=upper, w=w, h=h, pad=pad,
                                                     width=3, patch_width=1)
+
+    fig, axes = plt.subplots(1, 1)
+    axes.imshow(out_image)
+    # axes[1].imshow(patch)
+    fig.show()
+    pass
+
+  def test_merge_original_image_and_patches_horizon(self, debug=True):
+    """
+    Usage:
+        export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+        export TIME_STR=1
+        export PYTHONPATH=./exp:./stylegan2-pytorch:./
+        python 	-c "from exp.tests.test_styleganv2 import Testing_stylegan2;\
+          Testing_stylegan2().test_train_ffhq_128()"
+
+    :return:
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+    from template_lib.v2.config_cfgnode.argparser import \
+      (get_command_and_outdir, setup_outdir_and_yaml, get_append_cmd_str, start_cmd_run)
+
+    tl_opts = ' '.join(sys.argv[sys.argv.index('--tl_opts') + 1:]) if '--tl_opts' in sys.argv else ''
+    print(f'tl_opts:\n {tl_opts}')
+
+    command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
+    argv_str = f"""
+                --tl_config_file none
+                --tl_command none
+                --tl_outdir {outdir}
+                --tl_opts {tl_opts}
+                """
+    args, cfg = setup_outdir_and_yaml(argv_str, return_cfg=True)
+
+    n_gpus = len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
+
+    img_path = "template_lib/datasets/images/zebra_GT_target_origin.png"
+
+    left = [80, 300]
+    upper = [120, 140]
+    w = 50
+    h = 20
+    pad = 2
+
+    image = Image.open(img_path)
+
+    out_image = merge_original_image_and_patches_horizon(image=image, lefts=left, uppers=upper, w=w, h=h, pad=pad,
+                                                         width=3, patch_width=1)
 
     fig, axes = plt.subplots(1, 1)
     axes.imshow(out_image)
