@@ -43,7 +43,10 @@ class STModel(object):
       video_path = st_utils.text_input(f"video {idx} ", "", sidebar=True)
       if video_path and os.path.isfile(video_path):
         st.subheader(f"tag {idx}: {tag}")
-        st.video(video_path)
+        if video_path.endswith(('.jpg', '.png')):
+          st.image(video_path)
+        elif video_path.endswith('.mp4'):
+          st.video(video_path)
         st.write(video_path)
 
     if not global_cfg.tl_debug:
