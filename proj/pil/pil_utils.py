@@ -12,6 +12,14 @@ from template_lib import utils
 _font = r'template_lib/datasets/sans-serif.ttf'
 
 
+def pil_open_rgb(path):
+  # open path as file to avoid ResourceWarning
+  # (https://github.com/python-pillow/Pillow/issues/835)
+  with open(path, 'rb') as f:
+    img = Image.open(f)
+    return img.convert('RGB')
+
+
 def pil_save(img_pil, image_path, exts=['.png', '.jpg']):
   image_path = Path(image_path)
   path_prefix = f"{image_path.parent}/{image_path.stem}"
