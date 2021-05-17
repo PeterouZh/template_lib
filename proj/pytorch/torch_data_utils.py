@@ -142,7 +142,7 @@ class Testing_Dataset(unittest.TestCase):
     """
 
     image_list_file = "template_lib/proj/pytorch/examples/cam_img/image_list.txt"
-    num_workers = 1
+    num_workers = 0
 
     dataset = ImageListDataset(meta_file=image_list_file, )
     img = dataset[0]

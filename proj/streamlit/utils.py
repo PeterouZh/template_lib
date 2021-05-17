@@ -1,3 +1,4 @@
+import numpy as np
 from PIL import Image
 from pathlib import Path
 import logging
@@ -29,7 +30,7 @@ def radio(label, options, index=0, sidebar=False):
 
 
 
-class LineChart(object):
+class LineChart_deprecated(object):
   def __init__(self, x_label, y_label):
     self.x_label = x_label
     self.y_label = y_label
@@ -45,6 +46,30 @@ class LineChart(object):
     self.pd_data = self.pd_data.append({self.x_label: x, self.y_label: y}, ignore_index=True)
     pd_data = self.pd_data.set_index(self.x_label)
     self.st_line_chart.line_chart(pd_data)
+    pass
+
+
+class LineChart(object):
+  def __init__(self, x_label, y_label):
+    self.x_label = x_label
+    self.y_label = y_label
+
+    # self.pd_data = pd.DataFrame(columns=[x_label, y_label])
+    self.st_line_chart = st.line_chart()
+    self.st_init = is_init()
+    pass
+
+  def write(self, x, y):
+    # if not self.st_init:
+    #   return
+    data = {self.x_label: [x], self.y_label: [y]}
+    pd_data = pd.DataFrame(data=data).set_index(self.x_label)
+
+    # self.pd_data = self.pd_data.append(data, ignore_index=True)
+    # pd_data = pd_data.set_index(self.x_label)
+
+    # data = np.array([[x, y]])
+    self.st_line_chart.add_rows(pd_data)
     pass
 
 
