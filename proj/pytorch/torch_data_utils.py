@@ -2,6 +2,7 @@ import sys
 import os
 import unittest
 
+import torch
 import torch.utils.data as data_utils
 import torchvision.transforms as tv_trans
 import torchvision.transforms.functional as trans_f
@@ -141,9 +142,26 @@ class Testing_Dataset(unittest.TestCase):
     """
 
     image_list_file = "template_lib/proj/pytorch/examples/cam_img/image_list.txt"
+    num_workers = 1
+
     dataset = ImageListDataset(meta_file=image_list_file, )
     img = dataset[0]
 
+    if False and 'dist':
+      sampler = torch.utils.data.distributed.DistributedSampler(dataset, shuffle=False)
+    else:
+      sampler = None
+
+    train_loader = data_utils.DataLoader(
+      dataset,
+      batch_size=1,
+      shuffle=(sampler is None),
+      sampler=sampler,
+      num_workers=num_workers,
+      pin_memory=False)
+
+    data_iter = iter(train_loader)
+    data = next(data_iter)
 
     pass
 
