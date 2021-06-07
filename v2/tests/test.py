@@ -455,3 +455,62 @@ class Testing_v2_cfgnode(unittest.TestCase):
     fig.savefig(saved_file, bbox_inches='tight', pad_inches=0.0)
     print(f'Save to {saved_file}')
     pass
+
+  def test__select_images(self, debug=True):
+    """
+    Usage:
+        ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=2 root@localhost -p 2232
+
+        export CUDA_VISIBLE_DEVICES=4
+        export TIME_STR=1
+        export PYTHONPATH=./:./ada_lib
+        python -c "from exp.tests.test_ada_ultra import Testing_train_StyleUltraGAN_ADA_Transfer_MixedFaces;\
+          Testing_train_StyleUltraGAN_ADA_Transfer_MixedFaces().test_projector_web(debug=False)" \
+          --tl_opts port 8530 start_web True
+
+    :return:
+    """
+    if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+      os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    if 'TIME_STR' not in os.environ:
+      os.environ['TIME_STR'] = '0' if utils.is_debugging() else '0'
+    from template_lib.v2.config_cfgnode.argparser import \
+      (get_command_and_outdir, setup_outdir_and_yaml, get_append_cmd_str, start_cmd_run)
+
+    tl_opts = ' '.join(sys.argv[sys.argv.index('--tl_opts') + 1:]) if '--tl_opts' in sys.argv else ''
+    print(f'tl_opts:\n {tl_opts}')
+
+    command, outdir = get_command_and_outdir(self, func_name=sys._getframe().f_code.co_name, file=__file__)
+    argv_str = f"""
+                --tl_config_file none
+                --tl_command none
+                --tl_outdir {outdir}
+                --tl_opts {tl_opts}
+                """
+    args, cfg = setup_outdir_and_yaml(argv_str, return_cfg=True)
+    from pathlib import Path
+    import shutil
+
+    domain_dict = {}
+
+    domain_dict['lso_sm'] = """
+x0_lso: results/train_StyleUltraGAN_ADA_Transfer_MixedFaces/double_inversion_web-20210604_093503_613/exp/0024/29218_lso.jpg,
+x1_lso: results/train_StyleUltraGAN_ADA_Transfer_MixedFaces/double_inversion_web-20210604_093503_613/exp/0014/29438_lso.jpg,
+        """
+    suffix_str = [''] * 2
+
+    for domain, image_list in domain_dict.items():
+      image_list = image_list.split(',')
+      for item, suffix in zip(image_list, suffix_str):
+        layer_name, image_path = item.strip().split(':')
+        layer_name = layer_name.strip().replace(' ', '_')
+        image_path = Path(image_path.strip())
+
+        select_path = Path(f"{image_path.parent}/{image_path.stem}{suffix}.jpg")
+        saved_path = Path(f"{outdir}/images/{domain}/{layer_name}_{select_path.name}")
+
+        os.makedirs(saved_path.parent, exist_ok=True)
+        shutil.copy(select_path, saved_path)
+
+    print(outdir)
+    pass
