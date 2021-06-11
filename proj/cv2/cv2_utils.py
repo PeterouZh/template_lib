@@ -11,6 +11,31 @@ import copy
 from template_lib import utils
 
 
+def cv2_imread(filename):
+  filename = str(filename)
+  img_cv = cv2.imread(filename=filename)
+  return img_cv
+
+
+def pad_mirror(width, height, img_np):
+
+  h, w, c = img_np.shape
+  start_h = (height - h) // 2
+  end_h = start_h + h
+  start_w = (width - w) // 2
+  end_w = start_w + w
+
+  border_t = start_h
+  border_b = height - end_h
+  border_l = start_w
+  border_r = width - end_w
+
+  # canvas = np.zeros([height, width, 3], dtype=np.uint8)
+  # canvas[start_h:end_h, start_w:end_w, :] = img
+  canvas = cv2.copyMakeBorder(img_np.copy(), border_t, border_b, border_l, border_r, cv2.BORDER_REFLECT_101)
+  return canvas
+
+
 def open_video(video_file):
   cap = cv2.VideoCapture(str(video_file))
   ret_success, frame = cap.read()
