@@ -68,6 +68,13 @@ class PlotResults(object):
 
         fig, axes = self.get_fig_axes(rows=len(default_dicts), cols=1, figsize_wh=figsize_wh)
 
+        if data_load_func is None:
+            data_load_func_list = [self._data_load_func, ] * len(default_dicts)
+        elif not isinstance(data_load_func, (list, tuple)):
+            data_load_func_list = [data_load_func, ] * len(default_dicts)
+        else:
+            data_load_func_list = data_load_func
+
         label2datas_list = {}
         for idx, (dict_name, default_dict) in enumerate(default_dicts.items()):
             data_xlim = None
@@ -90,9 +97,7 @@ class PlotResults(object):
                     # get modified time
                     modi_minutes = self.get_last_md_inter_time(filepath)
 
-                    if data_load_func is None:
-                        data_load_func = self._data_load_func
-                    data = data_load_func(filepath)
+                    data = data_load_func_list[idx](filepath)
                     # data = np.loadtxt(filepath, delimiter=':')
                     # data = data.reshape(-1, 2)
                     # limit x in a range
@@ -109,8 +114,8 @@ class PlotResults(object):
             axes[idx].grid(b=True, which='major', color='#666666', linestyle='--', alpha=0.2)
                     
             label2datas_list[dict_name] = label2datas
-        fig.savefig(outfigure, dpi=dpi, bbox_inches='tight', pad_inches=0.1)
         fig.show()
+        fig.savefig(outfigure, dpi=dpi, bbox_inches='tight', pad_inches=0.1)
         return label2datas_list
 
 

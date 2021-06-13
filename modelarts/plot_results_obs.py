@@ -79,6 +79,13 @@ class PlotResultsObs(object):
 
     fig, axes = self.get_fig_axes(rows=len(default_dicts), cols=1, figsize_wh=figsize_wh)
 
+    if data_load_func is None:
+      data_load_func_list = [self._data_load_func, ] * len(default_dicts)
+    elif not isinstance(data_load_func, (list, tuple)):
+      data_load_func_list = [data_load_func, ] * len(default_dicts)
+    else:
+      data_load_func_list = data_load_func
+
     bucket = self.root_obs_dict[bucket]
     root_dir = os.path.expanduser('~/results')
 
@@ -106,9 +113,7 @@ class PlotResultsObs(object):
           # get modified time
           modi_minutes = self.get_last_md_inter_time(filepath_obs)
 
-          if data_load_func is None:
-            data_load_func = self._data_load_func
-          data = data_load_func(filepath)
+          data = data_load_func_list[idx](filepath)
           # data = np.loadtxt(filepath, delimiter=':')
           # data = data.reshape(-1, 2)
           # limit x in a range
@@ -133,7 +138,7 @@ import unittest
 class Testing_plot_results_obs(unittest.TestCase):
 
   def test_plot_results(self, ):
-    import collections, os
+    import collections, os, functools
 
     default_dicts = collections.OrderedDict()
     show_max = []

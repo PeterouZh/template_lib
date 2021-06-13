@@ -15,7 +15,7 @@ def main():
 
 if __name__ == '__main__':
   """
-  python template_lib/proj/ubuntu/parse_results_dict_pkl.py --pkl 
+  python template_lib/proj/matplot/scripts/parse_results_dict_pkl.py --pkl 
   """
   parser = argparse.ArgumentParser()
   parser.add_argument('--pkl', type=str)
