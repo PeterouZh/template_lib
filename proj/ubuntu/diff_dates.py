@@ -10,6 +10,7 @@ def main():
   result = d2 - d1
 
   print(f'\nBetween {d1} and {d2}: \n {result}\n')
+  print(f"total_seconds: {result.total_seconds()}")
   pass
 
 if __name__ == '__main__':
