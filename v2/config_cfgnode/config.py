@@ -59,6 +59,7 @@ class TLCfgNode(_CfgNode):
       """
       """
       loaded_cfg = TLCfgNode.load_yaml_with_base(cfg_filename, allow_unsafe=allow_unsafe)
+      loaded_cfg = TLCfgNode(loaded_cfg)
 
       command_cfg = loaded_cfg.get(command)
       TLCfgNode._merge_base_cfg(command_cfg, loaded_cfg)
