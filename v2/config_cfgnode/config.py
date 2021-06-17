@@ -31,6 +31,7 @@ class TLCfgNode(_CfgNode):
 
     @staticmethod
     def _merge_base_cfg(cfg, loaded_cfg):
+      loaded_cfg = loaded_cfg.clone()
       for sub_key in cfg:
         sub_cfg = cfg.get(sub_key)
         if isinstance(sub_cfg, dict):
