@@ -36,8 +36,9 @@ def set_non_gui_backend(plt, ):
     plt.switch_backend('agg')
 
 
-def ax_legend(ax, font_size, loc='lower right', ncol=1, framealpha=1):
-  ax.legend(prop={'size': font_size}, ncol=ncol, loc=loc, framealpha=framealpha)
+def ax_legend(ax, font_size, loc='lower right', ncol=1, framealpha=1, zorder=100):
+  legend = ax.legend(prop={'size': font_size}, ncol=ncol, loc=loc, framealpha=framealpha)
+  legend.set_zorder(zorder)
   pass
 
 
