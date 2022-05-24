@@ -10,7 +10,7 @@ scikit-image
 scikit-learn
 scipy
 tensorboardX==1.7
-tensorflow==1.13.1
+tensorflow==2.6.4
 torch
 torchvision
 tqdm
